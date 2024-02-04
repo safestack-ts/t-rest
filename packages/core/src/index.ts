@@ -3,6 +3,8 @@ import { HashMap } from "./hash-map";
 
 export type HTTPMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; // @todo add remaining types
 
+export type RouteHashMap = HashMap<[HTTPMethod, string], AnyRouteDef>;
+
 const responseType = Symbol("Response Type");
 export type ResponseTypeKey = typeof responseType;
 
@@ -141,7 +143,7 @@ export class BagOfRoutesBuilderWithVersioning<
   TRoutes extends AnyRouteDef,
   TVersioning extends Versioning
 > {
-  protected routes: HashMap<[HTTPMethod, string], AnyRouteDef> = new HashMap<
+  protected routes: RouteHashMap = new HashMap<
     [HTTPMethod, string],
     AnyRouteDef
   >((key) => key.join("-"));
@@ -167,19 +169,16 @@ export class BagOfRoutes<
   TRoutes extends AnyRouteDef,
   TVersioning extends Versioning
 > {
-  public readonly routes: HashMap<[HTTPMethod, string], AnyRouteDef>;
+  public readonly routes: RouteHashMap;
   public readonly versioning: TVersioning;
 
-  constructor(
-    routes: HashMap<[HTTPMethod, string], AnyRouteDef>,
-    versioning: TVersioning
-  ) {
+  constructor(routes: RouteHashMap, versioning: TVersioning) {
     this.routes = routes;
     this.versioning = versioning;
   }
 }
 
-const bagOfRoutes = new BagOfRoutesBuilder()
+export const demoBagOfRoutes = new BagOfRoutesBuilder()
   .withVersioning(Versioning.DATE)
   .addRoute(
     new Route()
@@ -195,3 +194,8 @@ const bagOfRoutes = new BagOfRoutesBuilder()
       .response<any[]>()
   )
   .build();
+
+export * from "./path";
+export * from "./hash-map";
+export * from "./typed-string-case";
+export * from "./string-types";

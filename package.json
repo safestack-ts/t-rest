@@ -15,5 +15,10 @@
   },
   "dependencies": {
     "zod": "^3.22.4"
+  },
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ]
   }
 }
