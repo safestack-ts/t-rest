@@ -9,7 +9,7 @@ export type JoinPath<
 > = `${WithoutTrailingSlash<TPath1>}${WithoutTrailingSlash<TPath2>}`;
 
 export const joinPath = (prefix: string, path: string) =>
-  `/${prefix}/${path}`.replace(/(?<!:)\/{2,}/g, "/");
+  `/${prefix}/${path}`.replace(/(?<!:)\/{2,}/g, "/").replace(/\/$/, "");
 
 // @todo transform into type tests
 type A = JoinPath<"/", "/a">; // '/b'

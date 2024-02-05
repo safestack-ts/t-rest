@@ -176,6 +176,19 @@ export class BagOfRoutes<
     this.routes = routes;
     this.versioning = versioning;
   }
+
+  public static withVersioning<TVersioning extends Versioning>(
+    versioning: TVersioning
+  ) {
+    return new BagOfRoutesBuilderWithVersioning<never, TVersioning>(versioning);
+  }
+
+  public static withoutVersioning() {
+    return new BagOfRoutesBuilderWithVersioning<
+      never,
+      Versioning.NO_VERSIONING
+    >(Versioning.NO_VERSIONING);
+  }
 }
 
 export const demoBagOfRoutes = new BagOfRoutesBuilder()
@@ -199,3 +212,4 @@ export * from "./path";
 export * from "./hash-map";
 export * from "./typed-string-case";
 export * from "./string-types";
+export * from "./zod-extensions";

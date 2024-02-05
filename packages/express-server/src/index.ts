@@ -9,7 +9,6 @@ import {
   RouteHashMap,
   StringReplaceHead,
   StringStartsWith,
-  SuffixString,
   Versioning,
   demoBagOfRoutes,
   joinPath,
@@ -17,11 +16,13 @@ import {
 } from "@typed-rest/core";
 import cors from "cors";
 import * as z from "zod";
+import { StatusCodes } from "http-status-codes";
 
 type ExpressRequest = Express.Request;
 type ExpressResponse = Express.Response;
 type ExpressRouter = Express.Router;
 type ExpressRequestHandler = Express.RequestHandler;
+type ExpressApp = Express.Application;
 
 export type TypedRequestHandler<TRequest extends ExpressRequest> = (
   request: TRequest,
@@ -62,10 +63,16 @@ type InferredPossiblePathsFromPrefix<
 > = FormatRootPath<
   StringReplaceHead<
     StringStartsWith<PossiblePaths<TRoutes, TMethod>, TRoutePrefix>,
-    TRoutePrefix,
+    TRoutePrefix extends "/" ? "" : TRoutePrefix,
     ""
   >
 >;
+
+type InferRouteValidationResult<
+  TRoutes extends AnyRouteDef,
+  TMethod extends HTTPMethod,
+  TPath extends string
+> = z.infer<Extract<TRoutes, { method: TMethod; path: TPath }>["validator"]>;
 
 export class TypedRouter<
   TRoutes extends AnyRouteDef,
@@ -95,7 +102,7 @@ export class TypedRouter<
   ): TypedRouter<TRoutes, TRequest, JoinPath<TPath, TPathBranch>> {
     const newRouter = new TypedRouter(
       this.routes,
-      this.router,
+      Express.Router(),
       path
     ) as TypedRouter<TRoutes, TRequest, JoinPath<TPath, TPathBranch>>;
 
@@ -115,14 +122,15 @@ export class TypedRouter<
     const route = this.routes.get([method, joinPath(this.path, path)]);
 
     if (!route) {
-      throw new Error(`Route not found for path: ${path}`); // @todo print full path
+      throw new Error(`Route not found for path: ${joinPath(this.path, path)}`);
     }
 
-    return new TypedRouteHandler<TRoute, TPathSuffix, TRequest>(
-      route as TRoute,
-      path,
-      this.router
-    );
+    return new TypedRouteHandler<
+      TRoute,
+      TPathSuffix,
+      TRequest,
+      InferRouteValidationResult<TRoutes, TMethod, JoinPath<TPath, TPathSuffix>>
+    >(route as TRoute, path, this.router);
   }
 
   public get<
@@ -150,18 +158,25 @@ type HandlerReturnType<TRoute extends AnyRouteDef> = RequestReturnType<
   TRoute[ResponseTypeKey]
 >;
 
+type RouteValidationOutput<TRoute extends AnyRouteDef> =
+  TRoute extends RouteDef<any, any, any, infer TValidator, any>
+    ? z.output<TValidator>
+    : never;
+
 type TypedRouteHandlerFn<
   TRoute extends AnyRouteDef,
-  TRequest extends ExpressRequest
+  TRequest extends ExpressRequest,
+  TValidationResult
 > = (
   request: TRequest,
-  validationOutput: z.output<TRoute["validator"]>
+  validationOutput: TValidationResult
 ) => HandlerReturnType<TRoute> | Promise<HandlerReturnType<TRoute>>;
 
 class TypedRouteHandler<
   TRoute extends AnyRouteDef,
   TPathSuffix extends string,
-  TRequest extends ExpressRequest
+  TRequest extends ExpressRequest,
+  TValidationResult // @todo check if can be inferred
 > {
   protected readonly route: TRoute;
   protected readonly path: TPathSuffix;
@@ -179,13 +194,20 @@ class TypedRouteHandler<
     TRequestOut extends TRequestIn
   >(
     handler: TypedMiddleware<TRequestIn, TRequestOut>
-  ): TypedRouteHandler<TRoute, TPathSuffix, TRequestOut> {
+  ): TypedRouteHandler<TRoute, TPathSuffix, TRequestOut, TValidationResult> {
     this.middlewares.push(handler);
 
-    return this as any as TypedRouteHandler<TRoute, TPathSuffix, TRequestOut>;
+    return this as any as TypedRouteHandler<
+      TRoute,
+      TPathSuffix,
+      TRequestOut,
+      TValidationResult
+    >;
   }
 
-  public handle(handler: TypedRouteHandlerFn<TRoute, TRequest>) {
+  public handle(
+    handler: TypedRouteHandlerFn<TRoute, TRequest, TValidationResult>
+  ) {
     this.router[typedLowerCase(this.route.method)](
       this.path,
       ...this.middlewares,
@@ -197,7 +219,15 @@ class TypedRouteHandler<
           validationOutput
         );
 
-        // @todo response handling
+        response.status(result.statusCode || StatusCodes.OK);
+
+        // make sure this is the last action in the handler,
+        // since from here on we alredy sent the response and the request is finished
+        if ("customize" in result) {
+          await result.customize(response, result.data);
+        } else {
+          response.send(result.data);
+        }
       }
     );
   }
@@ -209,8 +239,11 @@ export class TypedExpressApplication<
 > extends TypedRouter<TRoutes, TRequest, "/"> {
   private readonly bagOfRoutes: BagOfRoutes<TRoutes, Versioning>;
 
-  constructor(bagOfRoutes: BagOfRoutes<TRoutes, Versioning>) {
-    super(bagOfRoutes.routes, Express.Router(), "/");
+  constructor(
+    expressApp: ExpressApp,
+    bagOfRoutes: BagOfRoutes<TRoutes, Versioning>
+  ) {
+    super(bagOfRoutes.routes, expressApp, "/");
 
     this.bagOfRoutes = bagOfRoutes;
   }
@@ -226,7 +259,11 @@ const authMiddleware = defineMiddleware<ExpressRequest, RequestWithUserId>(
   }
 );
 
-const typedRESTApplication = new TypedExpressApplication(demoBagOfRoutes)
+const expressApp = Express.default();
+const typedRESTApplication = new TypedExpressApplication(
+  expressApp,
+  demoBagOfRoutes
+)
   .use(
     cors({
       origin: "*",
@@ -257,9 +294,9 @@ basketRouterPublic
 
     next();
   })
-  .handle((request) => {
+  .handle((request, validationResult) => {
     console.log(request.userId);
-    console.log(request.params.basketId);
+    console.log(validationResult.params.basketId);
 
     return null as any; // @todo
   });
@@ -272,9 +309,9 @@ basketRouterPublic
 
     next();
   })
-  .handle(async (request) => {
+  .handle(async (request, validationResult) => {
     console.log(request.userId);
-    console.log(request.params.basketId);
+    console.log(validationResult.params.basketId);
 
     return {
       statusCode: 201,
