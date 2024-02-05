@@ -125,12 +125,11 @@ export class TypedRouter<
       throw new Error(`Route not found for path: ${joinPath(this.path, path)}`);
     }
 
-    return new TypedRouteHandler<
-      TRoute,
-      TPathSuffix,
-      TRequest,
-      InferRouteValidationResult<TRoutes, TMethod, JoinPath<TPath, TPathSuffix>>
-    >(route as TRoute, path, this.router);
+    return new TypedRouteHandler<TRoute, TPathSuffix, TRequest>(
+      route as TRoute,
+      path,
+      this.router
+    );
   }
 
   public get<
@@ -175,8 +174,7 @@ type TypedRouteHandlerFn<
 class TypedRouteHandler<
   TRoute extends AnyRouteDef,
   TPathSuffix extends string,
-  TRequest extends ExpressRequest,
-  TValidationResult // @todo check if can be inferred
+  TRequest extends ExpressRequest
 > {
   protected readonly route: TRoute;
   protected readonly path: TPathSuffix;
@@ -194,19 +192,18 @@ class TypedRouteHandler<
     TRequestOut extends TRequestIn
   >(
     handler: TypedMiddleware<TRequestIn, TRequestOut>
-  ): TypedRouteHandler<TRoute, TPathSuffix, TRequestOut, TValidationResult> {
+  ): TypedRouteHandler<TRoute, TPathSuffix, TRequestOut> {
     this.middlewares.push(handler);
 
-    return this as any as TypedRouteHandler<
-      TRoute,
-      TPathSuffix,
-      TRequestOut,
-      TValidationResult
-    >;
+    return this as any as TypedRouteHandler<TRoute, TPathSuffix, TRequestOut>;
   }
 
   public handle(
-    handler: TypedRouteHandlerFn<TRoute, TRequest, TValidationResult>
+    handler: TypedRouteHandlerFn<
+      TRoute,
+      TRequest,
+      RouteValidationOutput<TRoute>
+    >
   ) {
     this.router[typedLowerCase(this.route.method)](
       this.path,
@@ -290,7 +287,6 @@ basketRouterPublic
   .get("/:basketId/entries")
   .middleware((request, _, next) => {
     console.log(request.userId);
-    console.log(request.params.basketId);
 
     next();
   })
