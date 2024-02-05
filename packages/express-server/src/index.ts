@@ -10,6 +10,7 @@ import {
   StringReplaceHead,
   StringStartsWith,
   Versioning,
+  WithoutTrailingSlash,
   demoBagOfRoutes,
   joinPath,
   typedLowerCase,
@@ -117,7 +118,10 @@ export class TypedRouter<
   >(method: TMethod, path: TPathSuffix) {
     type TRoute = Extract<
       TRoutes,
-      { method: "GET"; path: JoinPath<TPath, TPathSuffix> }
+      {
+        method: TMethod;
+        path: WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>;
+      }
     >;
     const route = this.routes.get([method, joinPath(this.path, path)]);
 
@@ -136,6 +140,34 @@ export class TypedRouter<
     TPathSuffix extends InferredPossiblePathsFromPrefix<TRoutes, "GET", TPath>
   >(path: TPathSuffix) {
     return this.getRouteHandler("GET", path);
+  }
+
+  public post<
+    TPathSuffix extends InferredPossiblePathsFromPrefix<TRoutes, "POST", TPath>
+  >(path: TPathSuffix) {
+    return this.getRouteHandler("POST", path);
+  }
+
+  public put<
+    TPathSuffix extends InferredPossiblePathsFromPrefix<TRoutes, "PUT", TPath>
+  >(path: TPathSuffix) {
+    return this.getRouteHandler("PUT", path);
+  }
+
+  public patch<
+    TPathSuffix extends InferredPossiblePathsFromPrefix<TRoutes, "PATCH", TPath>
+  >(path: TPathSuffix) {
+    return this.getRouteHandler("PATCH", path);
+  }
+
+  public delete<
+    TPathSuffix extends InferredPossiblePathsFromPrefix<
+      TRoutes,
+      "DELETE",
+      TPath
+    >
+  >(path: TPathSuffix) {
+    return this.getRouteHandler("DELETE", path);
   }
 }
 
