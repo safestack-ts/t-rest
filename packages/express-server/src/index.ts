@@ -69,12 +69,6 @@ type InferredPossiblePathsFromPrefix<
   >
 >;
 
-type InferRouteValidationResult<
-  TRoutes extends AnyRouteDef,
-  TMethod extends HTTPMethod,
-  TPath extends string
-> = z.infer<Extract<TRoutes, { method: TMethod; path: TPath }>["validator"]>;
-
 export class TypedRouter<
   TRoutes extends AnyRouteDef,
   TRequest extends ExpressRequest,
@@ -104,7 +98,7 @@ export class TypedRouter<
     const newRouter = new TypedRouter(
       this.routes,
       Express.Router(),
-      path
+      joinPath(this.path, path)
     ) as TypedRouter<TRoutes, TRequest, JoinPath<TPath, TPathBranch>>;
 
     this.router.use(path, newRouter.router);

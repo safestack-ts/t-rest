@@ -7,6 +7,11 @@ import { StatusCodes } from "http-status-codes";
 
 type User = {
   id: number;
+  email: string;
+};
+
+type Person = {
+  id: number;
   name: string;
 };
 
@@ -40,21 +45,21 @@ test("simple express app without versioning routing is working", async () => {
 
   typedRESTApplication.get("/users/me").handle(() => ({
     statusCode: StatusCodes.OK,
-    data: { id: 1, name: "John Doe" },
+    data: { id: 1, email: "jon.doe@email.com" },
   }));
 
   typedRESTApplication
     .get("/users/:userId")
     .handle((_, { params: { userId } }) => ({
       statusCode: StatusCodes.OK,
-      data: { id: userId, name: `User ${userId}` },
+      data: { id: userId, email: `user-${userId}@email.com` },
     }));
 
   const response = await request(expressApp)
     .get("/users/1")
     .expect(StatusCodes.OK);
 
-  expect(response.body).toEqual<User>({ id: 1, name: "User 1" });
+  expect(response.body).toEqual<User>({ id: 1, email: `user-1@email.com` });
 });
 
 test("express app with multiple routers without versioning is working", async () => {
@@ -78,11 +83,11 @@ test("express app with multiple routers without versioning is working", async ()
   const userRouter = typedRESTApplication.branch("/users");
   userRouter.get("/me").handle(() => ({
     statusCode: StatusCodes.OK,
-    data: { id: 1, name: "John Doe" },
+    data: { id: 1, email: "jon.doe@email.com" },
   }));
   userRouter.get("/:userId").handle((_, { params: { userId } }) => ({
     statusCode: StatusCodes.OK,
-    data: { id: userId, name: `User ${userId}` },
+    data: { id: userId, email: `user-${userId}@email.com` },
   }));
 
   const basketRouter = typedRESTApplication.branch("/baskets");
@@ -101,7 +106,10 @@ test("express app with multiple routers without versioning is working", async ()
     .get("/users/1")
     .expect(StatusCodes.OK);
 
-  expect(createUserResponse.body).toEqual<User>({ id: 1, name: "User 1" });
+  expect(createUserResponse.body).toEqual<User>({
+    id: 1,
+    email: `user-1@email.com`,
+  });
 
   const createBasketResponse = await request(expressApp)
     .post("/baskets")
@@ -110,5 +118,73 @@ test("express app with multiple routers without versioning is working", async ()
   expect(createBasketResponse.body).toEqual<Basket>({
     id: "123",
     entries: [],
+  });
+});
+
+test("nested routers without versioning is working", async () => {
+  const expressApp = Express();
+
+  const bagOfRoutes = BagOfRoutes.withoutVersioning()
+    .addRoute(new Route().get("/users/admin").response<User[]>())
+    .addRoute(
+      new Route()
+        .get("/users/admin/:userId/persons")
+        .validate(z.object({ params: z.object({ userId: ze.parseInteger() }) }))
+        .response<Person[]>()
+    )
+    .addRoute(
+      new Route()
+        .get("/users/:userId")
+        .validate(z.object({ params: z.object({ userId: ze.parseInteger() }) }))
+        .response<User>()
+    )
+    .build();
+
+  const typedRESTApplication = new TypedExpressApplication(
+    expressApp,
+    bagOfRoutes
+  );
+
+  const userRouter = typedRESTApplication.branch("/users");
+  const userAdminRouter = userRouter.branch("/admin");
+
+  userAdminRouter.get("/").handle(() => ({
+    statusCode: StatusCodes.OK,
+    data: [{ id: 1, email: "jon.doe@email.com" }],
+  }));
+
+  userAdminRouter.get("/:userId/persons").handle(() => ({
+    statusCode: StatusCodes.OK,
+    data: [{ id: 1, name: "Jon Doe" }],
+  }));
+
+  userRouter.get("/:userId").handle((_, { params: { userId } }) => ({
+    statusCode: StatusCodes.OK,
+    data: { id: userId, email: `user-${userId}@email.com` },
+  }));
+
+  const getUserPersonsAdminResponse = await request(expressApp)
+    .get("/users/admin/1/persons")
+    .expect(StatusCodes.OK);
+
+  expect(getUserPersonsAdminResponse.body).toEqual<Person[]>([
+    { id: 1, name: "Jon Doe" },
+  ]);
+
+  const getUsersAdminResponse = await request(expressApp)
+    .get("/users/admin")
+    .expect(StatusCodes.OK);
+
+  expect(getUsersAdminResponse.body).toEqual<User[]>([
+    { id: 1, email: "jon.doe@email.com" },
+  ]);
+
+  const getUserResponse = await request(expressApp)
+    .get("/users/1")
+    .expect(StatusCodes.OK);
+
+  expect(getUserResponse.body).toEqual<User>({
+    id: 1,
+    email: `user-1@email.com`,
   });
 });
