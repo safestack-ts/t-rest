@@ -4,27 +4,7 @@ import { z } from "zod";
 import { TypedExpressApplication } from "../index";
 import request from "supertest";
 import { StatusCodes } from "http-status-codes";
-
-type User = {
-  id: number;
-  email: string;
-};
-
-type Person = {
-  id: number;
-  name: string;
-};
-
-type BasketEntry = {
-  id: string;
-  productName: string;
-  quantity: number;
-};
-
-type Basket = {
-  id: string;
-  entries: BasketEntry[];
-};
+import { User, Basket, Person } from "./utils/test-entity-types";
 
 const baseBagOfRoutes = BagOfRoutes.withoutVersioning()
   .addRoute(new Route().get("/users/me").response<User>())

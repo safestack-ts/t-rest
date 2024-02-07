@@ -225,6 +225,7 @@ export class BagOfRoutes<
     this.versioning = versioning;
   }
 
+  // @todo make version history passable and infer available version for route definitions from it
   public static withVersioning<TVersioning extends Versioning>(
     versioning: TVersioning
   ) {
@@ -261,3 +262,5 @@ export * from "./hash-map";
 export * from "./typed-string-case";
 export * from "./string-types";
 export * from "./zod-extensions";
+export * from "./remove-readonly";
+export * from "./version-history";
