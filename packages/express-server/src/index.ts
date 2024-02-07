@@ -21,14 +21,19 @@ import cors from "cors";
 import * as z from "zod";
 import { StatusCodes } from "http-status-codes";
 import { removePrefixFromPath } from "./utils/remove-prefix-from-path";
-import { resolveVersion } from "./utils/resolve-version";
-
-type ExpressRequest = Express.Request;
-type ExpressResponse = Express.Response;
-type ExpressNextFunction = Express.NextFunction;
-type ExpressRouter = Express.Router;
-type ExpressRequestHandler = Express.RequestHandler;
-type ExpressApp = Express.Application;
+import { resolveDateVersion, resolveVersion } from "./utils/resolve-version";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  ExpressRouter,
+  ExpressRequestHandler,
+  ExpressApp,
+} from "./express-type-shortcuts";
+import {
+  VersionExtractor,
+  DateVersionExtractor,
+  isDateVersionExtractor,
+} from "./version-extractor";
 
 export type TypedRequestHandler<TRequest extends ExpressRequest> = (
   request: TRequest,
@@ -529,10 +534,6 @@ class TypedRouteHandler<
   }
 }
 
-export interface VersionExtractor {
-  extractVersion: (request: ExpressRequest) => string | undefined | null;
-}
-
 class NoVersionExtractor implements VersionExtractor {
   extractVersion() {
     return "";
@@ -662,12 +663,18 @@ class VersionedRouting {
         throw new Error("No version specified and no default version found");
       }
 
-      const resolvedVersion = resolveVersion(
-        this.versionHistory,
-        routes.map(({ route }) => route.version),
-        requestedVersion
-      );
-      //console.log({ requestedVersion, resolvedVersion });
+      const resolvedVersion = isDateVersionExtractor(this.versionExtractor)
+        ? resolveDateVersion(
+            this.versionHistory,
+            routes.map(({ route }) => route.version),
+            requestedVersion,
+            this.versionExtractor
+          )
+        : resolveVersion(
+            this.versionHistory,
+            routes.map(({ route }) => route.version),
+            requestedVersion
+          );
 
       if (resolvedVersion === null) {
         throw new Error(

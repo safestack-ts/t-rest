@@ -1,3 +1,6 @@
+import { DateVersionExtractor } from "../version-extractor";
+import { findNearestLowerDate } from "./find-nearest-lower-date";
+
 export const resolveVersion = (
   versionHistory: string[],
   availableVersions: string[],
@@ -18,4 +21,46 @@ export const resolveVersion = (
   }
 
   return null;
+};
+
+export const resolveDateVersion = (
+  versionHistory: string[],
+  availableVersions: string[],
+  requestedVersion: string,
+  dateVersionExtractor: DateVersionExtractor
+) => {
+  const simpleResolvedVersion = resolveVersion(
+    versionHistory,
+    availableVersions,
+    requestedVersion
+  );
+
+  if (simpleResolvedVersion) {
+    return simpleResolvedVersion;
+  } else {
+    // need to parse versions and find matching date version
+    const versionHistoryDates = versionHistory.map(
+      dateVersionExtractor.parseDate
+    );
+    const requestedDateVersion =
+      dateVersionExtractor.parseDate(requestedVersion);
+
+    const nearestLowerDateResult = findNearestLowerDate(
+      versionHistoryDates,
+      requestedDateVersion
+    );
+
+    if (!nearestLowerDateResult) {
+      return null;
+    }
+
+    const { lowerDateIndex } = nearestLowerDateResult;
+
+    for (let i = lowerDateIndex; i >= 0; i--) {
+      const version = versionHistory[i];
+      if (availableVersions.includes(version)) {
+        return version;
+      }
+    }
+  }
 };

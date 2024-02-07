@@ -7,10 +7,11 @@ import {
 } from "@typed-rest/core";
 import { User } from "./utils/test-entity-types";
 import { z } from "zod";
-import { TypedExpressApplication, VersionExtractor } from "..";
+import { TypedExpressApplication } from "..";
 import Express from "express";
 import request from "supertest";
 import { StatusCodes } from "http-status-codes";
+import { DateVersionExtractor } from "../version-extractor";
 
 type ResponseWithVersion<T> = {
   data: T;
@@ -43,9 +44,12 @@ const baseBagOfRoutes = BagOfRoutes.withVersioning(
   )
   .build();
 
-class PricenowAPIVersionHeaderExtractor implements VersionExtractor {
+class PricenowAPIVersionHeaderExtractor implements DateVersionExtractor {
   extractVersion(request: Express.Request) {
     return request.header("x-pricenow-api-version");
+  }
+  parseDate(version: string) {
+    return new Date(version);
   }
 }
 
@@ -131,6 +135,27 @@ test("calling route with outdated version resolves to outdated version of the ro
   const response = await request(expressApp)
     .get("/users/1337")
     .set("X-Pricenow-API-Version", "2024-01-01")
+    .expect((res) =>
+      !res.status.toString().startsWith("2") ? console.error(res.body) : 0
+    )
+    .expect(StatusCodes.OK);
+
+  expect(response.body).toEqual<ResponseWithVersion<User>>({
+    data: {
+      id: 1337,
+      email: `user-1337@email.com`,
+    },
+    version: "2024-01-01",
+  });
+});
+
+test("calling route with version in between two history versions resolves to nearest lower version of the route", async () => {
+  const expressApp = Express();
+  initApplication(expressApp);
+
+  const response = await request(expressApp)
+    .get("/users/1337")
+    .set("X-Pricenow-API-Version", "2024-01-15")
     .expect((res) =>
       !res.status.toString().startsWith("2") ? console.error(res.body) : 0
     )
