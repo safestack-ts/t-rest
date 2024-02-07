@@ -369,6 +369,13 @@ type RouteVersions<
   TPath extends string
 > = Extract<TRoutes, { method: TMethod; path: TPath }>["version"];
 
+type RequestVersion = {
+  version: {
+    requested: string;
+    resolved: string;
+  };
+};
+
 class VersionSelector<
   TRoutes extends AnyRouteDef,
   TRequest extends ExpressRequest,
@@ -403,15 +410,8 @@ class VersionSelector<
   }
 
   private getRouteHandler<TVersion extends string>(version: TVersion) {
-    // @todo pick the right route according to the version
-    /*type TRoute = Extract<
-      TRoutes,
-      {
-        method: TMethod;
-        path: WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>;
-      }
-    >;*/
     type TRoute = ExtractMatchingRoute<TRoutes, TVersion, TVersionHistory>;
+
     const route = this.routes.get([
       this.method,
       joinPath(this.path, this.pathSuffix),
@@ -427,12 +427,12 @@ class VersionSelector<
       );
     }
 
-    return new TypedRouteHandler<TVersion, TRoute, TPathSuffix, TRequest>(
-      version,
-      route as TRoute,
-      this.pathSuffix,
-      this.router
-    );
+    return new TypedRouteHandler<
+      TVersion,
+      TRoute,
+      TPathSuffix,
+      TRequest & RequestVersion
+    >(version, route as TRoute, this.pathSuffix, this.router);
   }
 
   public version<
@@ -596,7 +596,7 @@ class VersionedRouting {
   private getRouteHandler(method: HTTPMethod, path: string) {
     return async (request: ExpressRequest, response: ExpressResponse) => {
       try {
-        const routeToExecute = this.getRouteToExecute(
+        const { routeToExecute, version } = this.getRouteToExecute(
           method,
           path,
           this.versionExtractor.extractVersion(request) ??
@@ -615,8 +615,10 @@ class VersionedRouting {
           } else {
             const validationOutput = route.validator.parse(request);
 
-            // @todo make requested and resolved version available in request
-            const result = await handler(request, validationOutput);
+            const result = await handler(
+              { ...request, version } as any as ExpressRequest,
+              validationOutput
+            );
 
             response.status(result.statusCode || StatusCodes.OK);
 
@@ -657,7 +659,7 @@ class VersionedRouting {
         throw new Error(`No route handler found for method ${method} ${path}`);
       }
 
-      return firstRoute;
+      return { routeToExecute: firstRoute, version: null };
     } else {
       if (!requestedVersion) {
         throw new Error("No version specified and no default version found");
@@ -692,7 +694,10 @@ class VersionedRouting {
         );
       }
 
-      return routeToExecute;
+      return {
+        routeToExecute,
+        version: { requested: requestedVersion, resolved: resolvedVersion },
+      };
     }
   }
 }

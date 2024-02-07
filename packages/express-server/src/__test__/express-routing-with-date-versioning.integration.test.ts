@@ -65,13 +65,15 @@ const initApplication = (expressApp: Express.Application) => {
   userRouter
     .get("/:userId")
     .version("2024-01-01")
-    .handle((_, { params: { userId } }) => ({
-      statusCode: 200,
-      data: {
-        version: "2024-01-01",
-        data: { id: userId, email: `user-${userId}@email.com` },
-      },
-    }));
+    .handle(
+      ({ version: { resolved: resolvedVersion } }, { params: { userId } }) => ({
+        statusCode: 200,
+        data: {
+          version: resolvedVersion,
+          data: { id: userId, email: `user-${userId}@email.com` },
+        },
+      })
+    );
 
   userRouter
     .get("/:userId")
