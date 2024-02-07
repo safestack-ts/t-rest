@@ -35,7 +35,7 @@ const baseBagOfRoutes = BagOfRoutes.withoutVersioning()
       .response<User>()
   );
 
-test.only("simple express app without versioning routing is working", async () => {
+test("simple express app without versioning routing is working", async () => {
   const expressApp = Express();
   const bagOfRoutes = baseBagOfRoutes.build();
   const typedRESTApplication = TypedExpressApplication.withoutVersioning(
@@ -57,6 +57,9 @@ test.only("simple express app without versioning routing is working", async () =
 
   const response = await request(expressApp)
     .get("/users/1")
+    .expect((res) =>
+      !res.status.toString().startsWith("2") ? console.error(res.body) : 0
+    )
     .expect(StatusCodes.OK);
 
   expect(response.body).toEqual<User>({ id: 1, email: `user-1@email.com` });

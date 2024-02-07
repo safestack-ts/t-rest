@@ -20,9 +20,11 @@ import cors from "cors";
 import * as z from "zod";
 import { StatusCodes } from "http-status-codes";
 import { removePrefixFromPath } from "./utils/remove-prefix-from-path";
+import { resolveVersion } from "./utils/resolve-version";
 
 type ExpressRequest = Express.Request;
 type ExpressResponse = Express.Response;
+type ExpressNextFunction = Express.NextFunction;
 type ExpressRouter = Express.Router;
 type ExpressRequestHandler = Express.RequestHandler;
 type ExpressApp = Express.Application;
@@ -86,7 +88,7 @@ abstract class TypedRouterBase<
     this.expressRouter = router;
     this.path = path;
 
-    this.routing = new VersionedRouting(this);
+    this.routing = new VersionedRouting(this, Versioning.NO_VERSIONING, []); // @todo pass version history
   }
 
   public get fullPath() {
@@ -404,22 +406,28 @@ class TypedRouteHandler<
 }
 
 type AnyRouteHandlerFn = TypedRouteHandlerFn<AnyRouteDef, ExpressRequest, any>;
+type RouteBundle = {
+  route: AnyRouteDef;
+  handler: AnyRouteHandlerFn;
+  middlewares: TypedMiddleware<any, any>[];
+};
 
 class VersionedRouting {
   // mapping http method and path to potential multiple route versions
-  protected readonly routes: HashMap<
-    [HTTPMethod, string],
-    {
-      route: AnyRouteDef;
-      handler: AnyRouteHandlerFn;
-      middlewares: TypedMiddleware<any, any>[];
-    }[]
-  > = new HashMap((key) => key.join("-"));
-  // @todo use new TypedRouterBase type here
+  protected readonly routes: HashMap<[HTTPMethod, string], RouteBundle[]> =
+    new HashMap((key) => key.join("-"));
   protected readonly router: TypedRouterBase<any, any, string>;
+  protected readonly versionHistory: string[];
+  protected readonly versioning: Versioning;
 
-  constructor(router: TypedRouterBase<any, any, string>) {
+  constructor(
+    router: TypedRouterBase<any, any, string>,
+    versioning: Versioning,
+    versionHistory: string[]
+  ) {
     this.router = router;
+    this.versioning = versioning;
+    this.versionHistory = versionHistory;
   }
 
   public addRoute(
@@ -434,37 +442,111 @@ class VersionedRouting {
     } else {
       this.routes.set(key, [{ route, handler, middlewares }]);
 
-      this.initRouting(route, handler, middlewares);
+      this.initRouting(route);
     }
   }
 
-  private initRouting(
-    route: AnyRouteDef,
-    handler: AnyRouteHandlerFn,
-    middlewares: TypedMiddleware<any, any>[]
-  ) {
+  private initRouting(route: AnyRouteDef) {
     const moutingPath = removePrefixFromPath(route.path, this.router.fullPath);
 
     this.router.expressRouter[typedLowerCase(route.method)](
       moutingPath,
-      ...middlewares,
-      async (request, response) => {
-        // @todo add version handling
-        const validationOutput = route.validator.parse(request);
-
-        const result = await handler(request, validationOutput);
-
-        response.status(result.statusCode || StatusCodes.OK);
-
-        // make sure this is the last action in the handler,
-        // since from here on we alredy sent the response and the request is finished
-        if ("customize" in result) {
-          await result.customize(response, result.data);
-        } else {
-          response.send(result.data);
-        }
-      }
+      this.getRouteHandler(route.method, route.path)
     );
+  }
+
+  private getRouteHandler(method: HTTPMethod, path: string) {
+    return async (request: ExpressRequest, response: ExpressResponse) => {
+      try {
+        const routeToExecute = this.getRouteToExecute(
+          method,
+          path,
+          request.header("X-Pricenow-API-Version") ?? this.versionHistory.at(-1)
+        );
+
+        const { middlewares, handler, route } = routeToExecute;
+
+        // emulate express behavior for executing middlewares
+        let i = 0;
+        const nextMiddleware = async () => {
+          const middleware = middlewares.at(i++);
+
+          if (middleware) {
+            await middleware(request, response, nextMiddleware);
+          } else {
+            const validationOutput = route.validator.parse(request);
+
+            const result = await handler(request, validationOutput);
+
+            response.status(result.statusCode || StatusCodes.OK);
+
+            // make sure this is the last action in the handler,
+            // since from here on we alredy sent the response and the request is finished
+            if ("customize" in result) {
+              await result.customize(response, result.data);
+            } else {
+              response.send(result.data);
+            }
+          }
+        };
+        await nextMiddleware();
+      } catch (err) {
+        const error = err as Error;
+
+        response.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+      }
+    };
+  }
+
+  protected getRouteToExecute(
+    method: HTTPMethod,
+    path: string,
+    requestedVersion: string | undefined
+  ) {
+    const key = [method, path] as [HTTPMethod, string];
+    const routes = this.routes.get(key);
+
+    if (!routes) {
+      throw new Error(`No route handler found for method ${method} ${path}`);
+    }
+
+    if (this.versioning === Versioning.NO_VERSIONING) {
+      const firstRoute = routes.at(0);
+
+      if (!firstRoute) {
+        throw new Error(`No route handler found for method ${method} ${path}`);
+      }
+
+      return firstRoute;
+    } else {
+      if (!requestedVersion) {
+        throw new Error("No version specified and no default version found");
+      }
+
+      const resolvedVersion = resolveVersion(
+        this.versionHistory,
+        routes.map(({ route }) => route.version),
+        requestedVersion
+      );
+
+      if (resolvedVersion === null) {
+        throw new Error(
+          `No compatible route version found for requested version ${requestedVersion}`
+        );
+      }
+
+      const routeToExecute = routes.find(
+        ({ route }) => route.version === resolvedVersion
+      );
+
+      if (routeToExecute === undefined) {
+        throw new Error(
+          `No executable route version found for resolved version ${resolvedVersion}`
+        );
+      }
+
+      return routeToExecute;
+    }
   }
 }
 
