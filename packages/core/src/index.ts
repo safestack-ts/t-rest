@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { HashMap } from "./hash-map";
+import { VersionHistory } from "./version-history";
 
 export type HTTPMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; // @todo add remaining types
 
@@ -172,24 +173,10 @@ export enum Versioning {
   SEMVER,
 }
 
-export class BagOfRoutesBuilder {
-  public withVersioning<TVersioning extends Versioning>(
-    versioning: TVersioning
-  ) {
-    return new BagOfRoutesBuilderWithVersioning<never, TVersioning>(versioning);
-  }
-
-  public withoutVersioning() {
-    return new BagOfRoutesBuilderWithVersioning<
-      never,
-      Versioning.NO_VERSIONING
-    >(Versioning.NO_VERSIONING);
-  }
-}
-
 export class BagOfRoutesBuilderWithVersioning<
   TRoutes extends AnyRouteDef,
-  TVersioning extends Versioning
+  TVersioning extends Versioning,
+  TVersionHistory extends string[]
 > {
   protected routes: RouteHashMap = new HashMap<
     [HTTPMethod, string, string],
@@ -201,9 +188,16 @@ export class BagOfRoutesBuilderWithVersioning<
     this.versioning = versioning;
   }
 
-  public addRoute<TRouteDef extends AnyRouteDef>(
+  public addRoute<
+    TVersion extends TVersionHistory[number],
+    TRouteDef extends RouteDef<TVersion, HTTPMethod, string, any, any>
+  >(
     route: TRouteDef
-  ): BagOfRoutesBuilderWithVersioning<TRoutes | TRouteDef, TVersioning> {
+  ): BagOfRoutesBuilderWithVersioning<
+    TRoutes | TRouteDef,
+    TVersioning,
+    TVersionHistory
+  > {
     this.routes.set([route.method, route.path, route.version], route);
     return this;
   }
@@ -226,22 +220,36 @@ export class BagOfRoutes<
   }
 
   // @todo make version history passable and infer available version for route definitions from it
-  public static withVersioning<TVersioning extends Versioning>(
-    versioning: TVersioning
-  ) {
-    return new BagOfRoutesBuilderWithVersioning<never, TVersioning>(versioning);
+  public static withVersioning<
+    TVersioning extends Versioning,
+    TVersionHistory extends string[]
+  >(versioning: TVersioning, versionHistory: TVersionHistory) {
+    return new BagOfRoutesBuilderWithVersioning<
+      never,
+      TVersioning,
+      TVersionHistory
+    >(versioning);
   }
 
   public static withoutVersioning() {
     return new BagOfRoutesBuilderWithVersioning<
       never,
-      Versioning.NO_VERSIONING
+      Versioning.NO_VERSIONING,
+      string[]
     >(Versioning.NO_VERSIONING);
   }
 }
 
-export const demoBagOfRoutes = new BagOfRoutesBuilder()
-  .withVersioning(Versioning.DATE)
+const versionHistory = VersionHistory([
+  "2024-01-01",
+  "2024-02-01",
+  "2024-03-01",
+] as const);
+
+export const demoBagOfRoutes = BagOfRoutes.withVersioning(
+  Versioning.DATE,
+  versionHistory
+)
   .addRoute(
     new Route()
       .version("2024-01-01")

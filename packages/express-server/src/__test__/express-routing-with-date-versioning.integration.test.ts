@@ -23,7 +23,10 @@ const versionHistory = VersionHistory([
   "2024-03-01",
 ] as const);
 
-const baseBagOfRoutes = BagOfRoutes.withVersioning(Versioning.DATE)
+const baseBagOfRoutes = BagOfRoutes.withVersioning(
+  Versioning.DATE,
+  versionHistory
+)
   .addRoute(
     new Route()
       .version("2024-01-01")
