@@ -3,6 +3,7 @@ import {
   AnyRouteDef,
   BagOfRoutes,
   HTTPMethod,
+  HashMap,
   JoinPath,
   ResponseTypeKey,
   RouteDef,
@@ -18,6 +19,7 @@ import {
 import cors from "cors";
 import * as z from "zod";
 import { StatusCodes } from "http-status-codes";
+import { removePrefixFromPath } from "./utils/remove-prefix-from-path";
 
 type ExpressRequest = Express.Request;
 type ExpressResponse = Express.Response;
@@ -69,39 +71,64 @@ type InferredPossiblePathsFromPrefix<
   >
 >;
 
-export class TypedRouter<
+abstract class TypedRouterBase<
   TRoutes extends AnyRouteDef,
   TRequest extends ExpressRequest,
   TPath extends string
 > {
   public readonly routes: RouteHashMap;
-  protected readonly router: ExpressRouter;
+  public readonly expressRouter: ExpressRouter;
   protected readonly path: TPath;
+  public readonly routing: VersionedRouting;
 
   constructor(routes: RouteHashMap, router: ExpressRouter, path: TPath) {
     this.routes = routes;
-    this.router = router;
+    this.expressRouter = router;
     this.path = path;
+
+    this.routing = new VersionedRouting(this);
   }
 
+  public get fullPath() {
+    return this.path;
+  }
+}
+
+export class TypedRouterWithoutVersioning<
+  TRoutes extends AnyRouteDef,
+  TRequest extends ExpressRequest,
+  TPath extends string
+> extends TypedRouterBase<TRoutes, TRequest, TPath> {
   public use<TRequestIn extends TRequest, TRequestOut extends TRequestIn>(
     handler: TypedMiddleware<TRequestIn, TRequestOut>
-  ): TypedRouter<TRoutes, TRequestOut, TPath> {
-    this.router.use(handler as ExpressRequestHandler);
+  ): TypedRouterWithoutVersioning<TRoutes, TRequestOut, TPath> {
+    this.expressRouter.use(handler as ExpressRequestHandler);
 
-    return this as any as TypedRouter<TRoutes, TRequestOut, TPath>;
+    return this as any as TypedRouterWithoutVersioning<
+      TRoutes,
+      TRequestOut,
+      TPath
+    >;
   }
 
   public branch<TPathBranch extends string>(
     path: TPathBranch
-  ): TypedRouter<TRoutes, TRequest, JoinPath<TPath, TPathBranch>> {
-    const newRouter = new TypedRouter(
+  ): TypedRouterWithoutVersioning<
+    TRoutes,
+    TRequest,
+    JoinPath<TPath, TPathBranch>
+  > {
+    const newRouter = new TypedRouterWithoutVersioning(
       this.routes,
       Express.Router(),
       joinPath(this.path, path)
-    ) as TypedRouter<TRoutes, TRequest, JoinPath<TPath, TPathBranch>>;
+    ) as TypedRouterWithoutVersioning<
+      TRoutes,
+      TRequest,
+      JoinPath<TPath, TPathBranch>
+    >;
 
-    this.router.use(path, newRouter.router);
+    this.expressRouter.use(path, newRouter.expressRouter);
 
     return newRouter;
   }
@@ -117,16 +144,17 @@ export class TypedRouter<
         path: WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>;
       }
     >;
-    const route = this.routes.get([method, joinPath(this.path, path)]);
+    const route = this.routes.get([method, joinPath(this.path, path), ""]);
 
     if (!route) {
       throw new Error(`Route not found for path: ${joinPath(this.path, path)}`);
     }
 
-    return new TypedRouteHandler<TRoute, TPathSuffix, TRequest>(
+    return new TypedRouteHandler<"", TRoute, TPathSuffix, TRequest>(
+      "",
       route as TRoute,
       path,
-      this.router
+      this
     );
   }
 
@@ -165,6 +193,133 @@ export class TypedRouter<
   }
 }
 
+export class TypedRouterWithVersioning<
+  TRoutes extends AnyRouteDef,
+  TRequest extends ExpressRequest,
+  TPath extends string
+> extends TypedRouterBase<TRoutes, TRequest, TPath> {
+  protected readonly versioning: VersioningRequired;
+
+  constructor(
+    routes: RouteHashMap,
+    router: ExpressRouter,
+    path: TPath,
+    versioning: VersioningRequired
+  ) {
+    super(routes, router, path);
+
+    this.versioning = versioning;
+  }
+
+  // @todo might be generalized
+  public use<TRequestIn extends TRequest, TRequestOut extends TRequestIn>(
+    handler: TypedMiddleware<TRequestIn, TRequestOut>
+  ): TypedRouterWithVersioning<TRoutes, TRequestOut, TPath> {
+    this.expressRouter.use(handler as ExpressRequestHandler);
+
+    return this as any as TypedRouterWithVersioning<
+      TRoutes,
+      TRequestOut,
+      TPath
+    >;
+  }
+
+  // @todo might be generalized
+  public branch<TPathBranch extends string>(
+    path: TPathBranch
+  ): TypedRouterWithVersioning<
+    TRoutes,
+    TRequest,
+    JoinPath<TPath, TPathBranch>
+  > {
+    const newRouter = new TypedRouterWithVersioning(
+      this.routes,
+      Express.Router(),
+      joinPath(this.path, path),
+      this.versioning
+    ) as TypedRouterWithVersioning<
+      TRoutes,
+      TRequest,
+      JoinPath<TPath, TPathBranch>
+    >;
+
+    this.expressRouter.use(path, newRouter.expressRouter);
+
+    return newRouter;
+  }
+
+  private getRouteHandler<
+    TVersion extends string,
+    TMethod extends HTTPMethod,
+    TPathSuffix extends string
+  >(version: TVersion, method: TMethod, path: TPathSuffix) {
+    // @todo pick the right route according to the version
+    type TRoute = Extract<
+      TRoutes,
+      {
+        method: TMethod;
+        path: WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>;
+      }
+    >;
+    const route = this.routes.get([method, joinPath(this.path, path), version]);
+
+    if (!route) {
+      throw new Error(
+        `Route not found for path ${joinPath(
+          this.path,
+          path
+        )} and version ${version}`
+      );
+    }
+
+    return new TypedRouteHandler<TVersion, TRoute, TPathSuffix, TRequest>(
+      version,
+      route as TRoute,
+      path,
+      this
+    );
+  }
+
+  public get<
+    TVersion extends string,
+    TPathSuffix extends InferredPossiblePathsFromPrefix<TRoutes, "GET", TPath>
+  >(version: TVersion, path: TPathSuffix) {
+    return this.getRouteHandler(version, "GET", path);
+  }
+
+  public post<
+    TVersion extends string,
+    TPathSuffix extends InferredPossiblePathsFromPrefix<TRoutes, "POST", TPath>
+  >(version: TVersion, path: TPathSuffix) {
+    return this.getRouteHandler(version, "POST", path);
+  }
+
+  public put<
+    TVersion extends string,
+    TPathSuffix extends InferredPossiblePathsFromPrefix<TRoutes, "PUT", TPath>
+  >(version: TVersion, path: TPathSuffix) {
+    return this.getRouteHandler(version, "PUT", path);
+  }
+
+  public patch<
+    TVersion extends string,
+    TPathSuffix extends InferredPossiblePathsFromPrefix<TRoutes, "PATCH", TPath>
+  >(version: TVersion, path: TPathSuffix) {
+    return this.getRouteHandler(version, "PATCH", path);
+  }
+
+  public delete<
+    TVersion extends string,
+    TPathSuffix extends InferredPossiblePathsFromPrefix<
+      TRoutes,
+      "DELETE",
+      TPath
+    >
+  >(version: TVersion, path: TPathSuffix) {
+    return this.getRouteHandler(version, "DELETE", path);
+  }
+}
+
 type RequestReturnType<TData> =
   | {
       data: TData;
@@ -198,19 +353,27 @@ type TypedRouteHandlerFn<
 ) => HandlerReturnType<TRoute> | Promise<HandlerReturnType<TRoute>>;
 
 class TypedRouteHandler<
+  TVersion extends string,
   TRoute extends AnyRouteDef,
   TPathSuffix extends string,
   TRequest extends ExpressRequest
 > {
   protected readonly route: TRoute;
   protected readonly path: TPathSuffix;
-  protected readonly router: ExpressRouter;
+  protected readonly router: TypedRouterBase<AnyRouteDef, TRequest, string>;
   protected readonly middlewares: TypedMiddleware<any, any>[] = [];
+  protected readonly version: TVersion;
 
-  constructor(route: TRoute, path: TPathSuffix, router: ExpressRouter) {
+  constructor(
+    version: TVersion,
+    route: TRoute,
+    path: TPathSuffix,
+    router: TypedRouterBase<AnyRouteDef, TRequest, string>
+  ) {
     this.route = route;
     this.path = path;
     this.router = router;
+    this.version = version;
   }
 
   public middleware<
@@ -218,10 +381,15 @@ class TypedRouteHandler<
     TRequestOut extends TRequestIn
   >(
     handler: TypedMiddleware<TRequestIn, TRequestOut>
-  ): TypedRouteHandler<TRoute, TPathSuffix, TRequestOut> {
+  ): TypedRouteHandler<TVersion, TRoute, TPathSuffix, TRequestOut> {
     this.middlewares.push(handler);
 
-    return this as any as TypedRouteHandler<TRoute, TPathSuffix, TRequestOut>;
+    return this as any as TypedRouteHandler<
+      TVersion,
+      TRoute,
+      TPathSuffix,
+      TRequestOut
+    >;
   }
 
   public handle(
@@ -231,16 +399,60 @@ class TypedRouteHandler<
       RouteValidationOutput<TRoute>
     >
   ) {
-    this.router[typedLowerCase(this.route.method)](
-      this.path,
-      ...this.middlewares,
-      async (request, response) => {
-        const validationOutput = this.route.validator.parse(request);
+    this.router.routing.addRoute(this.route, handler as any, this.middlewares); // @todo resolve any
+  }
+}
 
-        const result = await handler(
-          request as any as TRequest,
-          validationOutput
-        );
+type AnyRouteHandlerFn = TypedRouteHandlerFn<AnyRouteDef, ExpressRequest, any>;
+
+class VersionedRouting {
+  // mapping http method and path to potential multiple route versions
+  protected readonly routes: HashMap<
+    [HTTPMethod, string],
+    {
+      route: AnyRouteDef;
+      handler: AnyRouteHandlerFn;
+      middlewares: TypedMiddleware<any, any>[];
+    }[]
+  > = new HashMap((key) => key.join("-"));
+  // @todo use new TypedRouterBase type here
+  protected readonly router: TypedRouterBase<any, any, string>;
+
+  constructor(router: TypedRouterBase<any, any, string>) {
+    this.router = router;
+  }
+
+  public addRoute(
+    route: AnyRouteDef,
+    handler: AnyRouteHandlerFn,
+    middlewares: TypedMiddleware<any, any>[]
+  ) {
+    const key = [route.method, route.path] as [HTTPMethod, string];
+
+    if (this.routes.has(key)) {
+      this.routes.get(key)!.push({ route, handler, middlewares });
+    } else {
+      this.routes.set(key, [{ route, handler, middlewares }]);
+
+      this.initRouting(route, handler, middlewares);
+    }
+  }
+
+  private initRouting(
+    route: AnyRouteDef,
+    handler: AnyRouteHandlerFn,
+    middlewares: TypedMiddleware<any, any>[]
+  ) {
+    const moutingPath = removePrefixFromPath(route.path, this.router.fullPath);
+
+    this.router.expressRouter[typedLowerCase(route.method)](
+      moutingPath,
+      ...middlewares,
+      async (request, response) => {
+        // @todo add version handling
+        const validationOutput = route.validator.parse(request);
+
+        const result = await handler(request, validationOutput);
 
         response.status(result.statusCode || StatusCodes.OK);
 
@@ -256,15 +468,29 @@ class TypedRouteHandler<
   }
 }
 
-export class TypedExpressApplication<
+export abstract class TypedExpressApplication {
+  public static withoutVersioning<
+    TRoutes extends AnyRouteDef,
+    TRequest extends ExpressRequest
+  >(
+    expressApp: ExpressApp,
+    bagOfRoutes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING>
+  ) {
+    return new TypedExpressApplicationWithoutVersioning<TRoutes, TRequest>(
+      expressApp,
+      bagOfRoutes
+    );
+  }
+}
+
+export class TypedExpressApplicationWithoutVersioning<
   TRoutes extends AnyRouteDef,
   TRequest extends ExpressRequest
-> extends TypedRouter<TRoutes, TRequest, "/"> {
-  private readonly bagOfRoutes: BagOfRoutes<TRoutes, Versioning>;
-
+> extends TypedRouterWithoutVersioning<TRoutes, TRequest, "/"> {
+  protected readonly bagOfRoutes: BagOfRoutes<TRoutes, Versioning>;
   constructor(
     expressApp: ExpressApp,
-    bagOfRoutes: BagOfRoutes<TRoutes, Versioning>
+    bagOfRoutes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING>
   ) {
     super(bagOfRoutes.routes, expressApp, "/");
 
@@ -272,9 +498,11 @@ export class TypedExpressApplication<
   }
 }
 
+type VersioningRequired = Exclude<Versioning, Versioning.NO_VERSIONING>;
+
 // demo
 
-type RequestWithUserId = ExpressRequest & { userId: string };
+/*type RequestWithUserId = ExpressRequest & { userId: string };
 const authMiddleware = defineMiddleware<ExpressRequest, RequestWithUserId>(
   (request, response, next) => {
     (request as any).userId = "123";
@@ -283,7 +511,7 @@ const authMiddleware = defineMiddleware<ExpressRequest, RequestWithUserId>(
 );
 
 const expressApp = Express.default();
-const typedRESTApplication = new TypedExpressApplication(
+const typedRESTApplication = TypedExpressApplication.withoutVersioning(
   expressApp,
   demoBagOfRoutes
 )
@@ -339,4 +567,4 @@ basketRouterPublic
       statusCode: 201,
       data: { id: "123", entries: [] as any[] },
     };
-  });
+  });*/

@@ -3,7 +3,7 @@ import { HashMap } from "./hash-map";
 
 export type HTTPMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; // @todo add remaining types
 
-export type RouteHashMap = HashMap<[HTTPMethod, string], AnyRouteDef>;
+export type RouteHashMap = HashMap<[HTTPMethod, string, string], AnyRouteDef>; // HTTPMethod, Path, Version
 
 const responseType = Symbol("Response Type");
 export type ResponseTypeKey = typeof responseType;
@@ -192,7 +192,7 @@ export class BagOfRoutesBuilderWithVersioning<
   TVersioning extends Versioning
 > {
   protected routes: RouteHashMap = new HashMap<
-    [HTTPMethod, string],
+    [HTTPMethod, string, string],
     AnyRouteDef
   >((key) => key.join("-"));
   private versioning: TVersioning;
@@ -204,7 +204,7 @@ export class BagOfRoutesBuilderWithVersioning<
   public addRoute<TRouteDef extends AnyRouteDef>(
     route: TRouteDef
   ): BagOfRoutesBuilderWithVersioning<TRoutes | TRouteDef, TVersioning> {
-    this.routes.set([route.method, route.path], route);
+    this.routes.set([route.method, route.path, route.version], route);
     return this;
   }
 

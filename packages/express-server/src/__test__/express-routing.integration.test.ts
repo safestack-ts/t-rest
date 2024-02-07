@@ -35,10 +35,10 @@ const baseBagOfRoutes = BagOfRoutes.withoutVersioning()
       .response<User>()
   );
 
-test("simple express app without versioning routing is working", async () => {
+test.only("simple express app without versioning routing is working", async () => {
   const expressApp = Express();
   const bagOfRoutes = baseBagOfRoutes.build();
-  const typedRESTApplication = new TypedExpressApplication(
+  const typedRESTApplication = TypedExpressApplication.withoutVersioning(
     expressApp,
     bagOfRoutes
   );
@@ -75,7 +75,7 @@ test("express app with multiple routers without versioning is working", async ()
     .addRoute(new Route().post("/baskets").response<Basket>())
     .build();
 
-  const typedRESTApplication = new TypedExpressApplication(
+  const typedRESTApplication = TypedExpressApplication.withoutVersioning(
     expressApp,
     bagOfRoutes
   );
@@ -140,7 +140,7 @@ test("nested routers without versioning is working", async () => {
     )
     .build();
 
-  const typedRESTApplication = new TypedExpressApplication(
+  const typedRESTApplication = TypedExpressApplication.withoutVersioning(
     expressApp,
     bagOfRoutes
   );
