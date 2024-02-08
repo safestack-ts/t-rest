@@ -22,6 +22,9 @@ devDependencies:
   '@types/supertest':
     specifier: ^6.0.2
     version: 6.0.2
+  conditional-type-checks:
+    specifier: ^1.0.6
+    version: 1.0.6
   jest:
     specifier: ^29.7.0
     version: 29.7.0
@@ -1045,6 +1048,10 @@ packages:
 
   /concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
+    dev: true
+
+  /conditional-type-checks@1.0.6:
+    resolution: {integrity: sha512-3vyi+yNcmKq+xl1sTX7Ta+4pUvjusMYbC6FSbrS6YJV8TI51wiRn24u4bfdFVhDKKH5GtpKQzxW7bqXbPWllgQ==}
     dev: true
 
   /convert-source-map@2.0.0:

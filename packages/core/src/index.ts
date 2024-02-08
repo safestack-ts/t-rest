@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { HashMap } from "./hash-map";
 import { VersionHistory } from "./version-history";
+import { NonEmptyArray, first } from "./non-empty-array";
 
 export type HTTPMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; // @todo add remaining types
 
@@ -219,7 +220,6 @@ export class BagOfRoutes<
     this.versioning = versioning;
   }
 
-  // @todo make version history passable and infer available version for route definitions from it
   public static withVersioning<
     TVersioning extends Versioning,
     TVersionHistory extends string[]
@@ -239,6 +239,10 @@ export class BagOfRoutes<
     >(Versioning.NO_VERSIONING);
   }
 }
+
+export type ExtractRoutes<
+  TBagOfRoutes extends BagOfRoutes<AnyRouteDef, Versioning>
+> = TBagOfRoutes extends BagOfRoutes<infer TRoutes, any> ? TRoutes : never;
 
 const versionHistory = VersionHistory([
   "2024-01-01",
