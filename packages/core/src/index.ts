@@ -174,6 +174,8 @@ export enum Versioning {
   SEMVER,
 }
 
+export type VersioningRequired = Exclude<Versioning, Versioning.NO_VERSIONING>;
+
 export class BagOfRoutesBuilderWithVersioning<
   TRoutes extends AnyRouteDef,
   TVersioning extends Versioning,
@@ -244,6 +246,8 @@ export type ExtractRoutes<
   TBagOfRoutes extends BagOfRoutes<AnyRouteDef, Versioning>
 > = TBagOfRoutes extends BagOfRoutes<infer TRoutes, any> ? TRoutes : never;
 
+// Demo
+
 const versionHistory = VersionHistory([
   "2024-01-01",
   "2024-02-01",
@@ -276,3 +280,4 @@ export * from "./string-types";
 export * from "./zod-extensions";
 export * from "./remove-readonly";
 export * from "./version-history";
+export * from "./identity";

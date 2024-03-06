@@ -1,0 +1,23 @@
+{
+    "name": "@typed-rest/client",
+    "version": "1.0.0",
+    "description": "",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "sideEffects": false,
+    "files": [
+        "dist/**/*"
+    ],
+    "scripts": {
+        "test": "TZ=UTC ../../node_modules/.bin/jest --config jest.config.js --colors --passWithNoTests",
+        "test:watch": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.js --colors --passWithNoTests",
+        "test:unit": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.js --colors --passWithNoTests unit",
+        "test:integration": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.js --colors --passWithNoTests integration"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@typed-rest/core": "*"
+    }
+}

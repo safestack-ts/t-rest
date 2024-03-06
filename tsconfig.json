@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "./packages/core/tsconfig.ref.json" },
-    { "path": "./packages/express-server/tsconfig.ref.json" }
+    { "path": "./packages/express-server/tsconfig.ref.json" },
+    { "path": "./packages/client/tsconfig.ref.json" }
   ]
 }

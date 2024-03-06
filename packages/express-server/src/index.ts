@@ -12,6 +12,7 @@ import {
   StringStartsWith,
   VersionHistory,
   Versioning,
+  VersioningRequired,
   WithoutTrailingSlash,
   demoBagOfRoutes,
   joinPath,
@@ -805,14 +806,12 @@ class TypedExpressApplicationWithVersioning<
   }
 }
 
-type VersioningRequired = Exclude<Versioning, Versioning.NO_VERSIONING>;
-
 // demo
 
 type RequestWithUserId = ExpressRequest & { userId: string };
 const authMiddleware = defineMiddleware<ExpressRequest, RequestWithUserId>(
   (request, response, next) => {
-    (request as any).userId = "123";
+    (request as RequestWithUserId).userId = "123";
     next();
   }
 );
@@ -878,7 +877,6 @@ basketRouterPublic
   .version("2024-01-01")
   .middleware((request, _, next) => {
     console.log(request.userId);
-    console.log(request.params.basketId);
 
     next();
   })
