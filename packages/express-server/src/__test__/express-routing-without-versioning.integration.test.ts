@@ -1,10 +1,10 @@
 import { BagOfRoutes, Route, ze } from "@typed-rest/core";
 import Express from "express";
 import { z } from "zod";
-import { TypedExpressApplication } from "../index";
 import request from "supertest";
 import { StatusCodes } from "http-status-codes";
 import { User, Basket, Person } from "./utils/test-entity-types";
+import { TypedExpressApplication } from "../classes/typed-express-application";
 
 const baseBagOfRoutes = BagOfRoutes.withoutVersioning()
   .addRoute(new Route().get("/users/me").response<User>())

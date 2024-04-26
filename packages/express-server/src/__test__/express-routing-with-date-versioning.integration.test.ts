@@ -7,11 +7,11 @@ import {
 } from "@typed-rest/core";
 import { User } from "./utils/test-entity-types";
 import { z } from "zod";
-import { TypedExpressApplication } from "..";
 import Express from "express";
 import request from "supertest";
 import { StatusCodes } from "http-status-codes";
-import { DateVersionExtractor } from "../version-extractor";
+import { DateVersionExtractor } from "../types/date-version-extractor";
+import { TypedExpressApplication } from "../classes/typed-express-application";
 
 type ResponseWithVersion<T> = {
   data: T;

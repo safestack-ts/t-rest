@@ -1,4 +1,4 @@
-import { DateVersionExtractor } from "../version-extractor";
+import { DateVersionExtractor } from "../types/date-version-extractor";
 import { findNearestLowerDate } from "./find-nearest-lower-date";
 
 export const resolveVersion = (

@@ -1,4 +1,4 @@
-import { DateVersionExtractor } from "../version-extractor";
+import { DateVersionExtractor } from "../types/date-version-extractor";
 import { resolveDateVersion, resolveVersion } from "./resolve-version";
 
 const dateVersionHistory = [

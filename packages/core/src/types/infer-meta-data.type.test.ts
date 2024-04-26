@@ -1,8 +1,11 @@
 import { z } from "zod";
-import { BagOfRoutes, InferMetaData, Route, Versioning } from "..";
 import { ExtractRoutes } from "./extract-route";
 import { AssertTrue, IsExact } from "conditional-type-checks";
 import { VersionHistory } from "../utils/version-history";
+import { BagOfRoutes } from "../classes/core/bag-of-routes";
+import { Route } from "../classes/core/route";
+import { InferMetaData } from "./infer-meta-data";
+import { Versioning } from "../enums/versioning";
 
 // unversioned routes
 const unversionedBagOfRoutes = BagOfRoutes.withoutVersioning()
