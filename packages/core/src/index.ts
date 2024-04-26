@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { HashMap } from "./hash-map";
 import { VersionHistory } from "./version-history";
-import { NonEmptyArray, first } from "./non-empty-array";
 
 export type HTTPMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; // @todo add remaining types
 
