@@ -15,25 +15,29 @@ export class RouteDef<
   TMethod extends HTTPMethod,
   TPath extends string,
   TValidator extends z.ZodTypeAny,
-  TResponse
+  TResponse,
+  TMetaData
 > {
   public readonly version: TVersion;
   public readonly method: TMethod;
   public readonly path: TPath;
   public readonly validator: TValidator;
   public readonly [responseType]: TResponse;
+  public readonly metaData: TMetaData;
 
   constructor(
     version: TVersion,
     method: TMethod,
     path: TPath,
-    validator: TValidator
+    validator: TValidator,
+    metaData: TMetaData
   ) {
     this.version = version;
     this.method = method;
     this.path = path;
     this.validator = validator;
     this[responseType] = null as any;
+    this.metaData = metaData;
   }
 }
 
@@ -127,13 +131,59 @@ export class RouteBuilderWithVersionAndMethodAndPath<
     >(this.version, this.method, this.path, validator);
   }
 
+  public metaData<TMetaData>(metaData: TMetaData) {
+    return new RouteBuilderWithVersionAndMethodAndPathAndMetaData<
+      TVersion,
+      TMethod,
+      TPath,
+      TMetaData
+    >(this.version, this.method, this.path, metaData);
+  }
+
   public response<TResponse>() {
-    return new RouteDef<TVersion, TMethod, TPath, z.ZodTypeAny, TResponse>(
-      this.version,
-      this.method,
-      this.path,
-      z.any()
-    );
+    return new RouteDef<
+      TVersion,
+      TMethod,
+      TPath,
+      z.ZodTypeAny,
+      TResponse,
+      unknown
+    >(this.version, this.method, this.path, z.any(), null);
+  }
+}
+
+export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
+  TVersion extends string,
+  TMethod extends HTTPMethod,
+  TPath extends string,
+  TMetaData
+> {
+  constructor(
+    private version: TVersion,
+    private method: TMethod,
+    private path: TPath,
+    private metaData: TMetaData
+  ) {}
+
+  public validate<TValidator extends z.ZodTypeAny>(validator: TValidator) {
+    return new RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
+      TVersion,
+      TMethod,
+      TPath,
+      TValidator,
+      TMetaData
+    >(this.version, this.method, this.path, validator, this.metaData);
+  }
+
+  public response<TResponse>() {
+    return new RouteDef<
+      TVersion,
+      TMethod,
+      TPath,
+      z.ZodTypeAny,
+      TResponse,
+      TMetaData
+    >(this.version, this.method, this.path, z.any(), this.metaData);
   }
 }
 
@@ -150,13 +200,52 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
     private validator: TValidator
   ) {}
 
+  public metaData<TMetaData>(metaData: TMetaData) {
+    return new RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
+      TVersion,
+      TMethod,
+      TPath,
+      TValidator,
+      TMetaData
+    >(this.version, this.method, this.path, this.validator, metaData);
+  }
+
   public response<TResponse>() {
-    return new RouteDef<TVersion, TMethod, TPath, TValidator, TResponse>(
-      this.version,
-      this.method,
-      this.path,
-      this.validator
-    );
+    return new RouteDef<
+      TVersion,
+      TMethod,
+      TPath,
+      TValidator,
+      TResponse,
+      unknown
+    >(this.version, this.method, this.path, this.validator, null);
+  }
+}
+
+export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
+  TVersion extends string,
+  TMethod extends HTTPMethod,
+  TPath extends string,
+  TValidator extends z.ZodTypeAny,
+  TMetaData
+> {
+  constructor(
+    private version: TVersion,
+    private method: TMethod,
+    private path: TPath,
+    private validator: TValidator,
+    private metaData: TMetaData
+  ) {}
+
+  public response<TResponse>() {
+    return new RouteDef<
+      TVersion,
+      TMethod,
+      TPath,
+      TValidator,
+      TResponse,
+      TMetaData
+    >(this.version, this.method, this.path, this.validator, this.metaData);
   }
 }
 
@@ -165,7 +254,8 @@ export type AnyRouteDef = RouteDef<
   HTTPMethod,
   string,
   z.ZodTypeAny,
-  any
+  any,
+  unknown
 >;
 
 export enum Versioning {
@@ -178,7 +268,7 @@ export type VersioningRequired = Exclude<Versioning, Versioning.NO_VERSIONING>;
 
 export class BagOfRoutesBuilderWithVersioning<
   TRoutes extends AnyRouteDef,
-  TVersioning extends Versioning,
+  TVersioning extends VersioningRequired,
   TVersionHistory extends string[]
 > {
   protected routes: RouteHashMap = new HashMap<
@@ -193,7 +283,7 @@ export class BagOfRoutesBuilderWithVersioning<
 
   public addRoute<
     TVersion extends TVersionHistory[number],
-    TRouteDef extends RouteDef<TVersion, HTTPMethod, string, any, any>
+    TRouteDef extends RouteDef<TVersion, HTTPMethod, string, any, any, unknown>
   >(
     route: TRouteDef
   ): BagOfRoutesBuilderWithVersioning<
@@ -206,11 +296,34 @@ export class BagOfRoutesBuilderWithVersioning<
   }
 
   public build() {
-    return new BagOfRoutes<TRoutes, TVersioning>(this.routes, this.versioning);
+    return new BagOfRoutesWithVersioning<TRoutes, TVersioning>(
+      this.routes,
+      this.versioning
+    );
   }
 }
 
-export class BagOfRoutes<
+export class BagOfRoutesBuilderWithoutVersioning<TRoutes extends AnyRouteDef> {
+  protected routes: RouteHashMap = new HashMap<
+    [HTTPMethod, string, string],
+    AnyRouteDef
+  >((key) => key.join("-"));
+
+  public addRoute<
+    TRouteDef extends RouteDef<string, HTTPMethod, string, any, any, unknown>
+  >(
+    route: TRouteDef
+  ): BagOfRoutesBuilderWithoutVersioning<TRoutes | TRouteDef> {
+    this.routes.set([route.method, route.path, ""], route);
+    return this;
+  }
+
+  public build() {
+    return new BagOfRoutesWithoutVersioning<TRoutes>(this.routes);
+  }
+}
+
+export abstract class BagOfRoutes<
   TRoutes extends AnyRouteDef,
   TVersioning extends Versioning
 > {
@@ -223,7 +336,7 @@ export class BagOfRoutes<
   }
 
   public static withVersioning<
-    TVersioning extends Versioning,
+    TVersioning extends VersioningRequired,
     TVersionHistory extends string[]
   >(versioning: TVersioning, versionHistory: TVersionHistory) {
     return new BagOfRoutesBuilderWithVersioning<
@@ -234,17 +347,26 @@ export class BagOfRoutes<
   }
 
   public static withoutVersioning() {
-    return new BagOfRoutesBuilderWithVersioning<
-      never,
-      Versioning.NO_VERSIONING,
-      string[]
-    >(Versioning.NO_VERSIONING);
+    return new BagOfRoutesBuilderWithoutVersioning<never>();
   }
 }
 
-export type ExtractRoutes<
-  TBagOfRoutes extends BagOfRoutes<AnyRouteDef, Versioning>
-> = TBagOfRoutes extends BagOfRoutes<infer TRoutes, any> ? TRoutes : never;
+export class BagOfRoutesWithVersioning<
+  TRoutes extends AnyRouteDef,
+  TVersioning extends VersioningRequired
+> extends BagOfRoutes<TRoutes, TVersioning> {
+  constructor(routes: RouteHashMap, versioning: TVersioning) {
+    super(routes, versioning);
+  }
+}
+
+export class BagOfRoutesWithoutVersioning<
+  TRoutes extends AnyRouteDef
+> extends BagOfRoutes<TRoutes, Versioning.NO_VERSIONING> {
+  constructor(routes: RouteHashMap) {
+    super(routes, Versioning.NO_VERSIONING);
+  }
+}
 
 // Demo
 
@@ -281,3 +403,5 @@ export * from "./zod-extensions";
 export * from "./remove-readonly";
 export * from "./version-history";
 export * from "./identity";
+export * from "./infer-meta-data";
+export * from "./extract-route";

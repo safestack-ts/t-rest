@@ -466,7 +466,7 @@ type HandlerReturnType<TRoute extends AnyRouteDef> = RequestReturnType<
 >;
 
 type RouteValidationOutput<TRoute extends AnyRouteDef> =
-  TRoute extends RouteDef<any, any, any, infer TValidator, any>
+  TRoute extends RouteDef<any, any, any, infer TValidator, any, any>
     ? z.output<TValidator>
     : never;
 
