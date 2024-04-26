@@ -13,6 +13,9 @@ dependencies:
     version: 3.22.4
 
 devDependencies:
+  '@safestack/prettier-config':
+    specifier: ^1.0.1
+    version: 1.0.1(prettier@2.8.8)
   '@types/http-status-codes':
     specifier: ^1.2.0
     version: 1.2.0
@@ -641,6 +644,14 @@ packages:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.1
       '@jridgewell/sourcemap-codec': 1.4.15
+    dev: true
+
+  /@safestack/prettier-config@1.0.1(prettier@2.8.8):
+    resolution: {integrity: sha512-5w2m3nkNEjNbmA+Jim5VW+KVCNlYL21ny9WvEQ+x/jKBW1bbSVlbFvFQ8fk3j9MdEsVaCAOMDdASZQsiuMCGiw==}
+    peerDependencies:
+      prettier: ^2.8.8
+    dependencies:
+      prettier: 2.8.8
     dev: true
 
   /@sinclair/typebox@0.27.8:
@@ -2187,6 +2198,12 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       find-up: 4.1.0
+    dev: true
+
+  /prettier@2.8.8:
+    resolution: {integrity: sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==}
+    engines: {node: '>=10.13.0'}
+    hasBin: true
     dev: true
 
   /pretty-format@29.7.0:

@@ -6,12 +6,14 @@
   "scripts": {
     "build": "tsc --build",
     "build:watch": "tsc --build --watch",
-    "test": "pnpm recursive run test"
+    "test": "pnpm recursive run test",
+    "format": "prettier --write \"./**/*.ts\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@safestack/prettier-config": "^1.0.1",
     "@types/http-status-codes": "^1.2.0",
     "@types/jest": "^29.5.12",
     "@types/supertest": "^6.0.2",
