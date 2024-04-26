@@ -1,10 +1,10 @@
-import { AnyRouteDef } from "../../types/any-route-def";
-import { HTTPMethod } from "../../types/http-method";
-import { RouteHashMap } from "../../types/route-hash-map";
-import { VersioningRequired } from "../../types/versioning-required";
-import { HashMap } from "../../utils/hash-map";
-import { BagOfRoutes } from "../core/bag-of-routes";
-import { RouteDef } from "../core/route-def";
+import { AnyRouteDef } from '../../types/any-route-def'
+import { HTTPMethod } from '../../types/http-method'
+import { RouteHashMap } from '../../types/route-hash-map'
+import { VersioningRequired } from '../../types/versioning-required'
+import { HashMap } from '../../utils/hash-map'
+import { BagOfRoutes } from '../core/bag-of-routes'
+import { RouteDef } from '../core/route-def'
 
 export class BagOfRoutesBuilderWithVersioning<
   TRoutes extends AnyRouteDef,
@@ -14,11 +14,11 @@ export class BagOfRoutesBuilderWithVersioning<
   protected routes: RouteHashMap = new HashMap<
     [HTTPMethod, string, string],
     AnyRouteDef
-  >((key) => key.join("-"));
-  private versioning: TVersioning;
+  >((key) => key.join('-'))
+  private versioning: TVersioning
 
   constructor(versioning: TVersioning) {
-    this.versioning = versioning;
+    this.versioning = versioning
   }
 
   public addRoute<
@@ -31,11 +31,11 @@ export class BagOfRoutesBuilderWithVersioning<
     TVersioning,
     TVersionHistory
   > {
-    this.routes.set([route.method, route.path, route.version], route);
-    return this;
+    this.routes.set([route.method, route.path, route.version], route)
+    return this
   }
 
   public build() {
-    return new BagOfRoutes<TRoutes, TVersioning>(this.routes, this.versioning);
+    return new BagOfRoutes<TRoutes, TVersioning>(this.routes, this.versioning)
   }
 }

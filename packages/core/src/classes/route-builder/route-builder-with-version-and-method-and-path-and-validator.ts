@@ -1,7 +1,7 @@
-import { z } from "zod";
-import { HTTPMethod } from "../../types/http-method";
-import { RouteDef } from "../core/route-def";
-import { RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData } from "./route-builder-with-version-and-method-and-path-and-validator-and-meta-data";
+import { z } from 'zod'
+import { HTTPMethod } from '../../types/http-method'
+import { RouteDef } from '../core/route-def'
+import { RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData } from './route-builder-with-version-and-method-and-path-and-validator-and-meta-data'
 
 export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
   TVersion extends string,
@@ -23,7 +23,7 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
       TPath,
       TValidator,
       TMetaData
-    >(this.version, this.method, this.path, this.validator, metaData);
+    >(this.version, this.method, this.path, this.validator, metaData)
   }
 
   public response<TResponse>() {
@@ -34,6 +34,6 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
       TValidator,
       TResponse,
       unknown
-    >(this.version, this.method, this.path, this.validator, null);
+    >(this.version, this.method, this.path, this.validator, null)
   }
 }

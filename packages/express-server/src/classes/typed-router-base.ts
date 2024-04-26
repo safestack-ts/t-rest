@@ -1,6 +1,6 @@
-import { AnyRouteDef, RouteHashMap } from "@typed-rest/core";
-import { ExpressRequest, ExpressRouter } from "../types/express-type-shortcuts";
-import { VersionedRouting } from "./versioned-routing";
+import { AnyRouteDef, RouteHashMap } from '@typed-rest/core'
+import { ExpressRequest, ExpressRouter } from '../types/express-type-shortcuts'
+import { VersionedRouting } from './versioned-routing'
 
 export abstract class TypedRouterBase<
   TRoutes extends AnyRouteDef,
@@ -8,11 +8,11 @@ export abstract class TypedRouterBase<
   TPath extends string,
   TVersionHistory extends string[]
 > {
-  public readonly routes: RouteHashMap;
-  public readonly expressRouter: ExpressRouter;
-  protected readonly path: TPath;
-  public abstract readonly routing: VersionedRouting;
-  protected readonly versionHistory: TVersionHistory;
+  public readonly routes: RouteHashMap
+  public readonly expressRouter: ExpressRouter
+  protected readonly path: TPath
+  public abstract readonly routing: VersionedRouting
+  protected readonly versionHistory: TVersionHistory
 
   constructor(
     routes: RouteHashMap,
@@ -20,13 +20,13 @@ export abstract class TypedRouterBase<
     path: TPath,
     versionHistory: TVersionHistory
   ) {
-    this.routes = routes;
-    this.expressRouter = router;
-    this.path = path;
-    this.versionHistory = versionHistory;
+    this.routes = routes
+    this.expressRouter = router
+    this.path = path
+    this.versionHistory = versionHistory
   }
 
   public get fullPath() {
-    return this.path;
+    return this.path
   }
 }

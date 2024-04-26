@@ -1,5 +1,5 @@
-import { RouteDef } from "../classes/core/route-def";
-import { AnyRouteDef } from "./any-route-def";
+import { RouteDef } from '../classes/core/route-def'
+import { AnyRouteDef } from './any-route-def'
 
 export type InferMetaData<T extends AnyRouteDef> = T extends RouteDef<
   any,
@@ -10,4 +10,4 @@ export type InferMetaData<T extends AnyRouteDef> = T extends RouteDef<
   infer TMetaData
 >
   ? TMetaData
-  : never;
+  : never

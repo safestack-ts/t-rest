@@ -1,6 +1,6 @@
-import { AnyRouteDef } from "@typed-rest/core";
-import { ExpressRequest } from "./express-type-shortcuts";
-import { HandlerReturnType } from "./handler-return-type";
+import { AnyRouteDef } from '@typed-rest/core'
+import { ExpressRequest } from './express-type-shortcuts'
+import { HandlerReturnType } from './handler-return-type'
 
 export type TypedRouteHandlerFn<
   TRoute extends AnyRouteDef,
@@ -9,4 +9,4 @@ export type TypedRouteHandlerFn<
 > = (
   request: TRequest,
   validationOutput: TValidationResult
-) => HandlerReturnType<TRoute> | Promise<HandlerReturnType<TRoute>>;
+) => HandlerReturnType<TRoute> | Promise<HandlerReturnType<TRoute>>

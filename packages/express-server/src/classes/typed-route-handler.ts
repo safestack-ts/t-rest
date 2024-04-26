@@ -1,9 +1,9 @@
-import { AnyRouteDef } from "@typed-rest/core";
-import { ExpressRequest } from "../types/express-type-shortcuts";
-import { RouteValidationOutput } from "../types/route-validation-output";
-import { TypedMiddleware } from "../types/typed-middleware";
-import { TypedRouterBase } from "./typed-router-base";
-import { TypedRouteHandlerFn } from "../types/typed-route-handler-fn";
+import { AnyRouteDef } from '@typed-rest/core'
+import { ExpressRequest } from '../types/express-type-shortcuts'
+import { RouteValidationOutput } from '../types/route-validation-output'
+import { TypedMiddleware } from '../types/typed-middleware'
+import { TypedRouterBase } from './typed-router-base'
+import { TypedRouteHandlerFn } from '../types/typed-route-handler-fn'
 
 export class TypedRouteHandler<
   TVersion extends string,
@@ -11,16 +11,16 @@ export class TypedRouteHandler<
   TPathSuffix extends string,
   TRequest extends ExpressRequest
 > {
-  protected readonly route: TRoute;
-  protected readonly path: TPathSuffix;
+  protected readonly route: TRoute
+  protected readonly path: TPathSuffix
   protected readonly router: TypedRouterBase<
     AnyRouteDef,
     TRequest,
     string,
     string[]
-  >;
-  protected readonly middlewares: TypedMiddleware<any, any>[] = [];
-  protected readonly version: TVersion;
+  >
+  protected readonly middlewares: TypedMiddleware<any, any>[] = []
+  protected readonly version: TVersion
 
   constructor(
     version: TVersion,
@@ -28,10 +28,10 @@ export class TypedRouteHandler<
     path: TPathSuffix,
     router: TypedRouterBase<AnyRouteDef, TRequest, string, string[]>
   ) {
-    this.route = route;
-    this.path = path;
-    this.router = router;
-    this.version = version;
+    this.route = route
+    this.path = path
+    this.router = router
+    this.version = version
   }
 
   public middleware<
@@ -40,14 +40,14 @@ export class TypedRouteHandler<
   >(
     handler: TypedMiddleware<TRequestIn, TRequestOut>
   ): TypedRouteHandler<TVersion, TRoute, TPathSuffix, TRequestOut> {
-    this.middlewares.push(handler);
+    this.middlewares.push(handler)
 
     return this as any as TypedRouteHandler<
       TVersion,
       TRoute,
       TPathSuffix,
       TRequestOut
-    >;
+    >
   }
 
   public handle(
@@ -57,6 +57,6 @@ export class TypedRouteHandler<
       RouteValidationOutput<TRoute>
     >
   ) {
-    this.router.routing.addRoute(this.route, handler as any, this.middlewares); // @todo resolve any
+    this.router.routing.addRoute(this.route, handler as any, this.middlewares) // @todo resolve any
   }
 }

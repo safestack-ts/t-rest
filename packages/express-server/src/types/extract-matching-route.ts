@@ -1,4 +1,4 @@
-import { AnyRouteDef } from "@typed-rest/core";
+import { AnyRouteDef } from '@typed-rest/core'
 
 // resolves last version of route according to the version history, given the client version
 type SearchRoute<
@@ -13,7 +13,7 @@ type SearchRoute<
         : never // 'TOlderVersions is not a string array'
       : never // 'TCurrentVersion is not a string'
     : never // 'TVersionHistory is not a string array'
-  : Extract<TRoutes, { version: TVersionClient }>;
+  : Extract<TRoutes, { version: TVersionClient }>
 
 // recusively search for the correct version position within the version history to start the route search respecting the given client version
 export type ExtractMatchingRoute<
@@ -28,4 +28,4 @@ export type ExtractMatchingRoute<
     : TOlderVersions extends string[]
     ? ExtractMatchingRoute<TRoutes, TClientVersion, TOlderVersions>
     : never // 'TOlderVersions is not a string array #2'
-  : never; // 'TVersionHistory is not a string array #1'
+  : never // 'TVersionHistory is not a string array #1'

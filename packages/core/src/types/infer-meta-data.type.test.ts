@@ -1,43 +1,43 @@
-import { z } from "zod";
-import { ExtractRoutes } from "./extract-route";
-import { AssertTrue, IsExact } from "conditional-type-checks";
-import { VersionHistory } from "../utils/version-history";
-import { BagOfRoutes } from "../classes/core/bag-of-routes";
-import { Route } from "../classes/core/route";
-import { InferMetaData } from "./infer-meta-data";
-import { Versioning } from "../enums/versioning";
+import { z } from 'zod'
+import { ExtractRoutes } from './extract-route'
+import { AssertTrue, IsExact } from 'conditional-type-checks'
+import { VersionHistory } from '../utils/version-history'
+import { BagOfRoutes } from '../classes/core/bag-of-routes'
+import { Route } from '../classes/core/route'
+import { InferMetaData } from './infer-meta-data'
+import { Versioning } from '../enums/versioning'
 
 // unversioned routes
 const unversionedBagOfRoutes = BagOfRoutes.withoutVersioning()
   .addRoute(
     new Route()
-      .get("/users")
-      .metaData({ description: "Get all users" })
+      .get('/users')
+      .metaData({ description: 'Get all users' })
       .response<void>()
   )
   .addRoute(
     new Route()
-      .post("/users")
+      .post('/users')
       .validate(z.object({ body: z.object({ name: z.string() }) }))
-      .metaData({ description: "Create a user" })
+      .metaData({ description: 'Create a user' })
       .response<void>()
   )
-  .build();
+  .build()
 
-type UnversionedRoutes = ExtractRoutes<typeof unversionedBagOfRoutes>;
+type UnversionedRoutes = ExtractRoutes<typeof unversionedBagOfRoutes>
 
 type UnversionedGetUsersRoute = Extract<
   UnversionedRoutes,
-  { method: "GET"; path: "/users" }
->;
-type UnversionedGetUsersRouteMetaData = InferMetaData<UnversionedGetUsersRoute>;
+  { method: 'GET'; path: '/users' }
+>
+type UnversionedGetUsersRouteMetaData = InferMetaData<UnversionedGetUsersRoute>
 
 type UnversionedPostUsersRoute = Extract<
   UnversionedRoutes,
-  { method: "POST"; path: "/users" }
->;
+  { method: 'POST'; path: '/users' }
+>
 type UnversionedPostUsersRouteMetaData =
-  InferMetaData<UnversionedPostUsersRoute>;
+  InferMetaData<UnversionedPostUsersRoute>
 
 type _test_unversioned_routes =
   | AssertTrue<
@@ -45,14 +45,14 @@ type _test_unversioned_routes =
     >
   | AssertTrue<
       IsExact<UnversionedPostUsersRouteMetaData, { description: string }>
-    >;
+    >
 
 // versioned routes
 const versionHistory = VersionHistory([
-  "2024-01-01",
-  "2024-02-01",
-  "2024-03-01",
-] as const);
+  '2024-01-01',
+  '2024-02-01',
+  '2024-03-01',
+] as const)
 
 const versionedBagOfRoutes = BagOfRoutes.withVersioning(
   Versioning.DATE,
@@ -60,36 +60,36 @@ const versionedBagOfRoutes = BagOfRoutes.withVersioning(
 )
   .addRoute(
     new Route()
-      .version("2024-01-01")
-      .get("/users")
-      .metaData({ description: "Get all users" })
+      .version('2024-01-01')
+      .get('/users')
+      .metaData({ description: 'Get all users' })
       .response<void>()
   )
   .addRoute(
     new Route()
-      .version("2024-01-01")
-      .post("/users")
+      .version('2024-01-01')
+      .post('/users')
       .validate(z.object({ body: z.object({ name: z.string() }) }))
-      .metaData({ description: "Create a user", tags: ["admin"] })
+      .metaData({ description: 'Create a user', tags: ['admin'] })
       .response<void>()
   )
-  .build();
+  .build()
 
-type VersionedRoutes = ExtractRoutes<typeof versionedBagOfRoutes>;
+type VersionedRoutes = ExtractRoutes<typeof versionedBagOfRoutes>
 
 type VersionedGetUsersRoute = Extract<
   VersionedRoutes,
-  { method: "GET"; path: "/users" }
->;
+  { method: 'GET'; path: '/users' }
+>
 
-type VersionedGetUsersRouteMetaData = InferMetaData<VersionedGetUsersRoute>;
+type VersionedGetUsersRouteMetaData = InferMetaData<VersionedGetUsersRoute>
 
 type VersionedPostUsersRoute = Extract<
   VersionedRoutes,
-  { method: "POST"; path: "/users" }
->;
+  { method: 'POST'; path: '/users' }
+>
 
-type VersionedPostUsersRouteMetaData = InferMetaData<VersionedPostUsersRoute>;
+type VersionedPostUsersRouteMetaData = InferMetaData<VersionedPostUsersRoute>
 
 type _test_versioned_routes =
   | AssertTrue<IsExact<VersionedGetUsersRouteMetaData, { description: string }>>
@@ -98,4 +98,4 @@ type _test_versioned_routes =
         VersionedPostUsersRouteMetaData,
         { description: string; tags: string[] }
       >
-    >;
+    >

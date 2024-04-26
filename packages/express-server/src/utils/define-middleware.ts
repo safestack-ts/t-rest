@@ -2,9 +2,9 @@ import {
   ExpressNextFunction,
   ExpressRequest,
   ExpressResponse,
-} from "../types/express-type-shortcuts";
-import { TypedMiddleware } from "../types/typed-middleware";
-import { TypedRequestHandler } from "../types/typed-request-handler";
+} from '../types/express-type-shortcuts'
+import { TypedMiddleware } from '../types/typed-middleware'
+import { TypedRequestHandler } from '../types/typed-request-handler'
 
 export const defineMiddleware =
   <TRequestIn extends ExpressRequest, TRequestOut extends TRequestIn>(
@@ -15,5 +15,5 @@ export const defineMiddleware =
     response: ExpressResponse,
     next: ExpressNextFunction
   ) => {
-    middlewareFn(request, response, next);
-  };
+    middlewareFn(request, response, next)
+  }

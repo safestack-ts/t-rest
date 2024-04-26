@@ -1,3 +1,3 @@
-import { Versioning } from "../enums/versioning";
+import { Versioning } from '../enums/versioning'
 
-export type VersioningRequired = Exclude<Versioning, Versioning.NO_VERSIONING>;
+export type VersioningRequired = Exclude<Versioning, Versioning.NO_VERSIONING>

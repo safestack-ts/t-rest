@@ -1,5 +1,5 @@
-import { DateVersionExtractor } from "../types/date-version-extractor";
-import { findNearestLowerDate } from "./find-nearest-lower-date";
+import { DateVersionExtractor } from '../types/date-version-extractor'
+import { findNearestLowerDate } from './find-nearest-lower-date'
 
 export const resolveVersion = (
   versionHistory: string[],
@@ -7,21 +7,21 @@ export const resolveVersion = (
   requestedVersion: string
 ) => {
   if (availableVersions.includes(requestedVersion)) {
-    return requestedVersion;
+    return requestedVersion
   }
 
-  const requestedVersionIndex = versionHistory.indexOf(requestedVersion);
+  const requestedVersionIndex = versionHistory.indexOf(requestedVersion)
 
   for (let i = requestedVersionIndex - 1; i >= 0; i--) {
-    const version = versionHistory[i];
+    const version = versionHistory[i]
 
     if (availableVersions.includes(version)) {
-      return versionHistory[i];
+      return versionHistory[i]
     }
   }
 
-  return null;
-};
+  return null
+}
 
 export const resolveDateVersion = (
   versionHistory: string[],
@@ -33,34 +33,34 @@ export const resolveDateVersion = (
     versionHistory,
     availableVersions,
     requestedVersion
-  );
+  )
 
   if (simpleResolvedVersion) {
-    return simpleResolvedVersion;
+    return simpleResolvedVersion
   } else {
     // need to parse versions and find matching date version
     const versionHistoryDates = versionHistory.map(
       dateVersionExtractor.parseDate
-    );
+    )
     const requestedDateVersion =
-      dateVersionExtractor.parseDate(requestedVersion);
+      dateVersionExtractor.parseDate(requestedVersion)
 
     const nearestLowerDateResult = findNearestLowerDate(
       versionHistoryDates,
       requestedDateVersion
-    );
+    )
 
     if (!nearestLowerDateResult) {
-      return null;
+      return null
     }
 
-    const { lowerDateIndex } = nearestLowerDateResult;
+    const { lowerDateIndex } = nearestLowerDateResult
 
     for (let i = lowerDateIndex; i >= 0; i--) {
-      const version = versionHistory[i];
+      const version = versionHistory[i]
       if (availableVersions.includes(version)) {
-        return version;
+        return version
       }
     }
   }
-};
+}

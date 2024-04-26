@@ -3,16 +3,16 @@ import {
   HTTPMethod,
   StringReplaceHead,
   StringStartsWith,
-} from "@typed-rest/core";
+} from '@typed-rest/core'
 
-type FormatRootPath<TPath extends string> = TPath extends "" ? "/" : TPath;
+type FormatRootPath<TPath extends string> = TPath extends '' ? '/' : TPath
 
 type PossiblePaths<
   TRoutes extends AnyRouteDef,
   TMethod extends HTTPMethod
-> = Extract<TRoutes, { method: TMethod }>["path"] extends never
-  ? "No path found for this method"
-  : Extract<TRoutes, { method: TMethod }>["path"];
+> = Extract<TRoutes, { method: TMethod }>['path'] extends never
+  ? 'No path found for this method'
+  : Extract<TRoutes, { method: TMethod }>['path']
 
 export type PossiblePathsFromPrefix<
   TRoutes extends AnyRouteDef,
@@ -21,7 +21,7 @@ export type PossiblePathsFromPrefix<
 > = FormatRootPath<
   StringReplaceHead<
     StringStartsWith<PossiblePaths<TRoutes, TMethod>, TRoutePrefix>,
-    TRoutePrefix extends "/" ? "" : TRoutePrefix,
-    ""
+    TRoutePrefix extends '/' ? '' : TRoutePrefix,
+    ''
   >
->;
+>

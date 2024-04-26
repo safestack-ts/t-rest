@@ -1,6 +1,6 @@
 export type RequestVersion = {
   version: {
-    requested: string;
-    resolved: string;
-  };
-};
+    requested: string
+    resolved: string
+  }
+}

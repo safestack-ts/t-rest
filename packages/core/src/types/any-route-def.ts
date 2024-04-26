@@ -1,6 +1,6 @@
-import { z } from "zod";
-import { RouteDef } from "../classes/core/route-def";
-import { HTTPMethod } from "./http-method";
+import { z } from 'zod'
+import { RouteDef } from '../classes/core/route-def'
+import { HTTPMethod } from './http-method'
 
 export type AnyRouteDef = RouteDef<
   string,
@@ -9,4 +9,4 @@ export type AnyRouteDef = RouteDef<
   z.ZodTypeAny,
   any,
   unknown
->;
+>

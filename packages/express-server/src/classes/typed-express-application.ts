@@ -3,11 +3,11 @@ import {
   BagOfRoutes,
   Versioning,
   VersioningRequired,
-} from "@typed-rest/core";
-import { ExpressRequest, ExpressApp } from "../types/express-type-shortcuts";
-import { VersionExtractor } from "../types/version-extractor";
-import { TypedExpressApplicationWithoutVersioning } from "./typed-express-application-without-versioning";
-import { TypedExpressApplicationWithVersioning } from "./typed-express-application-with-versioning";
+} from '@typed-rest/core'
+import { ExpressRequest, ExpressApp } from '../types/express-type-shortcuts'
+import { VersionExtractor } from '../types/version-extractor'
+import { TypedExpressApplicationWithoutVersioning } from './typed-express-application-without-versioning'
+import { TypedExpressApplicationWithVersioning } from './typed-express-application-with-versioning'
 
 export abstract class TypedExpressApplication {
   public static withoutVersioning<
@@ -20,7 +20,7 @@ export abstract class TypedExpressApplication {
     return new TypedExpressApplicationWithoutVersioning<TRoutes, TRequest>(
       expressApp,
       bagOfRoutes
-    );
+    )
   }
 
   public static withVersioning<
@@ -37,6 +37,6 @@ export abstract class TypedExpressApplication {
       TRoutes,
       TRequest,
       TVersionHistory
-    >(expressApp, bagOfRoutes, versionHistory, versionExtractor);
+    >(expressApp, bagOfRoutes, versionHistory, versionExtractor)
   }
 }

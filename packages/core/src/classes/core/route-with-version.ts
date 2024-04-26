@@ -1,4 +1,4 @@
-import { RouteBuilderWithVersionAndMethodAndPath } from "../route-builder/route-builder-with-version-and-method-and-path";
+import { RouteBuilderWithVersionAndMethodAndPath } from '../route-builder/route-builder-with-version-and-method-and-path'
 
 export class RouteWithVersion<TVersion extends string> {
   constructor(private version: TVersion) {}
@@ -6,40 +6,40 @@ export class RouteWithVersion<TVersion extends string> {
   public get<TPath extends string>(path: TPath) {
     return new RouteBuilderWithVersionAndMethodAndPath(
       this.version,
-      "GET",
+      'GET',
       path
-    );
+    )
   }
 
   public post<TPath extends string>(path: TPath) {
     return new RouteBuilderWithVersionAndMethodAndPath(
       this.version,
-      "POST",
+      'POST',
       path
-    );
+    )
   }
 
   public put<TPath extends string>(path: TPath) {
     return new RouteBuilderWithVersionAndMethodAndPath(
       this.version,
-      "PUT",
+      'PUT',
       path
-    );
+    )
   }
 
   public patch<TPath extends string>(path: TPath) {
     return new RouteBuilderWithVersionAndMethodAndPath(
       this.version,
-      "PATCH",
+      'PATCH',
       path
-    );
+    )
   }
 
   public delete<TPath extends string>(path: TPath) {
     return new RouteBuilderWithVersionAndMethodAndPath(
       this.version,
-      "DELETE",
+      'DELETE',
       path
-    );
+    )
   }
 }

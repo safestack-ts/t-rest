@@ -1,6 +1,6 @@
-import { BagOfRoutes } from "../classes/core/bag-of-routes";
-import { Versioning } from "../enums/versioning";
-import { AnyRouteDef } from "./any-route-def";
+import { BagOfRoutes } from '../classes/core/bag-of-routes'
+import { Versioning } from '../enums/versioning'
+import { AnyRouteDef } from './any-route-def'
 
 export type CombinedBags<
   TRoutes extends AnyRouteDef,
@@ -12,4 +12,4 @@ export type CombinedBags<
   ? TRemainingClients extends BagOfRoutes<any, Versioning>[]
     ? CombinedBags<TRoutes | TRoute, TRemainingClients>
     : TRoutes
-  : TRoutes;
+  : TRoutes

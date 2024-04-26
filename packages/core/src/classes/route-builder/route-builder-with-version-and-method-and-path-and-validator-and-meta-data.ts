@@ -1,6 +1,6 @@
-import { z } from "zod";
-import { HTTPMethod } from "../../types/http-method";
-import { RouteDef } from "../core/route-def";
+import { z } from 'zod'
+import { HTTPMethod } from '../../types/http-method'
+import { RouteDef } from '../core/route-def'
 
 export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
   TVersion extends string,
@@ -25,6 +25,6 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
       TValidator,
       TResponse,
       TMetaData
-    >(this.version, this.method, this.path, this.validator, this.metaData);
+    >(this.version, this.method, this.path, this.validator, this.metaData)
   }
 }

@@ -1,20 +1,20 @@
-import { Versioning } from "../../enums/versioning";
-import { AnyRouteDef } from "../../types/any-route-def";
-import { RouteHashMap } from "../../types/route-hash-map";
-import { VersioningRequired } from "../../types/versioning-required";
-import { BagOfRoutesBuilderWithVersioning } from "../route-builder/bag-of-routes-builder-with-versioning";
-import { BagOfRoutesBuilderWithoutVersioning } from "../route-builder/bag-of-routes-builder-without-versioning";
+import { Versioning } from '../../enums/versioning'
+import { AnyRouteDef } from '../../types/any-route-def'
+import { RouteHashMap } from '../../types/route-hash-map'
+import { VersioningRequired } from '../../types/versioning-required'
+import { BagOfRoutesBuilderWithVersioning } from '../route-builder/bag-of-routes-builder-with-versioning'
+import { BagOfRoutesBuilderWithoutVersioning } from '../route-builder/bag-of-routes-builder-without-versioning'
 
 export class BagOfRoutes<
   TRoutes extends AnyRouteDef,
   TVersioning extends Versioning
 > {
-  public readonly routes: RouteHashMap;
-  public readonly versioning: TVersioning;
+  public readonly routes: RouteHashMap
+  public readonly versioning: TVersioning
 
   constructor(routes: RouteHashMap, versioning: TVersioning) {
-    this.routes = routes;
-    this.versioning = versioning;
+    this.routes = routes
+    this.versioning = versioning
   }
 
   public static withVersioning<
@@ -25,10 +25,10 @@ export class BagOfRoutes<
       never,
       TVersioning,
       TVersionHistory
-    >(versioning);
+    >(versioning)
   }
 
   public static withoutVersioning() {
-    return new BagOfRoutesBuilderWithoutVersioning<never>();
+    return new BagOfRoutesBuilderWithoutVersioning<never>()
   }
 }

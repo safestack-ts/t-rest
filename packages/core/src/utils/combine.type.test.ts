@@ -1,50 +1,50 @@
-import { z } from "zod";
-import { combine } from "./combine";
-import { AssertFalse, IsNever } from "conditional-type-checks";
-import { BagOfRoutes } from "../classes/core/bag-of-routes";
-import { Route } from "../classes/core/route";
-import { ExtractRoutes } from "../types/extract-route";
+import { z } from 'zod'
+import { combine } from './combine'
+import { AssertFalse, IsNever } from 'conditional-type-checks'
+import { BagOfRoutes } from '../classes/core/bag-of-routes'
+import { Route } from '../classes/core/route'
+import { ExtractRoutes } from '../types/extract-route'
 
 type User = {
-  id: string;
-  email: string;
-};
+  id: string
+  email: string
+}
 
 type Basket = {
-  id: string;
-  entries: any[];
-  priceTotal: number;
-};
+  id: string
+  entries: any[]
+  priceTotal: number
+}
 
 const bagOfRoutesUsers = BagOfRoutes.withoutVersioning()
-  .addRoute(new Route().get("/users").response<User[]>())
-  .addRoute(new Route().post("/users").response<User>())
-  .build();
+  .addRoute(new Route().get('/users').response<User[]>())
+  .addRoute(new Route().post('/users').response<User>())
+  .build()
 
 const bagOfRoutesBaskets = BagOfRoutes.withoutVersioning()
   .addRoute(
     new Route()
-      .get("/baskets/:basketId")
+      .get('/baskets/:basketId')
       .validate(z.object({ params: z.object({ basketId: z.string() }) }))
       .response<Basket>()
   )
-  .addRoute(new Route().post("/baskets").response<Basket>())
-  .build();
+  .addRoute(new Route().post('/baskets').response<Basket>())
+  .build()
 
-const bagOfRoutes = combine(bagOfRoutesUsers, bagOfRoutesBaskets);
-type Routes = ExtractRoutes<typeof bagOfRoutes>;
+const bagOfRoutes = combine(bagOfRoutesUsers, bagOfRoutesBaskets)
+type Routes = ExtractRoutes<typeof bagOfRoutes>
 
 // every route should be part of the combined bag
-type GetUsersRoute = Extract<Routes, { method: "GET"; path: "/users" }>;
-type PostUsersRoute = Extract<Routes, { method: "POST"; path: "/users" }>;
+type GetUsersRoute = Extract<Routes, { method: 'GET'; path: '/users' }>
+type PostUsersRoute = Extract<Routes, { method: 'POST'; path: '/users' }>
 type GetBasketsRoute = Extract<
   Routes,
-  { method: "GET"; path: "/baskets/:basketId" }
->;
-type PostBasketsRoute = Extract<Routes, { method: "POST"; path: "/baskets" }>;
+  { method: 'GET'; path: '/baskets/:basketId' }
+>
+type PostBasketsRoute = Extract<Routes, { method: 'POST'; path: '/baskets' }>
 
 type _test =
   | AssertFalse<IsNever<GetUsersRoute>>
   | AssertFalse<IsNever<PostUsersRoute>>
   | AssertFalse<IsNever<GetBasketsRoute>>
-  | AssertFalse<IsNever<PostBasketsRoute>>;
+  | AssertFalse<IsNever<PostBasketsRoute>>
