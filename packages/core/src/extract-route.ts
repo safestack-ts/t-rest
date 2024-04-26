@@ -1,19 +1,7 @@
-import {
-  AnyRouteDef,
-  BagOfRoutes,
-  BagOfRoutesWithVersioning,
-  BagOfRoutesWithoutVersioning,
-  HTTPMethod,
-  Versioning,
-  VersioningRequired,
-} from "./index";
+import { AnyRouteDef, BagOfRoutes, HTTPMethod, Versioning } from "./index";
 
 export type ExtractRoutes<TBagOfRoutes extends BagOfRoutes<AnyRouteDef, any>> =
-  TBagOfRoutes extends BagOfRoutesWithVersioning<infer TRoutes, any>
-    ? TRoutes
-    : TBagOfRoutes extends BagOfRoutesWithoutVersioning<infer TRoutes>
-    ? TRoutes
-    : never;
+  TBagOfRoutes extends BagOfRoutes<infer TRoutes, any> ? TRoutes : never;
 
 export type ExtractRoute<
   TBagOfRoutes,

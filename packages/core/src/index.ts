@@ -296,10 +296,7 @@ export class BagOfRoutesBuilderWithVersioning<
   }
 
   public build() {
-    return new BagOfRoutesWithVersioning<TRoutes, TVersioning>(
-      this.routes,
-      this.versioning
-    );
+    return new BagOfRoutes<TRoutes, TVersioning>(this.routes, this.versioning);
   }
 }
 
@@ -319,11 +316,14 @@ export class BagOfRoutesBuilderWithoutVersioning<TRoutes extends AnyRouteDef> {
   }
 
   public build() {
-    return new BagOfRoutesWithoutVersioning<TRoutes>(this.routes);
+    return new BagOfRoutes<TRoutes, Versioning.NO_VERSIONING>(
+      this.routes,
+      Versioning.NO_VERSIONING
+    );
   }
 }
 
-export abstract class BagOfRoutes<
+export class BagOfRoutes<
   TRoutes extends AnyRouteDef,
   TVersioning extends Versioning
 > {
@@ -348,23 +348,6 @@ export abstract class BagOfRoutes<
 
   public static withoutVersioning() {
     return new BagOfRoutesBuilderWithoutVersioning<never>();
-  }
-}
-
-export class BagOfRoutesWithVersioning<
-  TRoutes extends AnyRouteDef,
-  TVersioning extends VersioningRequired
-> extends BagOfRoutes<TRoutes, TVersioning> {
-  constructor(routes: RouteHashMap, versioning: TVersioning) {
-    super(routes, versioning);
-  }
-}
-
-export class BagOfRoutesWithoutVersioning<
-  TRoutes extends AnyRouteDef
-> extends BagOfRoutes<TRoutes, Versioning.NO_VERSIONING> {
-  constructor(routes: RouteHashMap) {
-    super(routes, Versioning.NO_VERSIONING);
   }
 }
 
