@@ -10,15 +10,12 @@ import {
   RouteHashMap,
   StringReplaceHead,
   StringStartsWith,
-  VersionHistory,
   Versioning,
   VersioningRequired,
   WithoutTrailingSlash,
-  demoBagOfRoutes,
   joinPath,
   typedLowerCase,
 } from "@typed-rest/core";
-import cors from "cors";
 import * as z from "zod";
 import { StatusCodes } from "http-status-codes";
 import { removePrefixFromPath } from "./utils/remove-prefix-from-path";
@@ -30,11 +27,7 @@ import {
   ExpressRequestHandler,
   ExpressApp,
 } from "./express-type-shortcuts";
-import {
-  VersionExtractor,
-  DateVersionExtractor,
-  isDateVersionExtractor,
-} from "./version-extractor";
+import { VersionExtractor, isDateVersionExtractor } from "./version-extractor";
 
 export type TypedRequestHandler<TRequest extends ExpressRequest> = (
   request: TRequest,
@@ -805,87 +798,3 @@ class TypedExpressApplicationWithVersioning<
     this.bagOfRoutes = bagOfRoutes;
   }
 }
-
-// demo
-
-type RequestWithUserId = ExpressRequest & { userId: string };
-const authMiddleware = defineMiddleware<ExpressRequest, RequestWithUserId>(
-  (request, response, next) => {
-    (request as RequestWithUserId).userId = "123";
-    next();
-  }
-);
-
-const versionHistory = VersionHistory([
-  "2024-01-01",
-  "2024-02-01",
-  "2024-03-01",
-] as const);
-
-class PricenowAPIVersionHeaderExtractor implements VersionExtractor {
-  extractVersion(request: ExpressRequest) {
-    return request.header("x-pricenow-api-version");
-  }
-}
-
-const expressApp = Express.default();
-const typedRESTApplication = TypedExpressApplication.withVersioning(
-  expressApp,
-  demoBagOfRoutes,
-  versionHistory,
-  new PricenowAPIVersionHeaderExtractor()
-)
-  .use(
-    cors({
-      origin: "*",
-      preflightContinue: true,
-    })
-  )
-  .use(authMiddleware)
-  .use((request, _, next) => {
-    console.log(request.userId);
-
-    next();
-  });
-
-const basketRouterPublic = typedRESTApplication.branch("/basket");
-
-basketRouterPublic.use((request, response, next) => {
-  // still works
-  console.log(request.userId);
-
-  next();
-});
-
-basketRouterPublic
-  .get("/:basketId/entries")
-  .version("2024-01-01")
-  .middleware((request, _, next) => {
-    console.log(request.userId);
-
-    next();
-  })
-  .handle((request, validationResult) => {
-    console.log(request.userId);
-    console.log(validationResult.params.basketId);
-
-    return null as any; // @todo
-  });
-
-basketRouterPublic
-  .get("/")
-  .version("2024-01-01")
-  .middleware((request, _, next) => {
-    console.log(request.userId);
-
-    next();
-  })
-  .handle(async (request, validationResult) => {
-    console.log(request.userId);
-    console.log(validationResult.params.basketId);
-
-    return {
-      statusCode: 201,
-      data: { id: "123", entries: [] as any[] },
-    };
-  });

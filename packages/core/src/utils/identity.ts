@@ -1,5 +1,5 @@
-import { AddReadonlyDeep } from "./add-readonly";
-import { RemoveReadonlyDeep } from "./remove-readonly";
+import { AddReadonlyDeep } from "../types/add-readonly";
+import { RemoveReadonlyDeep } from "../types/remove-readonly";
 
 export const TypedIdentity =
   <Shape>() =>

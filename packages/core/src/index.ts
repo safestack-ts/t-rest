@@ -1,389 +1,45 @@
-import { z } from "zod";
-import { HashMap } from "./hash-map";
-import { VersionHistory } from "./version-history";
+// classes
+export * from "./classes/core/bag-of-routes";
+export * from "./classes/core/route";
+export * from "./classes/core/route-def";
+export * from "./classes/core/route-with-version";
+export * from "./classes/route-builder/bag-of-routes-builder-with-versioning";
+export * from "./classes/route-builder/bag-of-routes-builder-without-versioning";
+export * from "./classes/route-builder/route-builder-with-version-and-method-and-path";
+export * from "./classes/route-builder/route-builder-with-version-and-method-and-path-and-meta-data";
+export * from "./classes/route-builder/route-builder-with-version-and-method-and-path-and-validator";
+export * from "./classes/route-builder/route-builder-with-version-and-method-and-path-and-validator-and-meta-data";
 
-export type HTTPMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; // @todo add remaining types
+// enums
+export * from "./enums/versioning";
 
-export type RouteHashMap = HashMap<[HTTPMethod, string, string], AnyRouteDef>; // HTTPMethod, Path, Version
+// symbols
+export * from "./symbols/response-type";
 
-const responseType = Symbol("Response Type");
-export type ResponseTypeKey = typeof responseType;
+// types
+export * from "./types/add-readonly";
+export * from "./types/any-route-def";
+export * from "./types/combined-bags";
+export * from "./types/extract-route";
+export * from "./types/http-method";
+export * from "./types/infer-meta-data";
+export * from "./types/join-path";
+export * from "./types/non-empty-array";
+export * from "./types/prefix-string";
+export * from "./types/remove-readonly";
+export * from "./types/route-hash-map";
+export * from "./types/string-replace-head";
+export * from "./types/string-starts-with";
+export * from "./types/suffix-string";
+export * from "./types/versioning-required";
+export * from "./types/without-slash";
 
-export class RouteDef<
-  TVersion extends string,
-  TMethod extends HTTPMethod,
-  TPath extends string,
-  TValidator extends z.ZodTypeAny,
-  TResponse,
-  TMetaData
-> {
-  public readonly version: TVersion;
-  public readonly method: TMethod;
-  public readonly path: TPath;
-  public readonly validator: TValidator;
-  public readonly [responseType]: TResponse;
-  public readonly metaData: TMetaData;
-
-  constructor(
-    version: TVersion,
-    method: TMethod,
-    path: TPath,
-    validator: TValidator,
-    metaData: TMetaData
-  ) {
-    this.version = version;
-    this.method = method;
-    this.path = path;
-    this.validator = validator;
-    this[responseType] = null as any;
-    this.metaData = metaData;
-  }
-}
-
-export class Route {
-  public version<TVersion extends string>(version: TVersion) {
-    return new RouteWithVersion(version);
-  }
-
-  public get<TPath extends string>(path: TPath) {
-    return new RouteBuilderWithVersionAndMethodAndPath("", "GET", path);
-  }
-
-  public post<TPath extends string>(path: TPath) {
-    return new RouteBuilderWithVersionAndMethodAndPath("", "POST", path);
-  }
-
-  public put<TPath extends string>(path: TPath) {
-    return new RouteBuilderWithVersionAndMethodAndPath("", "PUT", path);
-  }
-
-  public patch<TPath extends string>(path: TPath) {
-    return new RouteBuilderWithVersionAndMethodAndPath("", "PATCH", path);
-  }
-
-  public delete<TPath extends string>(path: TPath) {
-    return new RouteBuilderWithVersionAndMethodAndPath("", "DELETE", path);
-  }
-}
-
-export class RouteWithVersion<TVersion extends string> {
-  constructor(private version: TVersion) {}
-
-  public get<TPath extends string>(path: TPath) {
-    return new RouteBuilderWithVersionAndMethodAndPath(
-      this.version,
-      "GET",
-      path
-    );
-  }
-
-  public post<TPath extends string>(path: TPath) {
-    return new RouteBuilderWithVersionAndMethodAndPath(
-      this.version,
-      "POST",
-      path
-    );
-  }
-
-  public put<TPath extends string>(path: TPath) {
-    return new RouteBuilderWithVersionAndMethodAndPath(
-      this.version,
-      "PUT",
-      path
-    );
-  }
-
-  public patch<TPath extends string>(path: TPath) {
-    return new RouteBuilderWithVersionAndMethodAndPath(
-      this.version,
-      "PATCH",
-      path
-    );
-  }
-
-  public delete<TPath extends string>(path: TPath) {
-    return new RouteBuilderWithVersionAndMethodAndPath(
-      this.version,
-      "DELETE",
-      path
-    );
-  }
-}
-
-export class RouteBuilderWithVersionAndMethodAndPath<
-  TVersion extends string,
-  TMethod extends HTTPMethod,
-  TPath extends string
-> {
-  constructor(
-    private version: TVersion,
-    private method: TMethod,
-    private path: TPath
-  ) {}
-
-  public validate<TValidator extends z.ZodTypeAny>(validator: TValidator) {
-    return new RouteBuilderWithVersionAndMethodAndPathAndValidator<
-      TVersion,
-      TMethod,
-      TPath,
-      TValidator
-    >(this.version, this.method, this.path, validator);
-  }
-
-  public metaData<TMetaData>(metaData: TMetaData) {
-    return new RouteBuilderWithVersionAndMethodAndPathAndMetaData<
-      TVersion,
-      TMethod,
-      TPath,
-      TMetaData
-    >(this.version, this.method, this.path, metaData);
-  }
-
-  public response<TResponse>() {
-    return new RouteDef<
-      TVersion,
-      TMethod,
-      TPath,
-      z.ZodTypeAny,
-      TResponse,
-      unknown
-    >(this.version, this.method, this.path, z.any(), null);
-  }
-}
-
-export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
-  TVersion extends string,
-  TMethod extends HTTPMethod,
-  TPath extends string,
-  TMetaData
-> {
-  constructor(
-    private version: TVersion,
-    private method: TMethod,
-    private path: TPath,
-    private metaData: TMetaData
-  ) {}
-
-  public validate<TValidator extends z.ZodTypeAny>(validator: TValidator) {
-    return new RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
-      TVersion,
-      TMethod,
-      TPath,
-      TValidator,
-      TMetaData
-    >(this.version, this.method, this.path, validator, this.metaData);
-  }
-
-  public response<TResponse>() {
-    return new RouteDef<
-      TVersion,
-      TMethod,
-      TPath,
-      z.ZodTypeAny,
-      TResponse,
-      TMetaData
-    >(this.version, this.method, this.path, z.any(), this.metaData);
-  }
-}
-
-export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
-  TVersion extends string,
-  TMethod extends HTTPMethod,
-  TPath extends string,
-  TValidator extends z.ZodTypeAny
-> {
-  constructor(
-    private version: TVersion,
-    private method: TMethod,
-    private path: TPath,
-    private validator: TValidator
-  ) {}
-
-  public metaData<TMetaData>(metaData: TMetaData) {
-    return new RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
-      TVersion,
-      TMethod,
-      TPath,
-      TValidator,
-      TMetaData
-    >(this.version, this.method, this.path, this.validator, metaData);
-  }
-
-  public response<TResponse>() {
-    return new RouteDef<
-      TVersion,
-      TMethod,
-      TPath,
-      TValidator,
-      TResponse,
-      unknown
-    >(this.version, this.method, this.path, this.validator, null);
-  }
-}
-
-export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
-  TVersion extends string,
-  TMethod extends HTTPMethod,
-  TPath extends string,
-  TValidator extends z.ZodTypeAny,
-  TMetaData
-> {
-  constructor(
-    private version: TVersion,
-    private method: TMethod,
-    private path: TPath,
-    private validator: TValidator,
-    private metaData: TMetaData
-  ) {}
-
-  public response<TResponse>() {
-    return new RouteDef<
-      TVersion,
-      TMethod,
-      TPath,
-      TValidator,
-      TResponse,
-      TMetaData
-    >(this.version, this.method, this.path, this.validator, this.metaData);
-  }
-}
-
-export type AnyRouteDef = RouteDef<
-  string,
-  HTTPMethod,
-  string,
-  z.ZodTypeAny,
-  any,
-  unknown
->;
-
-export enum Versioning {
-  NO_VERSIONING,
-  DATE,
-  SEMVER,
-}
-
-export type VersioningRequired = Exclude<Versioning, Versioning.NO_VERSIONING>;
-
-export class BagOfRoutesBuilderWithVersioning<
-  TRoutes extends AnyRouteDef,
-  TVersioning extends VersioningRequired,
-  TVersionHistory extends string[]
-> {
-  protected routes: RouteHashMap = new HashMap<
-    [HTTPMethod, string, string],
-    AnyRouteDef
-  >((key) => key.join("-"));
-  private versioning: TVersioning;
-
-  constructor(versioning: TVersioning) {
-    this.versioning = versioning;
-  }
-
-  public addRoute<
-    TVersion extends TVersionHistory[number],
-    TRouteDef extends RouteDef<TVersion, HTTPMethod, string, any, any, unknown>
-  >(
-    route: TRouteDef
-  ): BagOfRoutesBuilderWithVersioning<
-    TRoutes | TRouteDef,
-    TVersioning,
-    TVersionHistory
-  > {
-    this.routes.set([route.method, route.path, route.version], route);
-    return this;
-  }
-
-  public build() {
-    return new BagOfRoutes<TRoutes, TVersioning>(this.routes, this.versioning);
-  }
-}
-
-export class BagOfRoutesBuilderWithoutVersioning<TRoutes extends AnyRouteDef> {
-  protected routes: RouteHashMap = new HashMap<
-    [HTTPMethod, string, string],
-    AnyRouteDef
-  >((key) => key.join("-"));
-
-  public addRoute<
-    TRouteDef extends RouteDef<string, HTTPMethod, string, any, any, unknown>
-  >(
-    route: TRouteDef
-  ): BagOfRoutesBuilderWithoutVersioning<TRoutes | TRouteDef> {
-    this.routes.set([route.method, route.path, ""], route);
-    return this;
-  }
-
-  public build() {
-    return new BagOfRoutes<TRoutes, Versioning.NO_VERSIONING>(
-      this.routes,
-      Versioning.NO_VERSIONING
-    );
-  }
-}
-
-export class BagOfRoutes<
-  TRoutes extends AnyRouteDef,
-  TVersioning extends Versioning
-> {
-  public readonly routes: RouteHashMap;
-  public readonly versioning: TVersioning;
-
-  constructor(routes: RouteHashMap, versioning: TVersioning) {
-    this.routes = routes;
-    this.versioning = versioning;
-  }
-
-  public static withVersioning<
-    TVersioning extends VersioningRequired,
-    TVersionHistory extends string[]
-  >(versioning: TVersioning, versionHistory: TVersionHistory) {
-    return new BagOfRoutesBuilderWithVersioning<
-      never,
-      TVersioning,
-      TVersionHistory
-    >(versioning);
-  }
-
-  public static withoutVersioning() {
-    return new BagOfRoutesBuilderWithoutVersioning<never>();
-  }
-}
-
-// Demo
-
-const versionHistory = VersionHistory([
-  "2024-01-01",
-  "2024-02-01",
-  "2024-03-01",
-] as const);
-
-export const demoBagOfRoutes = BagOfRoutes.withVersioning(
-  Versioning.DATE,
-  versionHistory
-)
-  .addRoute(
-    new Route()
-      .version("2024-01-01")
-      .get("/basket")
-      .response<{ id: string; entries: any[] }>()
-  )
-  .addRoute(
-    new Route()
-      .version("2024-01-01")
-      .get("/basket/:basketId/entries")
-      .validate(z.object({ params: z.object({ basketId: z.string() }) }))
-      .response<any[]>()
-  )
-  .build();
-
-export * from "./path";
-export * from "./hash-map";
-export * from "./typed-string-case";
-export * from "./string-types";
-export * from "./zod-extensions";
-export * from "./remove-readonly";
-export * from "./version-history";
-export * from "./identity";
-export * from "./infer-meta-data";
-export * from "./extract-route";
+// utils
+export * from "./utils/combine";
+export * from "./utils/hash-map";
+export * from "./utils/identity";
+export * from "./utils/join-path";
+export * from "./utils/typed-string-case";
+export * from "./utils/version-history";
+export * from "./utils/zod-extensions";
+export * from "./utils/dx/demo-bag-of-routes";

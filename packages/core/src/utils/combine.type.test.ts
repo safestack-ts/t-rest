@@ -1,7 +1,9 @@
 import { z } from "zod";
-import { BagOfRoutes, ExtractRoutes, Route } from "./index";
 import { combine } from "./combine";
 import { AssertFalse, IsNever } from "conditional-type-checks";
+import { BagOfRoutes } from "../classes/core/bag-of-routes";
+import { Route } from "../classes/core/route";
+import { ExtractRoutes } from "../types/extract-route";
 
 type User = {
   id: string;
