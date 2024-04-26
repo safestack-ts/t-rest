@@ -6,7 +6,7 @@ import { BagOfRoutesBuilderWithVersioning } from '../route-builder/bag-of-routes
 import { BagOfRoutesBuilderWithoutVersioning } from '../route-builder/bag-of-routes-builder-without-versioning'
 
 export class BagOfRoutes<
-  TRoutes extends AnyRouteDef,
+  _TRoutes extends AnyRouteDef,
   TVersioning extends Versioning
 > {
   public readonly routes: RouteHashMap
@@ -20,7 +20,7 @@ export class BagOfRoutes<
   public static withVersioning<
     TVersioning extends VersioningRequired,
     TVersionHistory extends string[]
-  >(versioning: TVersioning, versionHistory: TVersionHistory) {
+  >(versioning: TVersioning) {
     return new BagOfRoutesBuilderWithVersioning<
       never,
       TVersioning,

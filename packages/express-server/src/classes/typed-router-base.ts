@@ -3,8 +3,8 @@ import { ExpressRequest, ExpressRouter } from '../types/express-type-shortcuts'
 import { VersionedRouting } from './versioned-routing'
 
 export abstract class TypedRouterBase<
-  TRoutes extends AnyRouteDef,
-  TRequest extends ExpressRequest,
+  _TRoutes extends AnyRouteDef,
+  _TRequest extends ExpressRequest,
   TPath extends string,
   TVersionHistory extends string[]
 > {
