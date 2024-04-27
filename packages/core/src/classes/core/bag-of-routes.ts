@@ -20,7 +20,7 @@ export class BagOfRoutes<
   public static withVersioning<
     TVersioning extends VersioningRequired,
     TVersionHistory extends string[]
-  >(versioning: TVersioning) {
+  >(versioning: TVersioning, _versionHistory: TVersionHistory) {
     return new BagOfRoutesBuilderWithVersioning<
       never,
       TVersioning,
