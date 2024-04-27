@@ -7,14 +7,18 @@ import { HashMap } from './hash-map'
 
 export const combine = <
   TVersioning extends Versioning,
-  TBags extends NonEmptyArray<BagOfRoutes<AnyRouteDef, TVersioning>>
+  TVersionHistory extends string[],
+  TBags extends NonEmptyArray<
+    BagOfRoutes<AnyRouteDef, TVersioning, TVersionHistory>
+  >
 >(
   ...bags: TBags
-): BagOfRoutes<CombinedBags<never, TBags>, TVersioning> =>
-  new BagOfRoutes<CombinedBags<never, TBags>, TVersioning>(
+): BagOfRoutes<CombinedBags<never, TBags>, TVersioning, TVersionHistory> =>
+  new BagOfRoutes<CombinedBags<never, TBags>, TVersioning, TVersionHistory>(
     new HashMap(
       (key) => key.join('-'),
       bags.flatMap((bag) => Array.from(bag.routes.entries()))
     ),
-    first(bags).versioning
+    first(bags).versioning,
+    first(bags).versionHistory
   )

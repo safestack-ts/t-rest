@@ -15,10 +15,12 @@ export class BagOfRoutesBuilderWithVersioning<
     [HTTPMethod, string, string],
     AnyRouteDef
   >((key) => key.join('-'))
-  private versioning: TVersioning
+  private readonly versioning: TVersioning
+  private readonly versionHistory: TVersionHistory
 
-  constructor(versioning: TVersioning) {
+  constructor(versioning: TVersioning, versionHistory: TVersionHistory) {
     this.versioning = versioning
+    this.versionHistory = versionHistory
   }
 
   public addRoute<
@@ -36,6 +38,10 @@ export class BagOfRoutesBuilderWithVersioning<
   }
 
   public build() {
-    return new BagOfRoutes<TRoutes, TVersioning>(this.routes, this.versioning)
+    return new BagOfRoutes<TRoutes, TVersioning, TVersionHistory>(
+      this.routes,
+      this.versioning,
+      this.versionHistory
+    )
   }
 }

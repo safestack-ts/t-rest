@@ -13,11 +13,15 @@ export class TypedExpressApplicationWithVersioning<
   TRequest extends ExpressRequest,
   TVersionHistory extends string[]
 > extends TypedRouterWithVersioning<TRoutes, TRequest, '/', TVersionHistory> {
-  protected readonly bagOfRoutes: BagOfRoutes<TRoutes, Versioning>
+  protected readonly bagOfRoutes: BagOfRoutes<
+    TRoutes,
+    Versioning,
+    TVersionHistory
+  >
 
   constructor(
     expressApp: ExpressApp,
-    bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired>,
+    bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired, TVersionHistory>,
     versionHistory: TVersionHistory,
     versionExtractor: VersionExtractor
   ) {

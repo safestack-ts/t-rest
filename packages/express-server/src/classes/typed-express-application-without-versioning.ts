@@ -6,10 +6,11 @@ export class TypedExpressApplicationWithoutVersioning<
   TRoutes extends AnyRouteDef,
   TRequest extends ExpressRequest
 > extends TypedRouterWithoutVersioning<TRoutes, TRequest, '/'> {
-  protected readonly bagOfRoutes: BagOfRoutes<TRoutes, Versioning>
+  protected readonly bagOfRoutes: BagOfRoutes<TRoutes, Versioning, never>
+
   constructor(
     expressApp: ExpressApp,
-    bagOfRoutes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING>
+    bagOfRoutes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING, never>
   ) {
     super(bagOfRoutes.routes, expressApp, '/')
 

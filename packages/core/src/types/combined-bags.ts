@@ -4,12 +4,12 @@ import { AnyRouteDef } from './any-route-def'
 
 export type CombinedBags<
   TRoutes extends AnyRouteDef,
-  TBags extends BagOfRoutes<any, Versioning>[]
+  TBags extends BagOfRoutes<any, Versioning, any>[]
 > = TBags extends [
-  BagOfRoutes<infer TRoute, Versioning>,
+  BagOfRoutes<infer TRoute, Versioning, any>,
   ...infer TRemainingClients
 ]
-  ? TRemainingClients extends BagOfRoutes<any, Versioning>[]
+  ? TRemainingClients extends BagOfRoutes<any, Versioning, any>[]
     ? CombinedBags<TRoutes | TRoute, TRemainingClients>
     : TRoutes
   : TRoutes

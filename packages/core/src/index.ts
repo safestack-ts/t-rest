@@ -33,6 +33,7 @@ export * from './types/string-starts-with'
 export * from './types/suffix-string'
 export * from './types/versioning-required'
 export * from './types/without-slash'
+export * from './types/extract-version-matching-route'
 
 // utils
 export * from './utils/combine'

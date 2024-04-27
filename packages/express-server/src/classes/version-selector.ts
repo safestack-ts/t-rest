@@ -1,5 +1,6 @@
 import {
   AnyRouteDef,
+  ExtractVersionMatchingRoute,
   HTTPMethod,
   JoinPath,
   RouteHashMap,
@@ -11,7 +12,6 @@ import { RequestVersion } from '../types/request-version'
 import { RouteVersions } from '../types/route-versions'
 import { TypedRouterBase } from './typed-router-base'
 import { TypedRouteHandler } from './typed-route-handler'
-import { ExtractMatchingRoute } from '../types/extract-matching-route'
 
 export class VersionSelector<
   TRoutes extends AnyRouteDef,
@@ -47,7 +47,11 @@ export class VersionSelector<
   }
 
   private getRouteHandler<TVersion extends string>(version: TVersion) {
-    type TRoute = ExtractMatchingRoute<TRoutes, TVersion, TVersionHistory>
+    type TRoute = ExtractVersionMatchingRoute<
+      TRoutes,
+      TVersion,
+      TVersionHistory
+    >
 
     const route = this.routes.get([
       this.method,

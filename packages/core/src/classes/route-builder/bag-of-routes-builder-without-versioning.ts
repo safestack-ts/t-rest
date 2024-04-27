@@ -22,9 +22,10 @@ export class BagOfRoutesBuilderWithoutVersioning<TRoutes extends AnyRouteDef> {
   }
 
   public build() {
-    return new BagOfRoutes<TRoutes, Versioning.NO_VERSIONING>(
+    return new BagOfRoutes<TRoutes, Versioning.NO_VERSIONING, never>(
       this.routes,
-      Versioning.NO_VERSIONING
+      Versioning.NO_VERSIONING,
+      null as never
     )
   }
 }

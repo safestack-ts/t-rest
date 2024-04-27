@@ -15,7 +15,7 @@ export abstract class TypedExpressApplication {
     TRequest extends ExpressRequest
   >(
     expressApp: ExpressApp,
-    bagOfRoutes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING>
+    bagOfRoutes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING, never>
   ) {
     return new TypedExpressApplicationWithoutVersioning<TRoutes, TRequest>(
       expressApp,
@@ -29,7 +29,7 @@ export abstract class TypedExpressApplication {
     TVersionHistory extends string[]
   >(
     expressApp: ExpressApp,
-    bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired>,
+    bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired, TVersionHistory>,
     versionHistory: TVersionHistory,
     versionExtractor: VersionExtractor
   ) {

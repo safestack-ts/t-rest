@@ -7,25 +7,33 @@ import { BagOfRoutesBuilderWithoutVersioning } from '../route-builder/bag-of-rou
 
 export class BagOfRoutes<
   _TRoutes extends AnyRouteDef,
-  TVersioning extends Versioning
+  TVersioning extends Versioning,
+  TVersionHistory extends string[]
 > {
   public readonly routes: RouteHashMap
   public readonly versioning: TVersioning
+  // @todo can we move that into two BagOfRoutes classes?
+  public readonly versionHistory: TVersionHistory
 
-  constructor(routes: RouteHashMap, versioning: TVersioning) {
+  constructor(
+    routes: RouteHashMap,
+    versioning: TVersioning,
+    versionHistory: TVersionHistory
+  ) {
     this.routes = routes
     this.versioning = versioning
+    this.versionHistory = versionHistory
   }
 
   public static withVersioning<
     TVersioning extends VersioningRequired,
     TVersionHistory extends string[]
-  >(versioning: TVersioning, _versionHistory: TVersionHistory) {
+  >(versioning: TVersioning, versionHistory: TVersionHistory) {
     return new BagOfRoutesBuilderWithVersioning<
       never,
       TVersioning,
       TVersionHistory
-    >(versioning)
+    >(versioning, versionHistory)
   }
 
   public static withoutVersioning() {
