@@ -1,48 +1,16 @@
 import {
-  BagOfRoutes,
-  Route,
-  VersionHistory,
-  Versioning,
-  ze,
-} from '@typed-rest/core'
-import { User } from './utils/test-entity-types'
-import { z } from 'zod'
+  ResponseWithVersion,
+  TestBagOfRoutesWithVersioning,
+  User,
+} from '@typed-rest/testing-utilities'
 import Express from 'express'
 import request from 'supertest'
 import { StatusCodes } from 'http-status-codes'
 import { DateVersionExtractor } from '../types/date-version-extractor'
 import { TypedExpressApplication } from '../classes/typed-express-application'
 
-type ResponseWithVersion<T> = {
-  data: T
-  version: string
-}
-
-const versionHistory = VersionHistory([
-  '2024-01-01',
-  '2024-02-01',
-  '2024-03-01',
-] as const)
-
-const baseBagOfRoutes = BagOfRoutes.withVersioning(
-  Versioning.DATE,
-  versionHistory
-)
-  .addRoute(
-    new Route()
-      .version('2024-01-01')
-      .get('/users/:userId')
-      .validate(z.object({ params: z.object({ userId: ze.parseInteger() }) }))
-      .response<ResponseWithVersion<User>>()
-  )
-  .addRoute(
-    new Route()
-      .version('2024-02-01')
-      .get('/users/:userId')
-      .validate(z.object({ params: z.object({ userId: ze.uuid() }) }))
-      .response<ResponseWithVersion<User>>()
-  )
-  .build()
+const { bagOfRoutes: baseBagOfRoutes, versionHistory } =
+  TestBagOfRoutesWithVersioning
 
 class PricenowAPIVersionHeaderExtractor implements DateVersionExtractor {
   extractVersion(request: Express.Request) {

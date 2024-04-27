@@ -3,7 +3,7 @@ import Express from 'express'
 import { z } from 'zod'
 import request from 'supertest'
 import { StatusCodes } from 'http-status-codes'
-import { User, Basket, Person } from './utils/test-entity-types'
+import { User, Basket, Person } from '@typed-rest/testing-utilities'
 import { TypedExpressApplication } from '../classes/typed-express-application'
 
 const baseBagOfRoutes = BagOfRoutes.withoutVersioning()

@@ -9,12 +9,15 @@ importers:
   .:
     dependencies:
       '@typed-rest/core':
-        specifier: '*'
+        specifier: workspace:*
         version: link:../core
       express:
         specifier: ^4.18.2
         version: 4.18.2
     devDependencies:
+      '@typed-rest/testing-utilities':
+        specifier: workspace:*
+        version: link:../testing-utilities
       '@types/compression':
         specifier: ^1.7.5
         version: 1.7.5

@@ -4,5 +4,8 @@
   "compilerOptions": {
     "composite": true
   },
-  "references": [{ "path": "../core/tsconfig.ref.json" }]
+  "references": [
+    { "path": "../core/tsconfig.ref.json" },
+    { "path": "../testing-utilities/tsconfig.ref.json" }
+  ]
 }
