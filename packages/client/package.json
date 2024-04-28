@@ -18,6 +18,11 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@typed-rest/core": "*"
+        "@typed-rest/core": "workspace:*"
+    },
+    "devDependencies": {
+        "@typed-rest/testing-utilities": "workspace:*",
+        "@types/axios": "^0.14.0",
+        "axios": "^1.6.8"
     }
 }

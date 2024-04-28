@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { HTTPMethod } from '../../types/http-method'
 import { RouteDef } from '../core/route-def'
 import { RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData } from './route-builder-with-version-and-method-and-path-and-validator-and-meta-data'
+import { emptyValidation } from '../../utils/empty-validation'
 
 export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
   TVersion extends string,
@@ -31,9 +32,9 @@ export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
       TVersion,
       TMethod,
       TPath,
-      z.ZodTypeAny,
+      typeof emptyValidation,
       TResponse,
       TMetaData
-    >(this.version, this.method, this.path, z.any(), this.metaData)
+    >(this.version, this.method, this.path, emptyValidation, this.metaData)
   }
 }

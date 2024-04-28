@@ -6,7 +6,7 @@ import {
   ze,
 } from '@typed-rest/core'
 import { ResponseWithVersion } from './response-with-version'
-import { User } from './test-entity-types'
+import { User, UserWithTags } from './test-entity-types'
 import { z } from 'zod'
 
 export namespace TestBagOfRoutesWithVersioning {
@@ -32,7 +32,7 @@ export namespace TestBagOfRoutesWithVersioning {
         .version('2024-02-01')
         .get('/users/:userId')
         .validate(z.object({ params: z.object({ userId: ze.uuid() }) }))
-        .response<ResponseWithVersion<User>>()
+        .response<ResponseWithVersion<UserWithTags>>()
     )
     .build()
 }

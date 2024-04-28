@@ -34,6 +34,8 @@ export * from './types/suffix-string'
 export * from './types/versioning-required'
 export * from './types/without-slash'
 export * from './types/extract-version-matching-route'
+export * from './types/route-validation-output'
+export * from './types/route-validation-input'
 
 // utils
 export * from './utils/combine'

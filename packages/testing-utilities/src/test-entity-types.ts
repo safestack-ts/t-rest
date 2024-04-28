@@ -3,6 +3,8 @@ export type User = {
   email: string
 }
 
+export type UserWithTags = User & { tags: string[] }
+
 export type Person = {
   id: number
   name: string

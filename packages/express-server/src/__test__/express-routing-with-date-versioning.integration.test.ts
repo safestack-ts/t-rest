@@ -50,7 +50,7 @@ const initApplication = (expressApp: Express.Application) => {
       statusCode: 200,
       data: {
         version: '2024-02-01',
-        data: { id: 42, email: `user-${userId}@email.com` },
+        data: { id: 42, email: `user-${userId}@email.com`, tags: ['tag1'] },
       },
     }))
 

@@ -27,4 +27,15 @@ export const demoBagOfRoutes = BagOfRoutes.withVersioning(
       .validate(z.object({ params: z.object({ basketId: z.string() }) }))
       .response<any[]>()
   )
+  .addRoute(
+    new Route()
+      .version('2024-03-01')
+      .post('/basket')
+      .validate(
+        z.object({
+          body: z.object({ entries: z.array(z.object({ id: z.string() })) }),
+        })
+      )
+      .response<{ id: string }>()
+  )
   .build()
