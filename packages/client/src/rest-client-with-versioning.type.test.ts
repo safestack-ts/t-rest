@@ -4,8 +4,8 @@ import {
   User,
   UserWithTags,
 } from '@typed-rest/testing-utilities'
-import { RESTClient } from '.'
 import { AssertTrue, IsExact } from 'conditional-type-checks'
+import { RESTClient } from './classes/rest-client'
 
 const { bagOfRoutes } = TestBagOfRoutesWithVersioning
 
