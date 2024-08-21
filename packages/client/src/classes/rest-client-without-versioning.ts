@@ -1,11 +1,11 @@
 import { AnyRouteDef, HTTPMethod, ResponseTypeKey } from '@typed-rest/core'
-import { RESTClient } from './rest-client'
+import { RESTClientBase } from './rest-client-base'
 import { RequestArgs } from '../types/request-args'
 import { RequestInput } from '../types/request-input'
 
 export class RESTClientWithoutVersioning<
   TRoutes extends AnyRouteDef
-> extends RESTClient<TRoutes, never> {
+> extends RESTClientBase<TRoutes, never> {
   private makeRouteHandler<TMethod extends HTTPMethod>(method: TMethod) {
     return <
       TAbsolutePath extends Extract<TRoutes, { method: TMethod }>['path']

@@ -6,7 +6,7 @@ import {
   ResponseTypeKey,
   Versioning,
 } from '@typed-rest/core'
-import { RESTClient } from './rest-client'
+import { RESTClientBase } from './rest-client-base'
 import { RequestArgs } from '../types/request-args'
 import { RequestInput } from '../types/request-input'
 import { HTTPAdapter } from '../types/http-adapter'
@@ -15,7 +15,7 @@ export class RESTClientWithVersioning<
   TRoutes extends AnyRouteDef,
   TVersion extends TRoutes['version'],
   TVersionHistory extends string[]
-> extends RESTClient<TRoutes, TVersionHistory> {
+> extends RESTClientBase<TRoutes, TVersionHistory> {
   protected readonly version: TVersion
 
   constructor(
