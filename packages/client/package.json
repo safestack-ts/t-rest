@@ -23,6 +23,7 @@
     "devDependencies": {
         "@typed-rest/testing-utilities": "workspace:*",
         "@types/axios": "^0.14.0",
-        "axios": "^1.6.8"
+        "axios": "^1.6.8",
+        "nock": "^13.5.5"
     }
 }
