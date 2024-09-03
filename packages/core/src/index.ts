@@ -36,6 +36,7 @@ export * from './types/without-slash'
 export * from './types/extract-version-matching-route'
 export * from './types/route-validation-output'
 export * from './types/route-validation-input'
+export * from './types/any-route-validator'
 
 // utils
 export * from './utils/combine'

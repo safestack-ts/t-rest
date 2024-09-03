@@ -1,12 +1,12 @@
-import { z } from 'zod'
 import { HTTPMethod } from '../../types/http-method'
 import { _responseType } from '../../symbols/response-type'
+import { AnyRouteValidator } from '../../types/any-route-validator'
 
 export class RouteDef<
   TVersion extends string,
   TMethod extends HTTPMethod,
   TPath extends string,
-  TValidator extends z.ZodTypeAny,
+  TValidator extends AnyRouteValidator,
   TResponse,
   TMetaData
 > {
