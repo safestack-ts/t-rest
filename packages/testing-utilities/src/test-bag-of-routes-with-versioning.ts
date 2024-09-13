@@ -21,15 +21,13 @@ export namespace TestBagOfRoutesWithVersioning {
     versionHistory
   )
     .addRoute(
-      new Route()
-        .version('2024-01-01')
+      Route.version('2024-01-01')
         .get('/users/:userId')
         .validate(z.object({ params: z.object({ userId: ze.parseInteger() }) }))
         .response<ResponseWithVersion<User>>()
     )
     .addRoute(
-      new Route()
-        .version('2024-02-01')
+      Route.version('2024-02-01')
         .get('/users/:userId')
         .validate(z.object({ params: z.object({ userId: ze.uuid() }) }))
         .response<ResponseWithVersion<UserWithTags>>()

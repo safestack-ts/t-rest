@@ -17,18 +17,17 @@ type Basket = {
 }
 
 const bagOfRoutesUsers = BagOfRoutes.withoutVersioning()
-  .addRoute(new Route().get('/users').response<User[]>())
-  .addRoute(new Route().post('/users').response<User>())
+  .addRoute(Route.get('/users').response<User[]>())
+  .addRoute(Route.post('/users').response<User>())
   .build()
 
 const bagOfRoutesBaskets = BagOfRoutes.withoutVersioning()
   .addRoute(
-    new Route()
-      .get('/baskets/:basketId')
+    Route.get('/baskets/:basketId')
       .validate(z.object({ params: z.object({ basketId: z.string() }) }))
       .response<Basket>()
   )
-  .addRoute(new Route().post('/baskets').response<Basket>())
+  .addRoute(Route.post('/baskets').response<Basket>())
   .build()
 
 const bagOfRoutes = combine(bagOfRoutesUsers, bagOfRoutesBaskets)

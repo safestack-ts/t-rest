@@ -7,10 +7,9 @@ import { User, Basket, Person } from '@typed-rest/testing-utilities'
 import { TypedExpressApplication } from '../classes/typed-express-application'
 
 const baseBagOfRoutes = BagOfRoutes.withoutVersioning()
-  .addRoute(new Route().get('/users/me').response<User>())
+  .addRoute(Route.get('/users/me').response<User>())
   .addRoute(
-    new Route()
-      .get('/users/:userId')
+    Route.get('/users/:userId')
       .validate(z.object({ params: z.object({ userId: ze.parseInteger() }) }))
       .response<User>()
   )
@@ -50,12 +49,11 @@ test('express app with multiple routers without versioning is working', async ()
 
   const bagOfRoutes = baseBagOfRoutes
     .addRoute(
-      new Route()
-        .get('/baskets/:basketId')
+      Route.get('/baskets/:basketId')
         .validate(z.object({ params: z.object({ basketId: z.string() }) }))
         .response<Basket>()
     )
-    .addRoute(new Route().post('/baskets').response<Basket>())
+    .addRoute(Route.post('/baskets').response<Basket>())
     .build()
 
   const typedRESTApplication = TypedExpressApplication.withoutVersioning(
@@ -108,16 +106,14 @@ test('nested routers without versioning is working', async () => {
   const expressApp = Express()
 
   const bagOfRoutes = BagOfRoutes.withoutVersioning()
-    .addRoute(new Route().get('/users/admin').response<User[]>())
+    .addRoute(Route.get('/users/admin').response<User[]>())
     .addRoute(
-      new Route()
-        .get('/users/admin/:userId/persons')
+      Route.get('/users/admin/:userId/persons')
         .validate(z.object({ params: z.object({ userId: ze.parseInteger() }) }))
         .response<Person[]>()
     )
     .addRoute(
-      new Route()
-        .get('/users/:userId')
+      Route.get('/users/:userId')
         .validate(z.object({ params: z.object({ userId: ze.parseInteger() }) }))
         .response<User>()
     )

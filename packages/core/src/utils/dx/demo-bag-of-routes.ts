@@ -15,21 +15,18 @@ export const demoBagOfRoutes = BagOfRoutes.withVersioning(
   versionHistory
 )
   .addRoute(
-    new Route()
-      .version('2024-01-01')
+    Route.version('2024-01-01')
       .get('/basket')
       .response<{ id: string; entries: any[] }>()
   )
   .addRoute(
-    new Route()
-      .version('2024-01-01')
+    Route.version('2024-01-01')
       .get('/basket/:basketId/entries')
       .validate(z.object({ params: z.object({ basketId: z.string() }) }))
       .response<any[]>()
   )
   .addRoute(
-    new Route()
-      .version('2024-03-01')
+    Route.version('2024-03-01')
       .post('/basket')
       .validate(
         z.object({

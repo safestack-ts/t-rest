@@ -10,14 +10,12 @@ import { Versioning } from '../enums/versioning'
 // unversioned routes
 const unversionedBagOfRoutes = BagOfRoutes.withoutVersioning()
   .addRoute(
-    new Route()
-      .get('/users')
+    Route.get('/users')
       .metaData({ description: 'Get all users' })
       .response<void>()
   )
   .addRoute(
-    new Route()
-      .post('/users')
+    Route.post('/users')
       .validate(z.object({ body: z.object({ name: z.string() }) }))
       .metaData({ description: 'Create a user' })
       .response<void>()
@@ -59,15 +57,13 @@ const versionedBagOfRoutes = BagOfRoutes.withVersioning(
   versionHistory
 )
   .addRoute(
-    new Route()
-      .version('2024-01-01')
+    Route.version('2024-01-01')
       .get('/users')
       .metaData({ description: 'Get all users' })
       .response<void>()
   )
   .addRoute(
-    new Route()
-      .version('2024-01-01')
+    Route.version('2024-01-01')
       .post('/users')
       .validate(z.object({ body: z.object({ name: z.string() }) }))
       .metaData({ description: 'Create a user', tags: ['admin'] })

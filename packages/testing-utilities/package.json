@@ -19,6 +19,6 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@typed-rest/core": "*"
+        "@typed-rest/core": "workspace:*"
     }
 }
