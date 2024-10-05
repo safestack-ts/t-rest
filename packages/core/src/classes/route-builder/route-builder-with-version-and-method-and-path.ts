@@ -3,7 +3,7 @@ import { RouteDef } from '../core/route-def'
 import { RouteBuilderWithVersionAndMethodAndPathAndValidator } from './route-builder-with-version-and-method-and-path-and-validator'
 import { RouteBuilderWithVersionAndMethodAndPathAndMetaData } from './route-builder-with-version-and-method-and-path-and-meta-data'
 import { emptyValidation } from '../../utils/empty-validation'
-import { AnyRouteValidator } from '../../types/any-route-validator'
+import { PathParamsMatchingRouteValidator } from '../../types/path-params-matching-route-validator'
 
 export class RouteBuilderWithVersionAndMethodAndPath<
   TVersion extends string,
@@ -16,7 +16,9 @@ export class RouteBuilderWithVersionAndMethodAndPath<
     private path: TPath
   ) {}
 
-  public validate<TValidator extends AnyRouteValidator>(validator: TValidator) {
+  public validate<TValidator extends PathParamsMatchingRouteValidator<TPath>>(
+    validator: TValidator
+  ) {
     return new RouteBuilderWithVersionAndMethodAndPathAndValidator<
       TVersion,
       TMethod,
