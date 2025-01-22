@@ -1,9 +1,9 @@
-import { BagOfRoutes, Route, ze } from '@typed-rest/core'
+import { BagOfRoutes, Route, ze } from '@t-rest/core'
 import Express from 'express'
 import { z } from 'zod'
 import request from 'supertest'
 import { StatusCodes } from 'http-status-codes'
-import { User, Basket, Person } from '@typed-rest/testing-utilities'
+import { User, Basket, Person } from '@t-rest/testing-utilities'
 import { TypedExpressApplication } from '../classes/typed-express-application'
 
 const baseBagOfRoutes = BagOfRoutes.withoutVersioning()

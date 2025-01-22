@@ -1,4 +1,4 @@
-import { AnyRouteDef } from '@typed-rest/core'
+import { AnyRouteDef } from '@t-rest/core'
 import { AnyRouteHandlerFn } from './any-route-handler-fn'
 import { TypedMiddleware } from './typed-middleware'
 

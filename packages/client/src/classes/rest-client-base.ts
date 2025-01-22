@@ -1,9 +1,4 @@
-import {
-  AnyRouteDef,
-  BagOfRoutes,
-  Versioning,
-  HTTPMethod,
-} from '@typed-rest/core'
+import { AnyRouteDef, BagOfRoutes, Versioning, HTTPMethod } from '@t-rest/core'
 import { HTTPAdapter } from '../types/http-adapter'
 import { RequestConfig } from '../types/request-config'
 import { BaseRequestInput, buildUrl } from '../utils/build-url'

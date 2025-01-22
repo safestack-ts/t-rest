@@ -1,4 +1,4 @@
-import { AnyRouteDef, RouteValidationOutput } from '@typed-rest/core'
+import { AnyRouteDef, RouteValidationOutput } from '@t-rest/core'
 import { ExpressRequest } from '../types/express-type-shortcuts'
 import { TypedMiddleware } from '../types/typed-middleware'
 import { TypedRouterBase } from './typed-router-base'

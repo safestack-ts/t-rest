@@ -5,7 +5,7 @@ import {
   HTTPMethod,
   ResponseTypeKey,
   Versioning,
-} from '@typed-rest/core'
+} from '@t-rest/core'
 import { RESTClientBase } from './rest-client-base'
 import { RequestArgs } from '../types/request-args'
 import { RequestInput } from '../types/request-input'

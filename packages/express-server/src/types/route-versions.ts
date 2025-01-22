@@ -1,4 +1,4 @@
-import { AnyRouteDef, HTTPMethod } from '@typed-rest/core'
+import { AnyRouteDef, HTTPMethod } from '@t-rest/core'
 
 export type RouteVersions<
   TRoutes extends AnyRouteDef,

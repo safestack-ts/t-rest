@@ -1,5 +1,5 @@
 {
-    "name": "@typed-rest/testing-utilities",
+    "name": "@t-rest/testing-utilities",
     "version": "1.0.0",
     "description": "",
     "main": "./dist/index.js",
@@ -19,6 +19,6 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@typed-rest/core": "workspace:*"
+        "@t-rest/core": "workspace:*"
     }
 }

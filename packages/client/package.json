@@ -1,5 +1,5 @@
 {
-    "name": "@typed-rest/client",
+    "name": "@t-rest/client",
     "version": "1.0.0",
     "description": "",
     "main": "./dist/index.js",
@@ -18,12 +18,12 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@typed-rest/core": "workspace:*"
+        "@t-rest/core": "workspace:*"
     },
     "devDependencies": {
-        "@typed-rest/testing-utilities": "workspace:*",
-        "@types/axios": "^0.14.0",
-        "axios": "^1.6.8",
-        "nock": "^13.5.5"
+        "@t-rest/testing-utilities": "workspace:*",
+        "@types/axios": "^0.14.4",
+        "axios": "^1.7.9",
+        "nock": "^13.5.6"
     }
 }

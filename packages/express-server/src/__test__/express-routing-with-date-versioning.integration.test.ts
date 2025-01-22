@@ -2,7 +2,7 @@ import {
   ResponseWithVersion,
   TestBagOfRoutesWithVersioning,
   User,
-} from '@typed-rest/testing-utilities'
+} from '@t-rest/testing-utilities'
 import Express from 'express'
 import request from 'supertest'
 import { StatusCodes } from 'http-status-codes'

@@ -1,5 +1,5 @@
-import { BagOfRoutes, Route, ze } from '@typed-rest/core'
-import { User } from '@typed-rest/testing-utilities'
+import { BagOfRoutes, Route, ze } from '@t-rest/core'
+import { User } from '@t-rest/testing-utilities'
 import { z } from 'zod'
 
 BagOfRoutes.withoutVersioning().addRoute(

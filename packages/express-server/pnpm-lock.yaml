@@ -8,14 +8,14 @@ importers:
 
   .:
     dependencies:
-      '@typed-rest/core':
+      '@t-rest/core':
         specifier: workspace:*
         version: link:../core
       express:
         specifier: ^4.18.2
         version: 4.18.2
     devDependencies:
-      '@typed-rest/testing-utilities':
+      '@t-rest/testing-utilities':
         specifier: workspace:*
         version: link:../testing-utilities
       '@types/compression':

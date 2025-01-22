@@ -63,11 +63,11 @@ importers:
 
   packages/client:
     dependencies:
-      '@typed-rest/core':
+      '@t-rest/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
-      '@typed-rest/testing-utilities':
+      '@t-rest/testing-utilities':
         specifier: workspace:*
         version: link:../testing-utilities
       '@types/axios':
@@ -80,25 +80,18 @@ importers:
         specifier: ^13.5.6
         version: 13.5.6
 
-  packages/core:
-    dependencies:
-      typed-rest:
-        specifier: link:/Users/yss/Dev/open-source/typed-rest
-        version: link:../..
+  packages/core: {}
 
   packages/express-server:
     dependencies:
-      '@typed-rest/core':
+      '@t-rest/core':
         specifier: workspace:*
         version: link:../core
       express:
         specifier: ^4.21.2
         version: 4.21.2
-      typed-rest:
-        specifier: link:/Users/yss/Dev/open-source/typed-rest
-        version: link:../..
     devDependencies:
-      '@typed-rest/testing-utilities':
+      '@t-rest/testing-utilities':
         specifier: workspace:*
         version: link:../testing-utilities
       '@types/compression':
@@ -125,7 +118,7 @@ importers:
 
   packages/testing-utilities:
     dependencies:
-      '@typed-rest/core':
+      '@t-rest/core':
         specifier: workspace:*
         version: link:../core
 

@@ -3,7 +3,7 @@ import {
   BagOfRoutes,
   Versioning,
   VersioningRequired,
-} from '@typed-rest/core'
+} from '@t-rest/core'
 import { ExpressRequest, ExpressApp } from '../types/express-type-shortcuts'
 import { VersionExtractor } from '../types/version-extractor'
 import { TypedExpressApplicationWithoutVersioning } from './typed-express-application-without-versioning'

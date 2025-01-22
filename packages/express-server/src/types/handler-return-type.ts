@@ -1,4 +1,4 @@
-import { AnyRouteDef, ResponseTypeKey } from '@typed-rest/core'
+import { AnyRouteDef, ResponseTypeKey } from '@t-rest/core'
 
 type RequestReturnType<TData> =
   | {

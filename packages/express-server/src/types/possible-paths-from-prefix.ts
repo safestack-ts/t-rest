@@ -3,7 +3,7 @@ import {
   HTTPMethod,
   StringReplaceHead,
   StringStartsWith,
-} from '@typed-rest/core'
+} from '@t-rest/core'
 
 type FormatRootPath<TPath extends string> = TPath extends '' ? '/' : TPath
 

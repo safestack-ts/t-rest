@@ -6,7 +6,7 @@ import {
   RouteHashMap,
   WithoutTrailingSlash,
   joinPath,
-} from '@typed-rest/core'
+} from '@t-rest/core'
 import { ExpressRequest } from '../types/express-type-shortcuts'
 import { RequestVersion } from '../types/request-version'
 import { RouteVersions } from '../types/route-versions'

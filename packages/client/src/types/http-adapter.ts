@@ -1,4 +1,4 @@
-import { HTTPMethod } from '@typed-rest/core'
+import { HTTPMethod } from '@t-rest/core'
 import { RequestConfig } from './request-config'
 import { HTTPResponse } from './http-response'
 

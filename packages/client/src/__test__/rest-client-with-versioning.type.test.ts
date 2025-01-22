@@ -3,7 +3,7 @@ import {
   TestBagOfRoutesWithVersioning,
   User,
   UserWithTags,
-} from '@typed-rest/testing-utilities'
+} from '@t-rest/testing-utilities'
 import { AssertTrue, IsExact } from 'conditional-type-checks'
 import { RESTClient } from '../classes/rest-client'
 

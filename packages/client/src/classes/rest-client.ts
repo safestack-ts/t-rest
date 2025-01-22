@@ -3,7 +3,7 @@ import {
   BagOfRoutes,
   Versioning,
   VersioningRequired,
-} from '@typed-rest/core'
+} from '@t-rest/core'
 import { RESTClientBase } from './rest-client-base'
 import { HTTPAdapter } from '../types/http-adapter'
 import { RESTClientWithVersioning } from './rest-client-with-versioning'

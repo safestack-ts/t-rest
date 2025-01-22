@@ -4,7 +4,7 @@ import {
   VersionHistory,
   Versioning,
   ze,
-} from '@typed-rest/core'
+} from '@t-rest/core'
 import { ResponseWithVersion } from './response-with-version'
 import { User, UserWithTags } from './test-entity-types'
 import { z } from 'zod'

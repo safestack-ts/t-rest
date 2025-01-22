@@ -5,8 +5,8 @@
 # Usage:
 # ./scripts/publish-dev-package.sh <package-name>
 #
-# NOTE: "@typed-rest/" will be prepended to the package name if it's missing
-# Example: ./scripts/publish-dev-package.sh pratiq-rest # will publish @typed-rest/pratiq-rest
+# NOTE: "@t-rest/" will be prepended to the package name if it's missing
+# Example: ./scripts/publish-dev-package.sh pratiq-rest # will publish @t-rest/pratiq-rest
 
 # Check if changeset already exists (or if no changes were made)
 # if pnpm changeset status > /dev/null 2>&1; then
@@ -28,10 +28,10 @@ if [[ -z "$PACKAGE_NAME" ]]; then
     exit 1
 fi
 
-# Prepend @typed-rest with package name if it's missing
+# Prepend @t-rest with package name if it's missing
 if [[ ! $PACKAGE_NAME =~ ^@ ]]; then
-    PACKAGE_NAME="@typed-rest/${PACKAGE_NAME}"
-    echo "Prepended @typed-rest/ to package name"
+    PACKAGE_NAME="@t-rest/${PACKAGE_NAME}"
+    echo "Prepended @t-rest/ to package name"
 fi
 echo "Package name: $PACKAGE_NAME"
 

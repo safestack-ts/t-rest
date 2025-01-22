@@ -8,7 +8,7 @@ importers:
 
   .:
     dependencies:
-      '@typed-rest/core':
+      '@t-rest/core':
         specifier: workspace:*
         version: link:../core
 

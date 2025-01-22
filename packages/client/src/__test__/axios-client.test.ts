@@ -1,7 +1,7 @@
 import axios from 'axios'
 import nock from 'nock'
 import { RESTClient } from '../classes/rest-client'
-import { demoBagOfRoutes } from '@typed-rest/core'
+import { demoBagOfRoutes } from '@t-rest/core'
 import { AxiosHTTPAdapter } from '../classes/axios-http-adapter'
 
 axios.defaults.adapter = 'http'

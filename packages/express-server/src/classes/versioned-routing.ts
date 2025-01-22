@@ -4,7 +4,7 @@ import {
   Versioning,
   AnyRouteDef,
   typedLowerCase,
-} from '@typed-rest/core'
+} from '@t-rest/core'
 import { StatusCodes } from 'http-status-codes'
 import { AnyRouteHandlerFn } from '../types/any-route-handler-fn'
 import {

@@ -1,5 +1,5 @@
 {
-  "name": "@typed-rest/core",
+  "name": "@t-rest/core",
   "version": "0.0.1",
   "description": "",
   "main": "./dist/index.js",

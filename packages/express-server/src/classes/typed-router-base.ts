@@ -1,4 +1,4 @@
-import { AnyRouteDef, RouteHashMap } from '@typed-rest/core'
+import { AnyRouteDef, RouteHashMap } from '@t-rest/core'
 import { ExpressRequest, ExpressRouter } from '../types/express-type-shortcuts'
 import { VersionedRouting } from './versioned-routing'
 

@@ -1,4 +1,4 @@
-import { AnyRouteDef, BagOfRoutes, Versioning } from '@typed-rest/core'
+import { AnyRouteDef, BagOfRoutes, Versioning } from '@t-rest/core'
 import { ExpressApp, ExpressRequest } from '../types/express-type-shortcuts'
 import { TypedRouterWithoutVersioning } from './typed-router-without-versioning'
 

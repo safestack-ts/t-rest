@@ -1,6 +1,6 @@
 import { AxiosInstance } from 'axios'
 import { HTTPAdapter } from '../types/http-adapter'
-import { HTTPMethod } from '@typed-rest/core'
+import { HTTPMethod } from '@t-rest/core'
 import { RequestConfig } from '../types/request-config'
 
 export class AxiosHTTPAdapter implements HTTPAdapter {

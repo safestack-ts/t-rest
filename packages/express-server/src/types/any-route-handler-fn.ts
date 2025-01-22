@@ -1,4 +1,4 @@
-import { AnyRouteDef } from '@typed-rest/core'
+import { AnyRouteDef } from '@t-rest/core'
 import { ExpressRequest } from './express-type-shortcuts'
 import { TypedRouteHandlerFn } from './typed-route-handler-fn'
 

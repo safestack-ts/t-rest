@@ -1,4 +1,4 @@
-import { AnyRouteDef } from '@typed-rest/core'
+import { AnyRouteDef } from '@t-rest/core'
 import { ExpressRequest } from './express-type-shortcuts'
 import { HandlerReturnType } from './handler-return-type'
 

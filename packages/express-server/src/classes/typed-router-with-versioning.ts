@@ -4,7 +4,7 @@ import {
   RouteHashMap,
   VersioningRequired,
   joinPath,
-} from '@typed-rest/core'
+} from '@t-rest/core'
 import {
   ExpressRequest,
   ExpressRequestHandler,
