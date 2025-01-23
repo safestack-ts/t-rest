@@ -11,4 +11,10 @@ export * from './utils/define-middleware'
 // core
 // https://github.com/microsoft/TypeScript/issues/42873#issuecomment-2040902002
 export * from '@t-rest/core'
-export { Router, RequestHandler, Request, Response } from 'express'
+export {
+  Router,
+  RequestHandler,
+  Request,
+  Response,
+  Application,
+} from 'express-serve-static-core'

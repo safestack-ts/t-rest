@@ -8,12 +8,13 @@ import request from 'supertest'
 import { StatusCodes } from 'http-status-codes'
 import { DateVersionExtractor } from '../types/date-version-extractor'
 import { TypedExpressApplication } from '../classes/typed-express-application'
+import { ExpressApp, ExpressRequest } from '../types/express-type-shortcuts'
 
 const { bagOfRoutes: baseBagOfRoutes, versionHistory } =
   TestBagOfRoutesWithVersioning
 
 class PricenowAPIVersionHeaderExtractor implements DateVersionExtractor {
-  extractVersion(request: Express.Request) {
+  extractVersion(request: ExpressRequest) {
     return request.header('x-pricenow-api-version')
   }
   parseDate(version: string) {
@@ -21,7 +22,7 @@ class PricenowAPIVersionHeaderExtractor implements DateVersionExtractor {
   }
 }
 
-const initApplication = (expressApp: Express.Application) => {
+const initApplication = (expressApp: ExpressApp) => {
   const typedExpressApplication = TypedExpressApplication.withVersioning(
     expressApp,
     baseBagOfRoutes,
