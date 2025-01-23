@@ -10,9 +10,9 @@ export type PathParamsMatchingRouteValidator<TPath extends string> =
           MappedKeysToZodType<ExtractPathParams<TPath>> &
             Record<string, z.ZodTypeAny>
         >
-        query?: z.ZodObject<any>
-        body?: z.ZodObject<any>
-        headers?: z.ZodObject<any>
+        query?: z.ZodObject<any> | z.ZodOptional<z.ZodObject<any>>
+        body?: z.AnyZodObject
+        headers?: z.ZodObject<any> | z.ZodOptional<z.ZodObject<any>>
       }>
 
 type MappedKeysToZodType<T> = {

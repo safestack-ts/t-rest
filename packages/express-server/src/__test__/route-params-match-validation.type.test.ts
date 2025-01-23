@@ -4,6 +4,6 @@ import { z } from 'zod'
 
 BagOfRoutes.withoutVersioning().addRoute(
   Route.get('/users/:userId')
-    .validate(z.object({ params: z.object({ userIds: ze.parseInteger() }) }))
+    .validate(z.object({ params: z.object({ userId: ze.parseInteger() }) }))
     .response<User>()
 )
