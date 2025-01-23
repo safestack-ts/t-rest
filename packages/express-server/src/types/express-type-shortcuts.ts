@@ -1,4 +1,4 @@
-import * as Express from 'express-serve-static-core'
+import * as Express from 'express'
 
 export type ExpressRequest = Express.Request
 export type ExpressResponse = Express.Response
