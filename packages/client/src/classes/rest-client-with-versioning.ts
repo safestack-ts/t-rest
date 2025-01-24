@@ -1,7 +1,7 @@
 import {
   AnyRouteDef,
   BagOfRoutes,
-  ExtractVersionMatchingRoute,
+  ExtractLatestMatchingRoutePerPath,
   HTTPMethod,
   ResponseTypeKey,
   Versioning,
@@ -29,7 +29,7 @@ export class RESTClientWithVersioning<
 
   private makeRouteHandler<TMethod extends HTTPMethod>(method: TMethod) {
     return <
-      TAbsolutePath extends ExtractVersionMatchingRoute<
+      TAbsolutePath extends ExtractLatestMatchingRoutePerPath<
         Extract<TRoutes, { method: TMethod }>,
         TVersion,
         TVersionHistory
@@ -37,7 +37,7 @@ export class RESTClientWithVersioning<
     >(
       ...args: RequestArgs<
         RequestInput<
-          ExtractVersionMatchingRoute<
+          ExtractLatestMatchingRoutePerPath<
             Extract<TRoutes, { method: TMethod; path: TAbsolutePath }>,
             TVersion,
             TVersionHistory
@@ -48,7 +48,7 @@ export class RESTClientWithVersioning<
     ) => {
       return super.request<
         TMethod,
-        ExtractVersionMatchingRoute<
+        ExtractLatestMatchingRoutePerPath<
           Extract<TRoutes, { method: TMethod; path: TAbsolutePath }>,
           TVersion,
           TVersionHistory

@@ -29,3 +29,15 @@ export type ExtractVersionMatchingRoute<
     ? ExtractVersionMatchingRoute<TRoutes, TClientVersion, TOlderVersions>
     : never // 'TOlderVersions is not a string array #2'
   : never // 'TVersionHistory is not a string array #1'
+
+export type ExtractLatestMatchingRoutePerPath<
+  TRoutes extends AnyRouteDef,
+  TClientVersion extends string,
+  TVersionHistory extends string[]
+> = {
+  [Path in TRoutes['path']]: ExtractVersionMatchingRoute<
+    Extract<TRoutes, { path: Path }>,
+    TClientVersion,
+    TVersionHistory
+  >
+}[TRoutes['path']]
