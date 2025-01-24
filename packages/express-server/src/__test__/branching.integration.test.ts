@@ -26,7 +26,7 @@ test('mounting on initial path with branching is working', async () => {
   expressApp.use('/api', rootRouter)
 
   const app = TypedExpressApplication.withoutVersioning(
-    rootRouter as any,
+    rootRouter,
     bagOfRoutes,
     '/api'
   )

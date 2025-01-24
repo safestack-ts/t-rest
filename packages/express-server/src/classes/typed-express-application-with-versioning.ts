@@ -4,7 +4,11 @@ import {
   Versioning,
   VersioningRequired,
 } from '@t-rest/core'
-import { ExpressRequest, ExpressApp } from '../types/express-type-shortcuts'
+import {
+  ExpressRequest,
+  ExpressApp,
+  ExpressRouter,
+} from '../types/express-type-shortcuts'
 import { VersionExtractor } from '../types/version-extractor'
 import { TypedRouterWithVersioning } from './typed-router-with-versioning'
 
@@ -26,7 +30,7 @@ export class TypedExpressApplicationWithVersioning<
   >
 
   constructor(
-    expressApp: ExpressApp,
+    expressApp: ExpressApp | ExpressRouter,
     bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired, TVersionHistory>,
     versionHistory: TVersionHistory,
     versionExtractor: VersionExtractor,

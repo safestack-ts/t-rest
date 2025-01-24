@@ -4,7 +4,11 @@ import {
   Versioning,
   VersioningRequired,
 } from '@t-rest/core'
-import { ExpressRequest, ExpressApp } from '../types/express-type-shortcuts'
+import {
+  ExpressRequest,
+  ExpressApp,
+  ExpressRouter,
+} from '../types/express-type-shortcuts'
 import { VersionExtractor } from '../types/version-extractor'
 import { TypedExpressApplicationWithoutVersioning } from './typed-express-application-without-versioning'
 import { TypedExpressApplicationWithVersioning } from './typed-express-application-with-versioning'
@@ -15,7 +19,7 @@ export abstract class TypedExpressApplication {
     TRequest extends ExpressRequest,
     TMountPath extends string = '/'
   >(
-    expressApp: ExpressApp,
+    expressApp: ExpressApp | ExpressRouter,
     bagOfRoutes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING, never>,
     mountPath: TMountPath = '/' as TMountPath
   ) {
@@ -32,7 +36,7 @@ export abstract class TypedExpressApplication {
     TVersionHistory extends string[],
     TMountPath extends string = '/'
   >(
-    expressApp: ExpressApp,
+    expressApp: ExpressApp | ExpressRouter,
     bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired, TVersionHistory>,
     versionHistory: TVersionHistory,
     versionExtractor: VersionExtractor,

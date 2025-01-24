@@ -1,5 +1,9 @@
 import { AnyRouteDef, BagOfRoutes, Versioning } from '@t-rest/core'
-import { ExpressApp, ExpressRequest } from '../types/express-type-shortcuts'
+import {
+  ExpressApp,
+  ExpressRequest,
+  ExpressRouter,
+} from '../types/express-type-shortcuts'
 import { TypedRouterWithoutVersioning } from './typed-router-without-versioning'
 
 export class TypedExpressApplicationWithoutVersioning<
@@ -10,7 +14,7 @@ export class TypedExpressApplicationWithoutVersioning<
   protected readonly bagOfRoutes: BagOfRoutes<TRoutes, Versioning, never>
 
   constructor(
-    expressApp: ExpressApp,
+    expressApp: ExpressApp | ExpressRouter,
     bagOfRoutes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING, never>,
     mountPath: TMountPath
   ) {
