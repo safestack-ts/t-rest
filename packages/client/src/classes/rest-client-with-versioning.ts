@@ -3,6 +3,7 @@ import {
   BagOfRoutes,
   ExtractLatestMatchingRoutePerPath,
   HTTPMethod,
+  OlderVersions,
   ResponseTypeKey,
   Versioning,
 } from '@t-rest/core'
@@ -67,4 +68,12 @@ export class RESTClientWithVersioning<
   public patch = this.makeRouteHandler('PATCH')
 
   public delete = this.makeRouteHandler('DELETE')
+
+  public withVersion<
+    TNewVersion extends OlderVersions<TVersionHistory, TVersion>
+  >(
+    version: TNewVersion
+  ): RESTClientWithVersioning<TRoutes, TNewVersion, TVersionHistory> {
+    return new RESTClientWithVersioning(this.routes, version, this.httpAdapter)
+  }
 }
