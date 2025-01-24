@@ -12,31 +12,37 @@ import { TypedExpressApplicationWithVersioning } from './typed-express-applicati
 export abstract class TypedExpressApplication {
   public static withoutVersioning<
     TRoutes extends AnyRouteDef,
-    TRequest extends ExpressRequest
+    TRequest extends ExpressRequest,
+    TMountPath extends string = '/'
   >(
     expressApp: ExpressApp,
-    bagOfRoutes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING, never>
+    bagOfRoutes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING, never>,
+    mountPath: TMountPath = '/' as TMountPath
   ) {
-    return new TypedExpressApplicationWithoutVersioning<TRoutes, TRequest>(
-      expressApp,
-      bagOfRoutes
-    )
+    return new TypedExpressApplicationWithoutVersioning<
+      TRoutes,
+      TRequest,
+      TMountPath
+    >(expressApp, bagOfRoutes, mountPath)
   }
 
   public static withVersioning<
     TRoutes extends AnyRouteDef,
     TRequest extends ExpressRequest,
-    TVersionHistory extends string[]
+    TVersionHistory extends string[],
+    TMountPath extends string = '/'
   >(
     expressApp: ExpressApp,
     bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired, TVersionHistory>,
     versionHistory: TVersionHistory,
-    versionExtractor: VersionExtractor
+    versionExtractor: VersionExtractor,
+    mountPath: TMountPath = '/' as TMountPath
   ) {
     return new TypedExpressApplicationWithVersioning<
       TRoutes,
       TRequest,
-      TVersionHistory
-    >(expressApp, bagOfRoutes, versionHistory, versionExtractor)
+      TVersionHistory,
+      TMountPath
+    >(expressApp, bagOfRoutes, versionHistory, versionExtractor, mountPath)
   }
 }

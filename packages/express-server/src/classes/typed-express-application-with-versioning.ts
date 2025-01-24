@@ -11,8 +11,14 @@ import { TypedRouterWithVersioning } from './typed-router-with-versioning'
 export class TypedExpressApplicationWithVersioning<
   TRoutes extends AnyRouteDef,
   TRequest extends ExpressRequest,
-  TVersionHistory extends string[]
-> extends TypedRouterWithVersioning<TRoutes, TRequest, '/', TVersionHistory> {
+  TVersionHistory extends string[],
+  TMountPath extends string
+> extends TypedRouterWithVersioning<
+  TRoutes,
+  TRequest,
+  TMountPath,
+  TVersionHistory
+> {
   protected readonly bagOfRoutes: BagOfRoutes<
     TRoutes,
     Versioning,
@@ -23,12 +29,13 @@ export class TypedExpressApplicationWithVersioning<
     expressApp: ExpressApp,
     bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired, TVersionHistory>,
     versionHistory: TVersionHistory,
-    versionExtractor: VersionExtractor
+    versionExtractor: VersionExtractor,
+    mountPath: TMountPath
   ) {
     super(
       bagOfRoutes.routes,
       expressApp,
-      '/',
+      mountPath,
       bagOfRoutes.versioning,
       versionHistory,
       versionExtractor
