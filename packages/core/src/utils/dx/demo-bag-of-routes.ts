@@ -4,7 +4,7 @@ import { Route } from '../../classes/core/route'
 import { Versioning } from '../../enums/versioning'
 import { VersionHistory } from '../version-history'
 
-const versionHistory = VersionHistory([
+export const versionHistory = VersionHistory([
   '2024-01-01',
   '2024-02-01',
   '2024-03-01',

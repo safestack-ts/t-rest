@@ -50,14 +50,19 @@ export class TypedRouterWithVersioning<
   }
 
   // @todo might be generalized
-  public use<TRequestIn extends TRequest, TRequestOut extends TRequestIn>(
+  public use<TRequestIn extends TRequest, TRequestOut>(
     handler: TypedMiddleware<TRequestIn, TRequestOut>
-  ): TypedRouterWithVersioning<TRoutes, TRequestOut, TPath, TVersionHistory> {
+  ): TypedRouterWithVersioning<
+    TRoutes,
+    TRequest & TRequestOut,
+    TPath,
+    TVersionHistory
+  > {
     this.expressRouter.use(handler as ExpressRequestHandler)
 
     return this as any as TypedRouterWithVersioning<
       TRoutes,
-      TRequestOut,
+      TRequest & TRequestOut,
       TPath,
       TVersionHistory
     >
