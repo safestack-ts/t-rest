@@ -38,14 +38,14 @@ export class TypedRouterWithoutVersioning<
     )
   }
 
-  public use<TRequestIn extends TRequest, TRequestOut extends TRequestIn>(
+  public use<TRequestIn extends TRequest, TRequestOut>(
     handler: TypedMiddleware<TRequestIn, TRequestOut>
-  ): TypedRouterWithoutVersioning<TRoutes, TRequestOut, TPath> {
+  ): TypedRouterWithoutVersioning<TRoutes, TRequest & TRequestOut, TPath> {
     this.expressRouter.use(handler as ExpressRequestHandler)
 
     return this as any as TypedRouterWithoutVersioning<
       TRoutes,
-      TRequestOut,
+      TRequest & TRequestOut,
       TPath
     >
   }

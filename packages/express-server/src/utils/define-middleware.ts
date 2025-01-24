@@ -7,7 +7,7 @@ import { TypedMiddleware } from '../types/typed-middleware'
 import { TypedRequestHandler } from '../types/typed-request-handler'
 
 export const defineMiddleware =
-  <TRequestIn extends ExpressRequest, TRequestOut extends TRequestIn>(
+  <TRequestIn extends ExpressRequest, TRequestOut>(
     middlewareFn: TypedRequestHandler<TRequestIn>
   ): TypedMiddleware<TRequestIn, TRequestOut> =>
   (

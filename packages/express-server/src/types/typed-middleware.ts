@@ -3,5 +3,5 @@ import { TypedRequestHandler } from './typed-request-handler'
 
 export type TypedMiddleware<
   TRequestIn extends ExpressRequest,
-  _TRequestOut extends TRequestIn
+  _TRequestOut
 > = TypedRequestHandler<TRequestIn>
