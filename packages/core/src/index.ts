@@ -38,6 +38,7 @@ export * from './types/route-validation-output'
 export * from './types/route-validation-input'
 export * from './types/any-route-validator'
 export * from './types/older-versions'
+export * from './types/newer-versions'
 
 // utils
 export * from './utils/combine'
