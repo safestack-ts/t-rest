@@ -27,17 +27,14 @@ test('validation with coercions coerced values are passed into route handler', a
 
   const app = TypedExpressApplication.withoutVersioning(expressApp, bagOfRoutes)
 
-  app.get('/users').handle((_, { query: { page, from } }) => {
+  app.get('/users').handle((_, { query: { page, from } }, response) => {
     expect(page).toBe(2)
     expect(typeof page).toBe('number')
 
     expect(from).toBeInstanceOf(Date)
     expect(from.toISOString()).toBe('2025-01-01T00:00:00.000Z')
 
-    return {
-      statusCode: 200,
-      data: [],
-    }
+    response.status(200).json([])
   })
 
   await request(expressApp)

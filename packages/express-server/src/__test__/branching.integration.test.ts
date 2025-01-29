@@ -34,20 +34,28 @@ test('mounting on initial path with branching is working', async () => {
   const usersRouter = app.branch('/users')
   const postsRouter = app.branch('/posts')
 
-  usersRouter.get('/me').handle(() => ({
-    statusCode: 200,
-    data: { id: 1, email: 'jon.doe@email.com' },
-  }))
+  usersRouter.get('/me').handle((_, __, response) => {
+    response.status(200).json({
+      id: 1,
+      email: 'jon.doe@email.com',
+    })
+  })
 
-  usersRouter.get('/:userId').handle((_, { params: { userId } }) => ({
-    statusCode: 200,
-    data: { id: userId, email: `user-${userId}@email.com` },
-  }))
+  usersRouter.get('/:userId').handle((_, { params: { userId } }, response) => {
+    response.status(200).json({
+      id: userId,
+      email: `user-${userId}@email.com`,
+    })
+  })
 
-  postsRouter.get('/:postId/comments').handle((_, { params: { postId } }) => ({
-    statusCode: 200,
-    data: { id: postId, text: `comment-${postId}` },
-  }))
+  postsRouter
+    .get('/:postId/comments')
+    .handle((_, { params: { postId } }, response) => {
+      response.status(200).json({
+        id: postId,
+        text: `comment-${postId}`,
+      })
+    })
 
   const response = await request(expressApp)
     .get('/api/users/1')

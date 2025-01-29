@@ -87,20 +87,11 @@ export class VersionedRouting {
           } else {
             const validationOutput = route.validator.parse(request)
 
-            const result = await handler(
+            await handler(
               { ...request, version } as any as ExpressRequest,
-              validationOutput
+              validationOutput,
+              response
             )
-
-            response.status(result.statusCode || StatusCodes.OK)
-
-            // make sure this is the last action in the handler,
-            // since from here on we alredy sent the response and the request is finished
-            if ('customize' in result) {
-              await result.customize(response, result.data)
-            } else {
-              response.send(result.data)
-            }
           }
         }
         await nextMiddleware()

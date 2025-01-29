@@ -22,17 +22,21 @@ test('simple express app without versioning routing is working', async () => {
     bagOfRoutes
   )
 
-  typedRESTApplication.get('/users/me').handle(() => ({
-    statusCode: StatusCodes.OK,
-    data: { id: 1, email: 'jon.doe@email.com' },
-  }))
+  typedRESTApplication.get('/users/me').handle((_, __, response) => {
+    response.status(200).json({
+      id: 1,
+      email: 'jon.doe@email.com',
+    })
+  })
 
   typedRESTApplication
     .get('/users/:userId')
-    .handle((_, { params: { userId } }) => ({
-      statusCode: StatusCodes.OK,
-      data: { id: userId, email: `user-${userId}@email.com` },
-    }))
+    .handle((_, { params: { userId } }, response) => {
+      response.status(200).json({
+        id: userId,
+        email: `user-${userId}@email.com`,
+      })
+    })
 
   const response = await request(expressApp)
     .get('/users/1')
@@ -62,26 +66,36 @@ test('express app with multiple routers without versioning is working', async ()
   )
 
   const userRouter = typedRESTApplication.branch('/users')
-  userRouter.get('/me').handle(() => ({
-    statusCode: StatusCodes.OK,
-    data: { id: 1, email: 'jon.doe@email.com' },
-  }))
-  userRouter.get('/:userId').handle((_, { params: { userId } }) => ({
-    statusCode: StatusCodes.OK,
-    data: { id: userId, email: `user-${userId}@email.com` },
-  }))
+  userRouter.get('/me').handle((_, __, response) => {
+    response.status(200).json({
+      id: 1,
+      email: 'jon.doe@email.com',
+    })
+  })
+  userRouter.get('/:userId').handle((_, { params: { userId } }, response) => {
+    response.status(200).json({
+      id: userId,
+      email: `user-${userId}@email.com`,
+    })
+  })
 
   const basketRouter = typedRESTApplication.branch('/baskets')
 
-  basketRouter.get('/:basketId').handle((_, { params: { basketId } }) => ({
-    statusCode: StatusCodes.OK,
-    data: { id: basketId, entries: [] },
-  }))
+  basketRouter
+    .get('/:basketId')
+    .handle((_, { params: { basketId } }, response) => {
+      response.status(200).json({
+        id: basketId,
+        entries: [],
+      })
+    })
 
-  basketRouter.post('/').handle(() => ({
-    statusCode: StatusCodes.CREATED,
-    data: { id: '123', entries: [] },
-  }))
+  basketRouter.post('/').handle((_, __, response) => {
+    response.status(201).json({
+      id: '123',
+      entries: [],
+    })
+  })
 
   const createUserResponse = await request(expressApp)
     .get('/users/1')
@@ -127,20 +141,17 @@ test('nested routers without versioning is working', async () => {
   const userRouter = typedRESTApplication.branch('/users')
   const userAdminRouter = userRouter.branch('/admin')
 
-  userAdminRouter.get('/').handle(() => ({
-    statusCode: StatusCodes.OK,
-    data: [{ id: 1, email: 'jon.doe@email.com' }],
-  }))
+  userAdminRouter.get('/').handle((_, __, response) => {
+    response.status(200).json([{ id: 1, email: 'jon.doe@email.com' }])
+  })
 
-  userAdminRouter.get('/:userId/persons').handle(() => ({
-    statusCode: StatusCodes.OK,
-    data: [{ id: 1, name: 'Jon Doe' }],
-  }))
+  userAdminRouter.get('/:userId/persons').handle((_, __, response) => {
+    response.status(200).json([{ id: 1, name: 'Jon Doe' }])
+  })
 
-  userRouter.get('/:userId').handle((_, { params: { userId } }) => ({
-    statusCode: StatusCodes.OK,
-    data: { id: userId, email: `user-${userId}@email.com` },
-  }))
+  userRouter.get('/:userId').handle((_, { params: { userId } }, response) => {
+    response.status(200).json({ id: userId, email: `user-${userId}@email.com` })
+  })
 
   const getUserPersonsAdminResponse = await request(expressApp)
     .get('/users/admin/1/persons')

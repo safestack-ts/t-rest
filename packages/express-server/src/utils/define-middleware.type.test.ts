@@ -54,7 +54,7 @@ namespace _WithoutVersioning {
   const userRouter = app.branch('/users')
   const userRouterWithMiddlewares = userRouter.use(withClientId).use(withUser)
 
-  userRouterWithMiddlewares.get('/').handle((context, _) => {
+  userRouterWithMiddlewares.get('/').handle((context, _, response) => {
     type ContextHasClientIdAndUser = typeof context extends {
       clientId: string
       user: User
@@ -63,10 +63,7 @@ namespace _WithoutVersioning {
       : false
     type _test = AssertTrue<ContextHasClientIdAndUser>
 
-    return {
-      statusCode: 200,
-      data: [],
-    }
+    response.status(200).json([])
   })
 }
 
@@ -88,7 +85,7 @@ namespace _WithVersioning {
   basketRouterWithMiddlewares
     .get('/')
     .version('2024-01-01')
-    .handle((context, _) => {
+    .handle((context, _, response) => {
       type ContextHasClientIdAndUser = typeof context extends {
         clientId: string
         user: User
@@ -97,9 +94,6 @@ namespace _WithVersioning {
         : false
       type _test = AssertTrue<ContextHasClientIdAndUser>
 
-      return {
-        statusCode: 200,
-        data: [],
-      }
+      response.status(200).json([])
     })
 }

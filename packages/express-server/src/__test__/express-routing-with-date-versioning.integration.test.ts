@@ -35,25 +35,27 @@ const initApplication = (expressApp: ExpressApp) => {
     .get('/:userId')
     .version('2024-01-01')
     .handle(
-      ({ version: { resolved: resolvedVersion } }, { params: { userId } }) => ({
-        statusCode: 200,
-        data: {
+      (
+        { version: { resolved: resolvedVersion } },
+        { params: { userId } },
+        response
+      ) => {
+        response.status(200).json({
           version: resolvedVersion,
           data: { id: userId, email: `user-${userId}@email.com` },
-        },
-      })
+        })
+      }
     )
 
   userRouter
     .get('/:userId')
     .version('2024-02-01')
-    .handle((_, { params: { userId } }) => ({
-      statusCode: 200,
-      data: {
+    .handle((_, { params: { userId } }, response) => {
+      response.status(200).json({
         version: '2024-02-01',
         data: { id: 42, email: `user-${userId}@email.com`, tags: ['tag1'] },
-      },
-    }))
+      })
+    })
 
   return typedExpressApplication
 }
