@@ -25,6 +25,14 @@ const clientMarch = RESTClient.withVersioning(
   null as any
 )
 
+// make sure that the client is not executing actual logic
+const noop = () => {
+  return undefined
+}
+;(clientJanuary as any).get = noop
+;(clienFebruary as any).get = noop
+;(clientMarch as any).get = noop
+
 const responseJanuary = clientJanuary.get('/users/:userId', {
   params: { userId: 1 },
 })

@@ -2,6 +2,7 @@ import {
   ResponseWithVersion,
   TestBagOfRoutesWithVersioning,
   User,
+  UserWithTags,
 } from '@t-rest/testing-utilities'
 import Express from 'express'
 import request from 'supertest'
@@ -71,10 +72,11 @@ test('calling route without any version resolves to latest version', async () =>
     )
     .expect(StatusCodes.OK)
 
-  expect(response.body).toEqual<ResponseWithVersion<User>>({
+  expect(response.body).toEqual<ResponseWithVersion<UserWithTags>>({
     data: {
       id: 42,
       email: `user-7487bdc6-f308-4852-ad06-07ff7fb7a349@email.com`,
+      tags: ['tag1'],
     },
     version: '2024-02-01',
   })
@@ -92,10 +94,11 @@ test('calling route with newer version resolves to latest available version of t
     )
     .expect(StatusCodes.OK)
 
-  expect(response.body).toEqual<ResponseWithVersion<User>>({
+  expect(response.body).toEqual<ResponseWithVersion<UserWithTags>>({
     data: {
       id: 42,
       email: `user-7487bdc6-f308-4852-ad06-07ff7fb7a349@email.com`,
+      tags: ['tag1'],
     },
     version: '2024-02-01',
   })
