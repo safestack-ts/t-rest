@@ -10,6 +10,9 @@
   ],
   "scripts": {},
   "keywords": [],
-  "author": "",
-  "license": "MIT"
+  "author": "Yannick Stachelscheid",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }

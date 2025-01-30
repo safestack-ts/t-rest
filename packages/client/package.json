@@ -15,7 +15,7 @@
         "test:integration": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.js --colors --passWithNoTests integration"
     },
     "keywords": [],
-    "author": "",
+    "author": "Yannick Stachelscheid",
     "license": "MIT",
     "dependencies": {
         "@t-rest/core": "workspace:*"
@@ -25,5 +25,8 @@
         "@types/axios": "^0.14.4",
         "axios": "^1.7.9",
         "nock": "^13.5.6"
+    },
+    "publishConfig": {
+        "access": "public"
     }
 }
