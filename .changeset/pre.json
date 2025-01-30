@@ -1,0 +1,21 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@t-rest/client": "0.0.1",
+    "@t-rest/core": "0.0.1",
+    "@t-rest/express-server": "0.0.1",
+    "@t-rest/testing-utilities": "1.0.0"
+  },
+  "changesets": [
+    "afraid-queens-ring",
+    "empty-phones-kick",
+    "empty-spies-hammer",
+    "fluffy-pots-whisper",
+    "great-apes-leave",
+    "proud-moose-sip",
+    "rotten-fans-yawn",
+    "shiny-masks-cover",
+    "unlucky-ligers-rule"
+  ]
+}
