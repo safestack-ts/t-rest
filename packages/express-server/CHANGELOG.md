@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.1
+
+### Patch Changes
+
+- 4a26587: typed express applications expose internal instance of express app
+
 ## 1.0.0-alpha.0
 
 ### Minor Changes

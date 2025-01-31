@@ -5,17 +5,22 @@
     "@t-rest/client": "0.0.1",
     "@t-rest/core": "0.0.1",
     "@t-rest/express-server": "0.0.1",
-    "@t-rest/testing-utilities": "1.0.0"
+    "@t-rest/testing-utilities": "1.0.0",
+    "@t-rest/client-utils": "1.0.0-alpha.0",
+    "@t-rest/supertest-adapter": "1.0.0-alpha.0"
   },
   "changesets": [
     "afraid-queens-ring",
+    "cyan-pugs-retire",
     "empty-phones-kick",
     "empty-spies-hammer",
     "fluffy-pots-whisper",
     "great-apes-leave",
     "proud-moose-sip",
     "rotten-fans-yawn",
+    "serious-brooms-pull",
     "shiny-masks-cover",
+    "soft-apricots-yell",
     "unlucky-ligers-rule"
   ]
 }
