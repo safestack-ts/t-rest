@@ -1,9 +1,9 @@
 type RequestInputWithQuery = {
-  query: Record<string, unknown>
+  query: unknown
 }
 
 type RequestInputWithParams = {
-  params: Record<string, unknown>
+  params: unknown
 }
 
 type RequestInputWithBody = {
@@ -19,7 +19,7 @@ const isObjectWithToJSON = <T>(obj: T): obj is T & { toJSON: () => string } =>
   'toJSON' in Object(obj) &&
   typeof (obj as any)['toJSON'] === 'function'
 
-const stringifyQuery = (query: Record<string, unknown> | undefined) => {
+const stringifyQuery = (query: unknown | undefined) => {
   if (!query) return ''
 
   const stringifiedQueryValues = Object.fromEntries(

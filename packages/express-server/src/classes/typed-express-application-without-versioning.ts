@@ -11,6 +11,8 @@ export class TypedExpressApplicationWithoutVersioning<
   TRequest extends ExpressRequest,
   TMountPath extends string
 > extends TypedRouterWithoutVersioning<TRoutes, TRequest, TMountPath> {
+  public readonly expressApp: ExpressApp | ExpressRouter
+
   protected readonly bagOfRoutes: BagOfRoutes<TRoutes, Versioning, never>
 
   constructor(
@@ -20,6 +22,7 @@ export class TypedExpressApplicationWithoutVersioning<
   ) {
     super(bagOfRoutes.routes, expressApp, mountPath)
 
+    this.expressApp = expressApp
     this.bagOfRoutes = bagOfRoutes
   }
 }

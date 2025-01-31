@@ -1,5 +1,5 @@
 {
-    "name": "@t-rest/client",
+    "name": "@t-rest/supertest-adapter",
     "version": "1.0.0-alpha.0",
     "description": "",
     "main": "./dist/index.js",
@@ -18,14 +18,28 @@
     "author": "Yannick Stachelscheid",
     "license": "MIT",
     "dependencies": {
+        "@t-rest/client-utils": "workspace:*",
         "@t-rest/core": "workspace:*",
-        "@t-rest/client-utils": "workspace:*"
+        "@t-rest/express-server": "workspace:*",
+        "supertest": "^6.3.4"
     },
     "devDependencies": {
         "@t-rest/testing-utilities": "workspace:*",
-        "@types/axios": "^0.14.4",
-        "axios": "^1.7.9",
-        "nock": "^13.5.6"
+        "@types/compression": "^1.7.5",
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.17.21",
+        "@types/express-serve-static-core": "4.19.6",
+        "@types/helmet": "^4.0.0",
+        "@types/supertest": "^6.0.2",
+        "compression": "^1.7.5",
+        "cors": "^2.8.5",
+        "express": "^4.21.2",
+        "express-serve-static-core": "^0.1.1",
+        "helmet": "^7.2.0"
+    },
+    "resolutions": {
+        "@types/express": "4.17.21",
+        "@types/express-serve-static-core": "4.17.21"
     },
     "publishConfig": {
         "access": "public"

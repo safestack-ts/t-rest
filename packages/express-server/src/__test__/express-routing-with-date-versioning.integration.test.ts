@@ -24,6 +24,8 @@ class PricenowAPIVersionHeaderExtractor implements DateVersionExtractor {
 }
 
 const initApplication = (expressApp: ExpressApp) => {
+  expressApp.use(Express.json())
+
   const typedExpressApplication = TypedExpressApplication.withVersioning(
     expressApp,
     baseBagOfRoutes,

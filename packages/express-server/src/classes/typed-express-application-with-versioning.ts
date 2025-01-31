@@ -23,6 +23,8 @@ export class TypedExpressApplicationWithVersioning<
   TMountPath,
   TVersionHistory
 > {
+  public readonly expressApp: ExpressApp | ExpressRouter
+
   protected readonly bagOfRoutes: BagOfRoutes<
     TRoutes,
     Versioning,
@@ -45,6 +47,7 @@ export class TypedExpressApplicationWithVersioning<
       versionExtractor
     )
 
+    this.expressApp = expressApp
     this.bagOfRoutes = bagOfRoutes
   }
 }

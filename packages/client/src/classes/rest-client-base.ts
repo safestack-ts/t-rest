@@ -1,7 +1,7 @@
 import { AnyRouteDef, BagOfRoutes, Versioning, HTTPMethod } from '@t-rest/core'
 import { HTTPAdapter } from '../types/http-adapter'
 import { RequestConfig } from '../types/request-config'
-import { BaseRequestInput, buildUrl } from '../utils/build-url'
+import { BaseRequestInput, buildUrl } from '@t-rest/client-utils'
 
 export abstract class RESTClientBase<
   TRoutes extends AnyRouteDef,
@@ -32,10 +32,7 @@ export abstract class RESTClientBase<
     )
   }
 
-  private getBody = <TRequestConfig extends BaseRequestInput & RequestConfig>(
-    method: HTTPMethod,
-    requestConfig?: TRequestConfig
-  ) => {
+  private getBody = (method: HTTPMethod, requestConfig?: BaseRequestInput) => {
     switch (method) {
       case 'GET':
       case 'DELETE':

@@ -1,5 +1,5 @@
 {
-    "name": "@t-rest/client",
+    "name": "@t-rest/client-utils",
     "version": "1.0.0-alpha.0",
     "description": "",
     "main": "./dist/index.js",
@@ -17,16 +17,8 @@
     "keywords": [],
     "author": "Yannick Stachelscheid",
     "license": "MIT",
-    "dependencies": {
-        "@t-rest/core": "workspace:*",
-        "@t-rest/client-utils": "workspace:*"
-    },
-    "devDependencies": {
-        "@t-rest/testing-utilities": "workspace:*",
-        "@types/axios": "^0.14.4",
-        "axios": "^1.7.9",
-        "nock": "^13.5.6"
-    },
+    "dependencies": {},
+    "devDependencies": {},
     "publishConfig": {
         "access": "public"
     }
