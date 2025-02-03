@@ -1,5 +1,11 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.2
+
+### Patch Changes
+
+- aa5ef39: support default supertest adapter config
+
 ## 1.0.0-alpha.1
 
 ### Patch Changes
