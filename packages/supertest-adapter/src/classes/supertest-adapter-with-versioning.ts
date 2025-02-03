@@ -7,13 +7,14 @@ import { SupertestConfig } from '../types/supertest-config'
 import { RequestInput } from '../types/request-input'
 import { VersionInjector } from './version-injector'
 import { SupertestAdapterBase } from './supertest-adapter-base'
+import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config'
 export class SupertestAdapterWithVersioning<
   TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>
 > extends SupertestAdapterBase<TApp> {
   private readonly versionInjector: VersionInjector
 
-  constructor(app: TApp, versionInjector: VersionInjector) {
-    super(app)
+  constructor(app: TApp, versionInjector: VersionInjector, defaultConfig: DefaultSupertestAdapterConfig = {}) {
+    super(app, defaultConfig)
 
     this.versionInjector = versionInjector
   }

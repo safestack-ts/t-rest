@@ -5,12 +5,16 @@ import {
 import { SupertestAdapterWithoutVersioning } from './supertest-adapter-without-versioning'
 import { VersionInjector } from './version-injector'
 import { SupertestAdapterWithVersioning } from './supertest-adapter-with-versioning'
+import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config'
 
 export abstract class SupertestAdapter {
   public static withoutVersioning<
     TApp extends TypedExpressApplicationWithoutVersioning<any, any, any>
-  >(app: TApp): SupertestAdapterWithoutVersioning<TApp> {
-    return new SupertestAdapterWithoutVersioning(app)
+  >(
+    app: TApp,
+    defaultConfig: DefaultSupertestAdapterConfig = {}
+  ): SupertestAdapterWithoutVersioning<TApp> {
+    return new SupertestAdapterWithoutVersioning(app, defaultConfig)
   }
 
   public static withVersioning<

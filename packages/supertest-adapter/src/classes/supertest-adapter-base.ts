@@ -4,14 +4,17 @@ import { HTTPMethod, typedLowerCase } from '@t-rest/core'
 import { SupertestConfig } from '../types/supertest-config'
 import supertest from 'supertest'
 import { SupertestResponse } from '../types/supertest-response'
+import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config'
 
 export abstract class SupertestAdapterBase<
   TApp extends AnyTypedExpressApplication
 > {
   protected app: TApp
+  protected defaultConfig: DefaultSupertestAdapterConfig
 
-  constructor(app: TApp) {
+  constructor(app: TApp, defaultConfig: DefaultSupertestAdapterConfig) {
     this.app = app
+    this.defaultConfig = defaultConfig
   }
 
   protected async executeRequest<TRequestInput, TResponseType>(
@@ -27,8 +30,10 @@ export abstract class SupertestAdapterBase<
       request = request.send(context.body as string | object | undefined)
     }
 
-    if (context?.headers) {
-      request = request.set(context.headers)
+    const headers = { ...this.defaultConfig.headers, ...context.headers }
+
+    if (Object.entries(headers).length > 0) {
+      request = request.set(headers)
     }
 
     if (context.expect?.status !== undefined) {
