@@ -1,5 +1,11 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.3
+
+### Patch Changes
+
+- cfc77b9: fix: support default config on SupertestAdapter static factory methods
+
 ## 1.0.0-alpha.2
 
 ### Patch Changes
