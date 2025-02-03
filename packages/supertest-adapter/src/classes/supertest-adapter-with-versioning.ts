@@ -13,7 +13,7 @@ export class SupertestAdapterWithVersioning<
 > extends SupertestAdapterBase<TApp> {
   private readonly versionInjector: VersionInjector
 
-  constructor(app: TApp, versionInjector: VersionInjector, defaultConfig: DefaultSupertestAdapterConfig = {}) {
+  constructor(app: TApp, versionInjector: VersionInjector, defaultConfig: DefaultSupertestAdapterConfig) {
     super(app, defaultConfig)
 
     this.versionInjector = versionInjector

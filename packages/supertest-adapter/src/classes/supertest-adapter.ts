@@ -21,8 +21,9 @@ export abstract class SupertestAdapter {
     TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>
   >(
     app: TApp,
-    versionInjector: VersionInjector
+    versionInjector: VersionInjector,
+    defaultConfig: DefaultSupertestAdapterConfig = {}
   ): SupertestAdapterWithVersioning<TApp> {
-    return new SupertestAdapterWithVersioning(app, versionInjector)
+    return new SupertestAdapterWithVersioning(app, versionInjector, defaultConfig)
   }
 }
