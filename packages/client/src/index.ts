@@ -2,6 +2,7 @@ export * from './classes/axios-http-adapter'
 export * from './classes/rest-client'
 export * from './classes/rest-client-with-versioning'
 export * from './classes/rest-client-without-versioning'
+export * from './classes/version-injector'
 
 export * from './types/http-adapter'
 export * from './types/http-response'
