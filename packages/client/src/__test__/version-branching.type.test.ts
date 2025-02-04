@@ -1,6 +1,9 @@
 import { BagOfRoutes, Route, versionHistory, Versioning } from '@t-rest/core'
 import { RESTClient } from '../classes/rest-client'
 import { AssertTrue } from 'conditional-type-checks'
+import { VersionInjector } from '../classes/version-injector'
+
+class TestVersionInjector extends VersionInjector {}
 
 const bagOfRoutes = BagOfRoutes.withVersioning(Versioning.DATE, versionHistory)
   .addRoute(
@@ -20,7 +23,12 @@ const bagOfRoutes = BagOfRoutes.withVersioning(Versioning.DATE, versionHistory)
   )
   .build()
 
-const client = RESTClient.withVersioning(bagOfRoutes, '2024-01-01', null as any)
+const client = RESTClient.withVersioning(
+  bagOfRoutes,
+  '2024-01-01',
+  null as any,
+  TestVersionInjector
+)
 
 const responseOldestVersion = client.get('/basket')
 const responseMiddleVersion = client.withVersion('2024-02-01').get('/basket')

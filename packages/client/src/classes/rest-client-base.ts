@@ -2,6 +2,7 @@ import { AnyRouteDef, BagOfRoutes, Versioning, HTTPMethod } from '@t-rest/core'
 import { HTTPAdapter } from '../types/http-adapter'
 import { RequestConfig } from '../types/request-config'
 import { BaseRequestInput, buildUrl } from '@t-rest/client-utils'
+import { VersionInjector } from './version-injector'
 
 export abstract class RESTClientBase<
   TRoutes extends AnyRouteDef,
@@ -9,13 +10,16 @@ export abstract class RESTClientBase<
 > {
   protected readonly routes: BagOfRoutes<TRoutes, Versioning, TVersionHistory>
   protected readonly httpAdapter: HTTPAdapter
+  protected readonly versionInjector: VersionInjector
 
   constructor(
     routes: BagOfRoutes<TRoutes, Versioning, TVersionHistory>,
-    httpAdapter: HTTPAdapter
+    httpAdapter: HTTPAdapter,
+    versionInjector: VersionInjector
   ) {
     this.routes = routes
     this.httpAdapter = httpAdapter
+    this.versionInjector = versionInjector
   }
 
   // http method implementations
@@ -26,9 +30,14 @@ export abstract class RESTClientBase<
   >(method: TMethod, path: string, requestConfig?: TRequestConfig) {
     return this.httpAdapter.request<TResponse>(
       method,
-      buildUrl(path, requestConfig),
+      this.versionInjector.modifyUrl(buildUrl(path, requestConfig)),
       this.getBody(method, requestConfig),
-      requestConfig
+      {
+        ...requestConfig,
+        headers: this.versionInjector.modifyHeaders(
+          requestConfig?.headers ?? {}
+        ),
+      }
     )
   }
 

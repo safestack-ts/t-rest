@@ -1,11 +1,26 @@
-import { AnyRouteDef, HTTPMethod, ResponseTypeKey } from '@t-rest/core'
+import {
+  AnyRouteDef,
+  BagOfRoutes,
+  HTTPMethod,
+  ResponseTypeKey,
+  Versioning,
+} from '@t-rest/core'
 import { RESTClientBase } from './rest-client-base'
 import { RequestArgs } from '../types/request-args'
 import { RequestInput } from '../types/request-input'
+import { HTTPAdapter } from '../types/http-adapter'
+import { NoVersionInjector } from './version-injector'
 
 export class RESTClientWithoutVersioning<
   TRoutes extends AnyRouteDef
 > extends RESTClientBase<TRoutes, never> {
+  constructor(
+    routes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING, never>,
+    httpAdapter: HTTPAdapter
+  ) {
+    super(routes, httpAdapter, new NoVersionInjector(''))
+  }
+
   private makeRouteHandler<TMethod extends HTTPMethod>(method: TMethod) {
     return <
       TAbsolutePath extends Extract<TRoutes, { method: TMethod }>['path']

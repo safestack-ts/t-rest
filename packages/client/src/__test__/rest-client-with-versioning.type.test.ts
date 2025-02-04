@@ -6,23 +6,29 @@ import {
 } from '@t-rest/testing-utilities'
 import { AssertTrue, IsExact } from 'conditional-type-checks'
 import { RESTClient } from '../classes/rest-client'
+import { VersionInjector } from '../classes/version-injector'
+
+class TestVersionInjector extends VersionInjector {}
 
 const { bagOfRoutes } = TestBagOfRoutesWithVersioning
 
 const clientJanuary = RESTClient.withVersioning(
   bagOfRoutes,
   '2024-01-01',
-  null as any
+  null as any,
+  TestVersionInjector
 )
 const clienFebruary = RESTClient.withVersioning(
   bagOfRoutes,
   '2024-02-01',
-  null as any
+  null as any,
+  TestVersionInjector
 )
 const clientMarch = RESTClient.withVersioning(
   bagOfRoutes,
   '2024-03-01',
-  null as any
+  null as any,
+  TestVersionInjector
 )
 
 // make sure that the client is not executing actual logic

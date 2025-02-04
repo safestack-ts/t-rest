@@ -8,6 +8,7 @@ import { RESTClientBase } from './rest-client-base'
 import { HTTPAdapter } from '../types/http-adapter'
 import { RESTClientWithVersioning } from './rest-client-with-versioning'
 import { RESTClientWithoutVersioning } from './rest-client-without-versioning'
+import { VersionInjectorConstructor } from './version-injector'
 
 export abstract class RESTClient<
   TRoutes extends AnyRouteDef,
@@ -27,8 +28,14 @@ export abstract class RESTClient<
   >(
     bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired, TVersionHistory>,
     version: TVersion,
-    httpAdapter: HTTPAdapter
+    httpAdapter: HTTPAdapter,
+    versionInjectorConstructor: VersionInjectorConstructor
   ) {
-    return new RESTClientWithVersioning(bagOfRoutes, version, httpAdapter)
+    return new RESTClientWithVersioning(
+      bagOfRoutes,
+      version,
+      httpAdapter,
+      versionInjectorConstructor
+    )
   }
 }

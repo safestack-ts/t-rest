@@ -11,6 +11,7 @@ import { RESTClientBase } from './rest-client-base'
 import { RequestArgs } from '../types/request-args'
 import { RequestInput } from '../types/request-input'
 import { HTTPAdapter } from '../types/http-adapter'
+import { VersionInjectorConstructor } from './version-injector'
 
 export class RESTClientWithVersioning<
   TRoutes extends AnyRouteDef,
@@ -18,15 +19,18 @@ export class RESTClientWithVersioning<
   TVersionHistory extends string[]
 > extends RESTClientBase<TRoutes, TVersionHistory> {
   protected readonly version: TVersion
+  protected readonly versionInjectorConstructor: VersionInjectorConstructor
 
   constructor(
     routes: BagOfRoutes<TRoutes, Versioning, TVersionHistory>,
     version: TVersion,
-    httpAdapter: HTTPAdapter
+    httpAdapter: HTTPAdapter,
+    versionInjectorConstructor: VersionInjectorConstructor
   ) {
-    super(routes, httpAdapter)
+    super(routes, httpAdapter, new versionInjectorConstructor(version))
 
     this.version = version
+    this.versionInjectorConstructor = versionInjectorConstructor
   }
 
   private makeRouteHandler<TMethod extends HTTPMethod>(method: TMethod) {
@@ -75,6 +79,11 @@ export class RESTClientWithVersioning<
   >(
     version: TNewVersion
   ): RESTClientWithVersioning<TRoutes, TNewVersion, TVersionHistory> {
-    return new RESTClientWithVersioning(this.routes, version, this.httpAdapter)
+    return new RESTClientWithVersioning(
+      this.routes,
+      version,
+      this.httpAdapter,
+      this.versionInjectorConstructor
+    )
   }
 }
