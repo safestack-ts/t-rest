@@ -8,4 +8,103 @@ servers:
 tags:
   - name: users
     description: Users related operations
-paths: {}
+paths:
+  /users/:userId:
+    get:
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    allOf:
+                      - type: object
+                        properties:
+                          id:
+                            type: number
+                          email:
+                            type: string
+                        required:
+                          - id
+                          - email
+                      - type: object
+                        properties:
+                          tags:
+                            type: array
+                            items:
+                              type: string
+                        required:
+                          - tags
+                  version:
+                    type: string
+                required:
+                  - data
+                  - version
+  /complexRoute:
+    get:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                validAt:
+                  type: string
+                  format: date-time
+                productDefinitionIds:
+                  type: array
+                  items:
+                    type: number
+                from:
+                  type: string
+                  format: date-time
+                to:
+                  type: string
+                  format: date-time
+              required:
+                - validAt
+                - productDefinitionIds
+                - from
+                - to
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    allOf:
+                      - type: object
+                        properties:
+                          id:
+                            type: number
+                          email:
+                            type: string
+                        required:
+                          - id
+                          - email
+                      - type: object
+                        properties:
+                          tags:
+                            type: array
+                            items:
+                              type: string
+                        required:
+                          - tags
+                  version:
+                    type: string
+                required:
+                  - data
+                  - version

@@ -4,6 +4,8 @@ import {
   Versioning,
   AnyRouteDef,
   typedLowerCase,
+  resolveDateVersion,
+  resolveVersion,
 } from '@t-rest/core'
 import { StatusCodes } from 'http-status-codes'
 import { AnyRouteHandlerFn } from '../types/any-route-handler-fn'
@@ -16,7 +18,6 @@ import { TypedMiddleware } from '../types/typed-middleware'
 import { VersionExtractor } from '../types/version-extractor'
 import { isDateVersionExtractor } from '../utils/is-date-version-extractor'
 import { removePrefixFromPath } from '../utils/remove-prefix-from-path'
-import { resolveDateVersion, resolveVersion } from '../utils/resolve-version'
 import { TypedRouterBase } from './typed-router-base'
 
 export class VersionedRouting {
@@ -133,7 +134,7 @@ export class VersionedRouting {
             this.versionHistory,
             routes.map(({ route }) => route.version),
             requestedVersion,
-            this.versionExtractor
+            this.versionExtractor.parseDate
           )
         : resolveVersion(
             this.versionHistory,

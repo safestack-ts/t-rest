@@ -10,7 +10,7 @@ type ConstructorArgs<TBagOfRoutes extends BagOfRoutes<any, any, any>> = {
 export class OpenAPISpecWithMetaData<
   TBagOfRoutes extends BagOfRoutes<any, any, any>
 > {
-  protected readonly bagOfRoutes: TBagOfRoutes
+  public readonly bagOfRoutes: TBagOfRoutes
   public readonly version: string
   public readonly metaData: OpenAPIMetaData
 

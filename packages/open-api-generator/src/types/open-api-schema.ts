@@ -19,10 +19,12 @@ export type OpenAPISchema = {
     description?: string
   }[]
 
-  paths: {
-    [key: string]: {
-      [key: string]: OpenAPIRouteSchema
-    }
+  paths: OpenAPIPathsSchema
+}
+
+export type OpenAPIPathsSchema = {
+  [key: string]: {
+    [key: string]: OpenAPIRouteSchema
   }
 }
 

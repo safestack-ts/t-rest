@@ -1,4 +1,3 @@
-import { DateVersionExtractor } from '../types/date-version-extractor'
 import { findNearestLowerDate } from './find-nearest-lower-date'
 
 export const resolveVersion = (
@@ -27,7 +26,7 @@ export const resolveDateVersion = (
   versionHistory: string[],
   availableVersions: string[],
   requestedVersion: string,
-  dateVersionExtractor: DateVersionExtractor
+  parseDate: (version: string) => Date
 ) => {
   const simpleResolvedVersion = resolveVersion(
     versionHistory,
@@ -39,11 +38,8 @@ export const resolveDateVersion = (
     return simpleResolvedVersion
   } else {
     // need to parse versions and find matching date version
-    const versionHistoryDates = versionHistory.map(
-      dateVersionExtractor.parseDate
-    )
-    const requestedDateVersion =
-      dateVersionExtractor.parseDate(requestedVersion)
+    const versionHistoryDates = versionHistory.map(parseDate)
+    const requestedDateVersion = parseDate(requestedVersion)
 
     const nearestLowerDateResult = findNearestLowerDate(
       versionHistoryDates,
