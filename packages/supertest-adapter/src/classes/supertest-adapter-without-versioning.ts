@@ -4,7 +4,7 @@ import {
 } from '@t-rest/express-server'
 import { SupertestConfig } from '../types/supertest-config'
 import { RequestInput } from '../types/request-input'
-import { HTTPMethod, ResponseTypeKey } from '@t-rest/core'
+import { HTTPMethod } from '@t-rest/core'
 import { SupertestAdapterBase } from './supertest-adapter-base'
 
 export class SupertestAdapterWithoutVersioning<
@@ -36,7 +36,7 @@ export class SupertestAdapterWithoutVersioning<
         Extract<
           ApplicationRoutes<TApp>,
           { method: TMethod; path: TAbsolutePath }
-        >[ResponseTypeKey]
+        >['~responseType']
       >(method, path, context)
     }
   }

@@ -32,5 +32,22 @@ export namespace TestBagOfRoutesWithVersioning {
         .validate(z.object({ params: z.object({ userId: ze.uuid() }) }))
         .response<ResponseWithVersion<UserWithTags>>()
     )
+    .addRoute(
+      Route.version('2024-02-01')
+        .get('/complexRoute')
+        .validate(
+          z.object({
+            body: z.object({
+              validAt: ze.parseDate(),
+              productDefinitionIds: ze.jsonObject(
+                z.array(ze.parseInteger()).nonempty()
+              ),
+              from: ze.parseDate(),
+              to: ze.parseDate(),
+            }),
+          })
+        )
+        .response<ResponseWithVersion<UserWithTags>>()
+    )
     .build()
 }

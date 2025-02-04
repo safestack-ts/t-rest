@@ -4,7 +4,6 @@ import {
   ExtractLatestMatchingRoutePerPath,
   HTTPMethod,
   NewerVersions,
-  ResponseTypeKey,
   Versioning,
 } from '@t-rest/core'
 import { RESTClientBase } from './rest-client-base'
@@ -58,7 +57,7 @@ export class RESTClientWithVersioning<
           Extract<TRoutes, { method: TMethod; path: TAbsolutePath }>,
           TVersion,
           TVersionHistory
-        >[ResponseTypeKey],
+        >['~responseType'],
         NonNullable<(typeof args)[1]>
       >(method, args[0], args[1])
     }

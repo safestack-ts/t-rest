@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Debug OpenAPI Spec Generator",
+        "cwd": "${workspaceFolder}/packages/open-api-generator",
+        "program": "./dist/index.js",
+        "env": {
+          "NODE_ENV": "development"
+        },
+        "args": ["-c", "3"],
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"]
+      }
+    ]
+}

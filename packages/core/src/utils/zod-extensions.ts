@@ -1,4 +1,4 @@
-import { ZodError, z } from 'zod'
+import { ZodError, ZodType, z } from 'zod'
 
 export namespace ze {
   // Refinements
@@ -85,6 +85,14 @@ export namespace ze {
         message: 'Expected JSON string',
       }
     )
+
+  export const jsonObject = <TOutputValue>(
+    objectValidator: ZodType<TOutputValue, z.ZodTypeDef, unknown>
+  ) =>
+    z
+      .string()
+      .pipe(z.preprocess((value) => JSON.parse(String(value)), objectValidator))
+      .or(objectValidator)
 
   export const databaseId = () => z.number().int().positive()
 
