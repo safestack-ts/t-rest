@@ -1,5 +1,11 @@
 # @t-rest/client
 
+## 1.0.0-alpha.3
+
+### Patch Changes
+
+- 00fb6f6: add missing version injector export from client
+
 ## 1.0.0-alpha.2
 
 ### Patch Changes
