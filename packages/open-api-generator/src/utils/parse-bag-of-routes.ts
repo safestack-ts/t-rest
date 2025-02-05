@@ -7,7 +7,39 @@ export type RouteTypeInfo = {
 }
 
 export const parseBagOfRoutes = (modulePath: string) => {
-  // Create program with target file
+  const { sourceFile, typeChecker } = initializeProgram(modulePath)
+  const rootNode = findDefaultExport(sourceFile)
+  const routeTypes = extractRouteTypes(rootNode, typeChecker)
+
+  // [method, path, version]
+  const results = new HashMap<[string, string, string], RouteTypeInfo>((key) =>
+    key.join('-')
+  )
+
+  for (const routeType of routeTypes) {
+    const { method, path, version } = extractRouteMetadata(
+      routeType,
+      typeChecker,
+      rootNode
+    )
+
+    const validatorType = extractValidatorType(routeType, typeChecker, rootNode)
+    const responseType = extractResponseType(routeType, typeChecker, rootNode)
+
+    results.set([method, path, version], {
+      input: validatorType
+        ? transformTypeToOpenAPI(validatorType, typeChecker, rootNode)
+        : undefined,
+      output: responseType
+        ? transformTypeToOpenAPI(responseType, typeChecker, rootNode)
+        : undefined,
+    })
+  }
+
+  return results
+}
+
+function initializeProgram(modulePath: string) {
   const program = ts.createProgram({
     rootNames: [modulePath],
     options: {},
@@ -18,194 +50,215 @@ export const parseBagOfRoutes = (modulePath: string) => {
     throw new Error(`Could not find source file: ${modulePath}`)
   }
 
-  const typeChecker = program.getTypeChecker()
-  // [method, path, version]
-  const results = new HashMap<[string, string, string], RouteTypeInfo>((key) =>
-    key.join('-')
-  )
+  return { program, sourceFile, typeChecker: program.getTypeChecker() }
+}
 
-  // Find the default export which should be the bag of routes
-  const defaultExport = sourceFile.statements.find(
+function findDefaultExport(sourceFile: ts.SourceFile) {
+  const rootNode = sourceFile.statements.find(
     (statement): statement is ts.ExportAssignment =>
       ts.isExportAssignment(statement) && !statement.isExportEquals
   )
 
-  if (!defaultExport) {
+  if (!rootNode) {
     throw new Error('No default export found')
   }
 
-  // Get the type of the bag of routes
-  const bagType = typeChecker.getTypeAtLocation(defaultExport.expression)
+  return rootNode
+}
 
-  // Get the first generic type argument (_TRoutes)
+function extractRouteTypes(
+  rootNode: ts.ExportAssignment,
+  typeChecker: ts.TypeChecker
+) {
+  const bagType = typeChecker.getTypeAtLocation(rootNode.expression)
   const routesTypeArg = (bagType as ts.TypeReference).typeArguments?.[0]
+
   if (!routesTypeArg) {
     throw new Error('Could not find routes type argument')
   }
 
-  // If it's a union type, get all the union members
-  const routeTypes = routesTypeArg.isUnion()
-    ? routesTypeArg.types
-    : [routesTypeArg]
+  return routesTypeArg.isUnion() ? routesTypeArg.types : [routesTypeArg]
+}
 
-  // Analyze each route definition in the union
-  for (const routeType of routeTypes) {
-    const validatorOutput = routeType.getProperty('~validatorOutputType')
-    const validatorType =
-      validatorOutput &&
-      typeChecker.getTypeOfSymbolAtLocation(validatorOutput, defaultExport)
+function extractRouteMetadata(
+  routeType: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node
+) {
+  const pathSymbol = routeType.getProperty('path')
+  const pathType =
+    pathSymbol && typeChecker.getTypeOfSymbolAtLocation(pathSymbol, rootNode)
+  const path = pathType?.isStringLiteral() ? pathType.value : undefined
 
-    const responseSymbol = routeType.getProperty('~responseType')
-    const responseType =
-      responseSymbol &&
-      typeChecker.getTypeOfSymbolAtLocation(responseSymbol, defaultExport)
+  const methodSymbol = routeType.getProperty('method')
+  const methodType =
+    methodSymbol &&
+    typeChecker.getTypeOfSymbolAtLocation(methodSymbol, rootNode)
+  const method = methodType?.isStringLiteral() ? methodType.value : undefined
 
-    const pathSymbol = routeType.getProperty('path')
-    const pathType =
-      pathSymbol &&
-      typeChecker.getTypeOfSymbolAtLocation(pathSymbol, defaultExport)
-    const path = pathType?.isStringLiteral() ? pathType.value : undefined
+  const versionSymbol = routeType.getProperty('version')
+  const versionType =
+    versionSymbol &&
+    typeChecker.getTypeOfSymbolAtLocation(versionSymbol, rootNode)
+  const version = versionType?.isStringLiteral() ? versionType.value : undefined
 
-    const methodSymbol = routeType.getProperty('method')
-    const methodType =
-      methodSymbol &&
-      typeChecker.getTypeOfSymbolAtLocation(methodSymbol, defaultExport)
-    const method = methodType?.isStringLiteral() ? methodType.value : undefined
+  if (!method) throw new Error('Could not find method')
+  if (!path) throw new Error('Could not find path')
+  if (!version) throw new Error('Could not find version')
 
-    const versionSymbol = routeType.getProperty('version')
-    const versionType =
-      versionSymbol &&
-      typeChecker.getTypeOfSymbolAtLocation(versionSymbol, defaultExport)
-    const version = versionType?.isStringLiteral()
-      ? versionType.value
-      : undefined
+  return { method, path, version }
+}
 
-    if (!method) {
-      throw new Error('Could not find method')
+function extractValidatorType(
+  routeType: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node
+) {
+  const validatorOutput = routeType.getProperty('~validatorOutputType')
+  return (
+    validatorOutput &&
+    typeChecker.getTypeOfSymbolAtLocation(validatorOutput, rootNode)
+  )
+}
+
+function extractResponseType(
+  routeType: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node
+) {
+  const responseSymbol = routeType.getProperty('~responseType')
+  return (
+    responseSymbol &&
+    typeChecker.getTypeOfSymbolAtLocation(responseSymbol, rootNode)
+  )
+}
+
+function transformTypeToOpenAPI(
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node
+): any {
+  if (!type) return undefined
+
+  if (type.isStringLiteral()) return { type: 'string', enum: [type.value] }
+  if (type.isNumberLiteral()) return { type: 'number', enum: [type.value] }
+  if (type.isUnion()) return handleUnionType(type, typeChecker, rootNode)
+  if (type.isIntersection())
+    return handleIntersectionType(type, typeChecker, rootNode)
+
+  const typeAsString = typeChecker.typeToString(type)
+
+  if (isArrayType(type, typeAsString))
+    return handleArrayType(type, typeChecker, rootNode)
+  if (type.isClassOrInterface())
+    return handleClassOrInterfaceType(type, typeChecker, rootNode)
+
+  return handleBasicType(type, typeAsString, typeChecker, rootNode)
+}
+
+function handleUnionType(
+  type: ts.UnionType,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node
+) {
+  const unionTypes = type.types.map((t) =>
+    transformTypeToOpenAPI(t, typeChecker, rootNode)
+  )
+  if (unionTypes.every((t) => t.enum)) {
+    return {
+      type: unionTypes[0].type,
+      enum: unionTypes.flatMap((t) => t.enum),
     }
+  }
+  return { oneOf: unionTypes }
+}
 
-    if (!version) {
-      throw new Error('Could not find version')
-    }
+function handleIntersectionType(
+  type: ts.IntersectionType,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node
+) {
+  return {
+    allOf: type.types.map((t) =>
+      transformTypeToOpenAPI(t, typeChecker, rootNode)
+    ),
+  }
+}
 
-    if (!path) {
-      throw new Error('Could not find path')
-    }
+function isArrayType(type: ts.Type, typeAsString: string) {
+  const symbol = type.getSymbol()
+  return symbol?.name === 'Array' || typeAsString.endsWith('[]]')
+}
 
-    const transformTypeToOpenAPI = (type: ts.Type | undefined): any => {
-      if (!type) return undefined
+function handleArrayType(
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node
+) {
+  const elementType = (type as ts.TypeReference).typeArguments?.at(0)
 
-      const typeAsString = typeChecker.typeToString(type)
+  if (!elementType) return undefined
 
-      if (type.isStringLiteral()) {
-        return { type: 'string', enum: [type.value] }
-      }
+  return {
+    type: 'array',
+    items: transformTypeToOpenAPI(elementType, typeChecker, rootNode),
+  }
+}
 
-      if (type.isNumberLiteral()) {
-        return { type: 'number', enum: [type.value] }
-      }
-
-      if (type.isUnion()) {
-        const unionTypes = type.types.map((t) => transformTypeToOpenAPI(t))
-        if (unionTypes.every((t) => t.enum)) {
-          return {
-            type: unionTypes[0].type,
-            enum: unionTypes.flatMap((t) => t.enum),
-          }
-        }
-        return { oneOf: unionTypes }
-      }
-
-      if (type.isIntersection()) {
-        return {
-          allOf: type.types.map((t) => transformTypeToOpenAPI(t)),
-        }
-      }
-
-      const symbol = type.getSymbol()
-      if (symbol?.name === 'Array' || typeAsString.endsWith('[]]')) {
-        const elementType = (type as ts.TypeReference).typeArguments?.[0]
-        return {
-          type: 'array',
-          items: transformTypeToOpenAPI(elementType),
-        }
-      }
-
-      if (type.isClassOrInterface()) {
-        // Check if it's a Date type
-        const symbol = type.getSymbol()
-        if (symbol?.name === 'Date') {
-          return { type: 'string', format: 'date-time' }
-        }
-
-        const properties: Record<string, any> = {}
-        const required: string[] = []
-
-        type.getProperties().forEach((prop) => {
-          const propType = typeChecker.getTypeOfSymbolAtLocation(
-            prop,
-            defaultExport
-          )
-          const propSchema = transformTypeToOpenAPI(propType)
-          if (propSchema) {
-            properties[prop.name] = propSchema
-            const propSymbol = type.getProperty(prop.name)
-            if (propSymbol && !(propSymbol.flags & ts.SymbolFlags.Optional)) {
-              required.push(prop.name)
-            }
-          }
-        })
-
-        return {
-          type: 'object',
-          properties,
-          ...(required.length > 0 ? { required } : {}),
-        }
-      }
-
-      switch (typeAsString) {
-        case 'string':
-          return { type: 'string' }
-        case 'number':
-          return { type: 'number' }
-        case 'boolean':
-          return { type: 'boolean' }
-        case 'null':
-          return { type: 'null' }
-        default: {
-          // For complex types, we should already have the TypeScript type information
-          // through the type checker, so we can examine the structure directly
-          const properties: Record<string, any> = {}
-          const required: string[] = []
-
-          type.getProperties().forEach((prop) => {
-            const propType = typeChecker.getTypeOfSymbolAtLocation(
-              prop,
-              defaultExport
-            )
-            const propSchema = transformTypeToOpenAPI(propType)
-            if (propSchema) {
-              properties[prop.name] = propSchema
-              if (!(prop.flags & ts.SymbolFlags.Optional)) {
-                required.push(prop.name)
-              }
-            }
-          })
-
-          return {
-            type: 'object',
-            properties,
-            ...(required.length > 0 ? { required } : {}),
-          }
-        }
-      }
-    }
-
-    results.set([method, path, version], {
-      input: validatorType ? transformTypeToOpenAPI(validatorType) : undefined,
-      output: responseType ? transformTypeToOpenAPI(responseType) : undefined,
-    })
+function handleClassOrInterfaceType(
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node
+) {
+  const symbol = type.getSymbol()
+  if (symbol?.name === 'Date') {
+    return { type: 'string', format: 'date-time' }
   }
 
-  return results
+  return createObjectSchema(type, typeChecker, rootNode)
+}
+
+function handleBasicType(
+  type: ts.Type,
+  typeAsString: string,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node
+) {
+  const basicTypes: Record<string, { type: string }> = {
+    string: { type: 'string' },
+    number: { type: 'number' },
+    boolean: { type: 'boolean' },
+    null: { type: 'null' },
+  }
+
+  return (
+    basicTypes[typeAsString] || createObjectSchema(type, typeChecker, rootNode)
+  )
+}
+
+function createObjectSchema(
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node
+) {
+  const properties: Record<string, any> = {}
+  const required: string[] = []
+
+  type.getProperties().forEach((prop) => {
+    const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
+    const propSchema = transformTypeToOpenAPI(propType, typeChecker, rootNode)
+
+    if (propSchema) {
+      properties[prop.name] = propSchema
+      if (!(prop.flags & ts.SymbolFlags.Optional)) {
+        required.push(prop.name)
+      }
+    }
+  })
+
+  return {
+    type: 'object',
+    properties,
+    ...(required.length > 0 ? { required } : {}),
+  }
 }
