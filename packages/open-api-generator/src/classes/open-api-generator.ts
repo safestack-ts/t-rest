@@ -13,7 +13,11 @@ import {
   resolveVersion,
   Versioning,
 } from '@t-rest/core'
-import { parseBagOfRoutes, RouteTypeInfo } from '../utils/parse-bag-of-routes'
+import {
+  parseBagOfRoutes,
+  RouteTypeInfo,
+  transformToOpenAPI3,
+} from '../utils/parse-bag-of-routes'
 import { groupBy, merge } from 'lodash'
 
 type GenerateSpec = {
@@ -134,48 +138,66 @@ export abstract class OpenAPIGenerator {
               //tags: route.tags,
               //operationId: route.operationId,
               parameters: [
-                ...(route.typeInfo?.input?.properties?.params?.properties
+                ...(route.typeInfo?.input?.kind === 'object' &&
+                route.typeInfo.input.properties.params?.kind === 'object' &&
+                route.typeInfo.input.properties.params.properties
                   ? Object.entries(
                       route.typeInfo.input.properties.params.properties
                     ).map(([name, schema]) => ({
                       name,
                       in: 'path',
                       required:
-                        route.typeInfo.input?.properties?.params?.required?.includes(
-                          name
-                        ) ?? false,
-                      schema,
+                        (route.typeInfo.input?.kind === 'object' &&
+                          route.typeInfo.input.properties.params?.kind ===
+                            'object' &&
+                          route.typeInfo.input.properties.params.required?.includes(
+                            name
+                          )) ??
+                        false,
+                      schema: transformToOpenAPI3(schema),
                     }))
                   : []),
-                ...(route.typeInfo?.input?.properties?.query?.properties
+                ...(route.typeInfo?.input?.kind === 'object' &&
+                route.typeInfo.input.properties.query?.kind === 'object' &&
+                route.typeInfo.input.properties.query.properties
                   ? Object.entries(
                       route.typeInfo.input.properties.query.properties
                     ).map(([name, schema]) => ({
                       name,
                       in: 'query',
                       required:
-                        route.typeInfo.input?.properties?.query?.required?.includes(
-                          name
-                        ) ?? false,
-                      schema,
+                        (route.typeInfo.input?.kind === 'object' &&
+                          route.typeInfo.input.properties.query?.kind ===
+                            'object' &&
+                          route.typeInfo.input.properties.query.required?.includes(
+                            name
+                          )) ??
+                        false,
+                      schema: transformToOpenAPI3(schema),
                     }))
                   : []),
               ],
-              requestBody: route.typeInfo.input?.properties?.body
-                ? {
-                    content: {
-                      'application/json': {
-                        schema: route.typeInfo.input.properties.body,
+              requestBody:
+                route.typeInfo.input?.kind === 'object' &&
+                route.typeInfo.input.properties.body
+                  ? {
+                      content: {
+                        'application/json': {
+                          schema: transformToOpenAPI3(
+                            route.typeInfo.input.properties.body
+                          ),
+                        },
                       },
-                    },
-                  }
-                : undefined,
+                    }
+                  : undefined,
               responses: {
                 '200': {
                   description: 'Successful response',
                   content: {
                     'application/json': {
-                      schema: route.typeInfo.output,
+                      schema: route.typeInfo.output
+                        ? transformToOpenAPI3(route.typeInfo.output)
+                        : undefined,
                     },
                   },
                 },

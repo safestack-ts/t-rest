@@ -1,9 +1,109 @@
 import { HashMap } from '@t-rest/core'
 import ts from 'typescript'
 
+// Intermediate type system representation
+type TypeKind =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'null'
+  | 'array'
+  | 'object'
+  | 'union'
+  | 'intersection'
+  | 'literal'
+  | 'date'
+  | 'enum'
+
+interface BaseType {
+  kind: TypeKind
+  description?: string
+  deprecated?: boolean
+}
+
+interface StringType extends BaseType {
+  kind: 'string'
+  format?: 'date-time' | 'date' | 'email' | 'uuid'
+  pattern?: string
+  minLength?: number
+  maxLength?: number
+}
+
+interface NumberType extends BaseType {
+  kind: 'number'
+  format?: 'float' | 'double' | 'int32' | 'int64'
+  minimum?: number
+  maximum?: number
+  multipleOf?: number
+}
+
+interface BooleanType extends BaseType {
+  kind: 'boolean'
+}
+
+interface NullType extends BaseType {
+  kind: 'null'
+}
+
+interface ArrayType extends BaseType {
+  kind: 'array'
+  items: TypeDefinition
+  minItems?: number
+  maxItems?: number
+  uniqueItems?: boolean
+}
+
+interface ObjectType extends BaseType {
+  kind: 'object'
+  properties: Record<string, TypeDefinition>
+  required?: string[]
+  additionalProperties?: boolean | TypeDefinition
+  minProperties?: number
+  maxProperties?: number
+}
+
+interface UnionType extends BaseType {
+  kind: 'union'
+  types: TypeDefinition[]
+}
+
+interface IntersectionType extends BaseType {
+  kind: 'intersection'
+  types: TypeDefinition[]
+}
+
+interface LiteralType extends BaseType {
+  kind: 'literal'
+  value: string | number | boolean
+}
+
+interface DateType extends BaseType {
+  kind: 'date'
+}
+
+interface EnumType extends BaseType {
+  kind: 'enum'
+  values: (string | number)[]
+  type: 'string' | 'number'
+  name: string
+}
+
+type TypeDefinition =
+  | StringType
+  | NumberType
+  | BooleanType
+  | NullType
+  | ArrayType
+  | ObjectType
+  | UnionType
+  | IntersectionType
+  | LiteralType
+  | DateType
+  | EnumType
+
 export type RouteTypeInfo = {
-  input: Record<string, any> | undefined
-  output: Record<string, any> | undefined
+  input: TypeDefinition | undefined
+  output: TypeDefinition | undefined
 }
 
 export const parseBagOfRoutes = (modulePath: string) => {
@@ -11,7 +111,6 @@ export const parseBagOfRoutes = (modulePath: string) => {
   const rootNode = findDefaultExport(sourceFile)
   const routeTypes = extractRouteTypes(rootNode, typeChecker)
 
-  // [method, path, version]
   const results = new HashMap<[string, string, string], RouteTypeInfo>((key) =>
     key.join('-')
   )
@@ -28,10 +127,10 @@ export const parseBagOfRoutes = (modulePath: string) => {
 
     results.set([method, path, version], {
       input: validatorType
-        ? transformTypeToOpenAPI(validatorType, typeChecker, rootNode)
+        ? transformTypeToIntermediate(validatorType, typeChecker, rootNode)
         : undefined,
       output: responseType
-        ? transformTypeToOpenAPI(responseType, typeChecker, rootNode)
+        ? transformTypeToIntermediate(responseType, typeChecker, rootNode)
         : undefined,
     })
   }
@@ -39,6 +138,229 @@ export const parseBagOfRoutes = (modulePath: string) => {
   return results
 }
 
+function transformTypeToIntermediate(
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node
+): TypeDefinition {
+  if (!type) throw new Error('Type is undefined')
+
+  if (type.isStringLiteral()) {
+    return {
+      kind: 'literal',
+      value: type.value,
+    }
+  }
+
+  if (type.isNumberLiteral()) {
+    return {
+      kind: 'literal',
+      value: type.value,
+    }
+  }
+
+  if (type.isUnion()) {
+    // Check if this is an enum type by looking at the flags of the type itself
+    if (
+      type.flags & ts.TypeFlags.Enum ||
+      type.flags & ts.TypeFlags.EnumLiteral
+    ) {
+      const enumMembers = typeChecker.getPropertiesOfType(type)
+      const values = enumMembers.map((member) => {
+        const memberType = typeChecker.getTypeOfSymbolAtLocation(
+          member,
+          rootNode
+        )
+        if (memberType.isStringLiteral()) return memberType.value
+        if (memberType.isNumberLiteral()) return memberType.value
+        throw new Error('Unsupported enum member type')
+      })
+
+      // Get enum name from the type's symbol or parent symbol
+      const enumSymbol = type.symbol || type.getSymbol()
+      const enumName = enumSymbol?.name || ''
+
+      return {
+        kind: 'enum',
+        values,
+        type: typeof values[0] === 'string' ? 'string' : 'number',
+        name: enumName,
+      }
+    }
+
+    return {
+      kind: 'union',
+      types: type.types.map((t) =>
+        transformTypeToIntermediate(t, typeChecker, rootNode)
+      ),
+    }
+  }
+
+  if (type.isIntersection()) {
+    return {
+      kind: 'intersection',
+      types: type.types.map((t) =>
+        transformTypeToIntermediate(t, typeChecker, rootNode)
+      ),
+    }
+  }
+
+  const typeAsString = typeChecker.typeToString(type)
+  const symbol = type.getSymbol()
+
+  if (symbol?.name === 'Array' || typeAsString.endsWith('[]]')) {
+    const elementType = (type as ts.TypeReference).typeArguments?.at(0)
+    if (!elementType) throw new Error('Array element type not found')
+    return {
+      kind: 'array',
+      items: transformTypeToIntermediate(elementType, typeChecker, rootNode),
+    }
+  }
+
+  if (type.isClassOrInterface()) {
+    if (symbol?.name === 'Date') {
+      return {
+        kind: 'date',
+      }
+    }
+    return transformObjectToIntermediate(type, typeChecker, rootNode)
+  }
+
+  // Check for enum type
+  if (type.isLiteral() || (symbol && symbol.flags & ts.SymbolFlags.Enum)) {
+    const enumType = typeChecker.getTypeAtLocation(
+      symbol?.declarations?.[0] ?? rootNode
+    )
+    const enumMembers = typeChecker.getPropertiesOfType(enumType)
+    const values = enumMembers.map((member) => {
+      const memberType = typeChecker.getTypeOfSymbolAtLocation(member, rootNode)
+      if (memberType.isStringLiteral()) return memberType.value
+      if (memberType.isNumberLiteral()) return memberType.value
+      throw new Error('Unsupported enum member type')
+    })
+    return {
+      kind: 'enum',
+      values,
+      type: typeof values[0] === 'string' ? 'string' : 'number',
+      name: symbol?.name ?? '',
+    }
+  }
+
+  const basicTypeMap: Record<string, TypeDefinition> = {
+    string: { kind: 'string' },
+    number: { kind: 'number' },
+    boolean: { kind: 'boolean' },
+    null: { kind: 'null' },
+  }
+
+  return (
+    basicTypeMap[typeAsString] ||
+    transformObjectToIntermediate(type, typeChecker, rootNode)
+  )
+}
+
+function transformObjectToIntermediate(
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node
+): ObjectType {
+  const properties: Record<string, TypeDefinition> = {}
+  const required: string[] = []
+
+  type.getProperties().forEach((prop) => {
+    const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
+    properties[prop.name] = transformTypeToIntermediate(
+      propType,
+      typeChecker,
+      rootNode
+    )
+
+    if (!(prop.flags & ts.SymbolFlags.Optional)) {
+      required.push(prop.name)
+    }
+  })
+
+  return {
+    kind: 'object',
+    properties,
+    ...(required.length > 0 ? { required } : {}),
+  }
+}
+
+export function transformToOpenAPI3(type: TypeDefinition): any {
+  switch (type.kind) {
+    case 'string':
+      return {
+        type: 'string',
+        ...(type.format ? { format: type.format } : {}),
+        ...(type.pattern ? { pattern: type.pattern } : {}),
+        ...(type.minLength ? { minLength: type.minLength } : {}),
+        ...(type.maxLength ? { maxLength: type.maxLength } : {}),
+      }
+    case 'number':
+      return {
+        type: 'number',
+        ...(type.format ? { format: type.format } : {}),
+        ...(type.minimum ? { minimum: type.minimum } : {}),
+        ...(type.maximum ? { maximum: type.maximum } : {}),
+        ...(type.multipleOf ? { multipleOf: type.multipleOf } : {}),
+      }
+    case 'boolean':
+      return { type: 'boolean' }
+    case 'null':
+      return { type: 'null' }
+    case 'array':
+      return {
+        type: 'array',
+        items: transformToOpenAPI3(type.items),
+        ...(type.minItems ? { minItems: type.minItems } : {}),
+        ...(type.maxItems ? { maxItems: type.maxItems } : {}),
+        ...(type.uniqueItems ? { uniqueItems: type.uniqueItems } : {}),
+      }
+    case 'object':
+      return {
+        type: 'object',
+        properties: Object.fromEntries(
+          Object.entries(type.properties).map(([key, value]) => [
+            key,
+            transformToOpenAPI3(value),
+          ])
+        ),
+        ...(type.required ? { required: type.required } : {}),
+      }
+    case 'union': {
+      const unionTypes = type.types.map((t) => transformToOpenAPI3(t))
+      if (unionTypes.every((t) => t.enum)) {
+        return {
+          type: unionTypes[0].type,
+          enum: unionTypes.flatMap((t) => t.enum),
+        }
+      }
+      return { oneOf: unionTypes }
+    }
+    case 'intersection':
+      return {
+        allOf: type.types.map((t) => transformToOpenAPI3(t)),
+      }
+    case 'literal':
+      return {
+        type: typeof type.value === 'string' ? 'string' : 'number',
+        enum: [type.value],
+      }
+    case 'date':
+      return {
+        type: 'string',
+        format: 'date-time',
+      }
+    case 'enum':
+      return {
+        type: type.type,
+        enum: type.values,
+      }
+  }
+}
+
+// Helper functions remain unchanged
 function initializeProgram(modulePath: string) {
   const program = ts.createProgram({
     rootNames: [modulePath],
@@ -102,9 +424,9 @@ function extractRouteMetadata(
     typeChecker.getTypeOfSymbolAtLocation(versionSymbol, rootNode)
   const version = versionType?.isStringLiteral() ? versionType.value : undefined
 
-  if (!method) throw new Error('Could not find method')
-  if (!path) throw new Error('Could not find path')
-  if (!version) throw new Error('Could not find version')
+  if (method === undefined) throw new Error('Could not find method')
+  if (path === undefined) throw new Error('Could not find path')
+  if (version === undefined) throw new Error('Could not find version')
 
   return { method, path, version }
 }
@@ -131,134 +453,4 @@ function extractResponseType(
     responseSymbol &&
     typeChecker.getTypeOfSymbolAtLocation(responseSymbol, rootNode)
   )
-}
-
-function transformTypeToOpenAPI(
-  type: ts.Type,
-  typeChecker: ts.TypeChecker,
-  rootNode: ts.Node
-): any {
-  if (!type) return undefined
-
-  if (type.isStringLiteral()) return { type: 'string', enum: [type.value] }
-  if (type.isNumberLiteral()) return { type: 'number', enum: [type.value] }
-  if (type.isUnion()) return handleUnionType(type, typeChecker, rootNode)
-  if (type.isIntersection())
-    return handleIntersectionType(type, typeChecker, rootNode)
-
-  const typeAsString = typeChecker.typeToString(type)
-
-  if (isArrayType(type, typeAsString))
-    return handleArrayType(type, typeChecker, rootNode)
-  if (type.isClassOrInterface())
-    return handleClassOrInterfaceType(type, typeChecker, rootNode)
-
-  return handleBasicType(type, typeAsString, typeChecker, rootNode)
-}
-
-function handleUnionType(
-  type: ts.UnionType,
-  typeChecker: ts.TypeChecker,
-  rootNode: ts.Node
-) {
-  const unionTypes = type.types.map((t) =>
-    transformTypeToOpenAPI(t, typeChecker, rootNode)
-  )
-  if (unionTypes.every((t) => t.enum)) {
-    return {
-      type: unionTypes[0].type,
-      enum: unionTypes.flatMap((t) => t.enum),
-    }
-  }
-  return { oneOf: unionTypes }
-}
-
-function handleIntersectionType(
-  type: ts.IntersectionType,
-  typeChecker: ts.TypeChecker,
-  rootNode: ts.Node
-) {
-  return {
-    allOf: type.types.map((t) =>
-      transformTypeToOpenAPI(t, typeChecker, rootNode)
-    ),
-  }
-}
-
-function isArrayType(type: ts.Type, typeAsString: string) {
-  const symbol = type.getSymbol()
-  return symbol?.name === 'Array' || typeAsString.endsWith('[]]')
-}
-
-function handleArrayType(
-  type: ts.Type,
-  typeChecker: ts.TypeChecker,
-  rootNode: ts.Node
-) {
-  const elementType = (type as ts.TypeReference).typeArguments?.at(0)
-
-  if (!elementType) return undefined
-
-  return {
-    type: 'array',
-    items: transformTypeToOpenAPI(elementType, typeChecker, rootNode),
-  }
-}
-
-function handleClassOrInterfaceType(
-  type: ts.Type,
-  typeChecker: ts.TypeChecker,
-  rootNode: ts.Node
-) {
-  const symbol = type.getSymbol()
-  if (symbol?.name === 'Date') {
-    return { type: 'string', format: 'date-time' }
-  }
-
-  return createObjectSchema(type, typeChecker, rootNode)
-}
-
-function handleBasicType(
-  type: ts.Type,
-  typeAsString: string,
-  typeChecker: ts.TypeChecker,
-  rootNode: ts.Node
-) {
-  const basicTypes: Record<string, { type: string }> = {
-    string: { type: 'string' },
-    number: { type: 'number' },
-    boolean: { type: 'boolean' },
-    null: { type: 'null' },
-  }
-
-  return (
-    basicTypes[typeAsString] || createObjectSchema(type, typeChecker, rootNode)
-  )
-}
-
-function createObjectSchema(
-  type: ts.Type,
-  typeChecker: ts.TypeChecker,
-  rootNode: ts.Node
-) {
-  const properties: Record<string, any> = {}
-  const required: string[] = []
-
-  type.getProperties().forEach((prop) => {
-    const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
-    const propSchema = transformTypeToOpenAPI(propType, typeChecker, rootNode)
-
-    if (propSchema) {
-      properties[prop.name] = propSchema
-      if (!(prop.flags & ts.SymbolFlags.Optional)) {
-        required.push(prop.name)
-      }
-    }
-  })
-
-  return {
-    type: 'object',
-    properties,
-    ...(required.length > 0 ? { required } : {}),
-  }
 }
