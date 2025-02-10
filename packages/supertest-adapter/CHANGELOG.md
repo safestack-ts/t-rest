@@ -1,5 +1,14 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.4
+
+### Patch Changes
+
+- first version of open api spec generator
+- Updated dependencies
+  - @t-rest/express-server@1.0.0-alpha.2
+  - @t-rest/core@1.0.0-alpha.1
+
 ## 1.0.0-alpha.3
 
 ### Patch Changes
