@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.5
+
+### Patch Changes
+
+- fba228b: fix parsing of boolean values
+
 ## 1.0.0-alpha.4
 
 ### Patch Changes
