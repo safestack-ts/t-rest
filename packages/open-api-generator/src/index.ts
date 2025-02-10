@@ -1,5 +1,8 @@
-import { parseBagOfRoutes } from './utils/parse-bag-of-routes'
+// classes
+export * from './classes/open-api-generator'
+export * from './classes/open-api-spec'
 
-const routeTypes = parseBagOfRoutes('./src/bag.ts')
-
-console.log(JSON.stringify(routeTypes, null, 2))
+// schema
+export * from './schema/type-schema'
+export * from './schema/route-meta'
+export * from './schema/header'
