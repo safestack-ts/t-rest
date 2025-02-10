@@ -17,6 +17,19 @@
       {
         "type": "node",
         "request": "launch",
+        "name": "Debug OpenAPI Spec Generator Demo",
+        "cwd": "${workspaceFolder}/packages/open-api-generator",
+        "program": "./dist/demo.js",
+        "env": {
+          "NODE_ENV": "development"
+        },
+        "args": ["-c", "3"],
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"]
+      },
+      {
+        "type": "node",
+        "request": "launch",
         "name": "Debug Jest OpenAPI Generator Test Case",
         "presentation": {
           "group": "Debug Tests"

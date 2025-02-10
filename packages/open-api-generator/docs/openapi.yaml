@@ -11,7 +11,32 @@ tags:
 paths:
   /users/:userId:
     get:
+      summary: Get user by id
+      description: >-
+        Get user by id if the user exists and is part of the requested client
+        specified in the pratiq-client-id http header.
+
+
+        In addition, this new revision of the route also includes the tags of
+        the user in the response.
+      tags:
+        - users
+      operationId: getUserById
       parameters:
+        - name: pratiq-client-id
+          in: header
+          description: Global Webshop Client Id
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: number
+        - name: pratiq-channel-uuid
+          in: header
+          description: UUID of the sales channel
+          required: false
+          schema:
+            type: string
         - name: userId
           in: path
           required: true
@@ -51,7 +76,21 @@ paths:
                   - version
   /complexRoute:
     get:
-      parameters: []
+      parameters:
+        - name: pratiq-client-id
+          in: header
+          description: Global Webshop Client Id
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: number
+        - name: pratiq-channel-uuid
+          in: header
+          description: UUID of the sales channel
+          required: false
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -71,11 +110,6 @@ paths:
                 to:
                   type: string
                   format: date-time
-              required:
-                - validAt
-                - productDefinitionIds
-                - from
-                - to
       responses:
         "200":
           description: Successful response

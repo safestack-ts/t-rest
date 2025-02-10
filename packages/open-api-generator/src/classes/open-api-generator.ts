@@ -19,6 +19,7 @@ import {
   transformToOpenAPI3,
 } from '../utils/parse-bag-of-routes'
 import { groupBy, merge } from 'lodash'
+import { validateRouteMeta } from '../schema/route-meta'
 
 type GenerateSpec = {
   spec: OpenAPISpecWithMetaData<any>
@@ -129,15 +130,44 @@ export abstract class OpenAPIGenerator {
       )
 
       return {
-        [path]: sortedRoutes.reduce(
-          (acc, { method, route }) => ({
+        [path]: sortedRoutes.reduce((acc, { method, route }) => {
+          const routeDefinition = bagOfRoutes.routes.get([
+            method as HTTPMethod,
+            path,
+            route.version,
+          ])
+          const routeMetaParsed = validateRouteMeta.safeParse(
+            routeDefinition?.metaData
+          )
+
+          if (
+            !routeMetaParsed.success &&
+            isDefined(routeDefinition?.metaData)
+          ) {
+            console.warn(
+              `Route ${method} ${path} revision ${route.version} has invalid meta data`
+            )
+          }
+
+          const { headers: localHeaders, ...routeMeta } =
+            routeMetaParsed.data ?? {}
+          const mergedHeaders = [
+            ...(localHeaders ?? []),
+            ...(metaData.headers ?? []),
+          ]
+
+          return {
             ...acc,
             [method.toLowerCase()]: {
-              //summary: route.summary,
-              //description: route.description,
-              //tags: route.tags,
-              //operationId: route.operationId,
+              ...routeMeta,
               parameters: [
+                ...(mergedHeaders?.map((header) => ({
+                  name: header.name,
+                  in: 'header',
+                  description: header.description,
+                  required: header.required ?? false,
+                  schema: transformToOpenAPI3(header.type),
+                })) ?? []),
                 ...(route.typeInfo?.input?.kind === 'object' &&
                 route.typeInfo.input.properties.params?.kind === 'object' &&
                 route.typeInfo.input.properties.params.properties
@@ -146,14 +176,7 @@ export abstract class OpenAPIGenerator {
                     ).map(([name, schema]) => ({
                       name,
                       in: 'path',
-                      required:
-                        (route.typeInfo.input?.kind === 'object' &&
-                          route.typeInfo.input.properties.params?.kind ===
-                            'object' &&
-                          route.typeInfo.input.properties.params.required?.includes(
-                            name
-                          )) ??
-                        false,
+                      required: true,
                       schema: transformToOpenAPI3(schema),
                     }))
                   : []),
@@ -203,9 +226,8 @@ export abstract class OpenAPIGenerator {
                 },
               },
             },
-          }),
-          {}
-        ),
+          }
+        }, {}),
       }
     })
 

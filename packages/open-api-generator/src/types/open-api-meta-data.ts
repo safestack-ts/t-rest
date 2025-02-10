@@ -1,3 +1,5 @@
+import { Header } from '../schema/header'
+
 export type OpenAPIMetaData<TVersion extends string = string> = {
   title: string
   description: string
@@ -22,4 +24,6 @@ export type OpenAPIMetaData<TVersion extends string = string> = {
       url: string
     }
   }[]
+
+  headers?: Header[]
 }
