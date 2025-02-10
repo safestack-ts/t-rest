@@ -60,7 +60,20 @@ function transformTypeToIntermediate(
     }
   }
 
+  if (type.flags & ts.TypeFlags.BooleanLiteral) {
+    return {
+      kind: 'boolean',
+    }
+  }
+
   if (type.isUnion()) {
+    // Check if this is a boolean represented as true | false
+    if (type.types.every((t) => t.flags & ts.TypeFlags.BooleanLiteral)) {
+      return {
+        kind: 'boolean',
+      }
+    }
+
     // Check if this is an enum type by looking at the flags of the type itself
     if (
       type.flags & ts.TypeFlags.Enum ||

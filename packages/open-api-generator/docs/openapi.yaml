@@ -110,6 +110,8 @@ paths:
                 to:
                   type: string
                   format: date-time
+                ignoreStale:
+                  type: boolean
       responses:
         "200":
           description: Successful response

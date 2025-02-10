@@ -69,6 +69,7 @@ export const bagOfRoutes = BagOfRoutes.withVersioning(
             ),
             from: ze.parseDate(),
             to: ze.parseDate(),
+            ignoreStale: z.boolean().optional(),
           }),
         })
       )
