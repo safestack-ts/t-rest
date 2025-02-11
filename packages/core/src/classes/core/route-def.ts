@@ -1,6 +1,6 @@
 import { HTTPMethod } from '../../types/http-method'
-import { _responseType } from '../../symbols/response-type'
 import { AnyRouteValidator } from '../../types/any-route-validator'
+import { z } from 'zod'
 
 export class RouteDef<
   TVersion extends string,
@@ -14,7 +14,8 @@ export class RouteDef<
   public readonly method: TMethod
   public readonly path: TPath
   public readonly validator: TValidator
-  public readonly [_responseType]: TResponse
+  public readonly ['~responseType']: TResponse
+  public readonly ['~validatorOutputType']: z.output<TValidator>
   public readonly metaData: TMetaData
 
   constructor(
@@ -28,7 +29,8 @@ export class RouteDef<
     this.method = method
     this.path = path
     this.validator = validator
-    this[_responseType] = null as any
+    this['~responseType'] = null as any
+    this['~validatorOutputType'] = null as any
     this.metaData = metaData
   }
 }

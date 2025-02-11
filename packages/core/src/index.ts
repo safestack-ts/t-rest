@@ -13,9 +13,6 @@ export * from './classes/route-builder/route-builder-with-version-and-method-and
 // enums
 export * from './enums/versioning'
 
-// symbols
-export * from './symbols/response-type'
-
 // types
 export * from './types/add-readonly'
 export * from './types/any-route-def'
@@ -40,6 +37,7 @@ export * from './types/any-route-validator'
 export * from './types/older-versions'
 export * from './types/newer-versions'
 export * from './types/prefix-matching-routes'
+export * from './types/bag-of-routes-versions'
 
 // utils
 export * from './utils/combine'
@@ -50,3 +48,6 @@ export * from './utils/typed-string-case'
 export * from './utils/version-history'
 export * from './utils/zod-extensions'
 export * from './utils/dx/demo-bag-of-routes'
+export * from './utils/resolve-version'
+export * from './utils/find-nearest-lower-date'
+export * from './utils/is-defined'

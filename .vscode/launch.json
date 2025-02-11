@@ -1,0 +1,46 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Debug OpenAPI Spec Generator",
+        "cwd": "${workspaceFolder}/packages/open-api-generator",
+        "program": "./dist/index.js",
+        "env": {
+          "NODE_ENV": "development"
+        },
+        "args": ["-c", "3"],
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"]
+      },
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Debug OpenAPI Spec Generator Demo",
+        "cwd": "${workspaceFolder}/packages/open-api-generator",
+        "program": "./dist/demo.js",
+        "env": {
+          "NODE_ENV": "development"
+        },
+        "args": ["-c", "3"],
+        "console": "integratedTerminal",
+        "skipFiles": ["<node_internals>/**"]
+      },
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Debug Jest OpenAPI Generator Test Case",
+        "presentation": {
+          "group": "Debug Tests"
+        },
+        "program": "${workspaceRoot}/node_modules/jest/bin/jest.js",
+          "cwd": "${workspaceFolder}/packages/open-api-generator/",
+        "env": { "NODE_ENV": "test", "TZ": "UTC" },
+        "args": ["${fileBasename}", "-c", "${workspaceRoot}/packages/open-api-generator/jest.config.js", "--verbose", "-i", "--no-cache"],
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "autoAttachChildProcesses": false
+      },
+    ]
+}

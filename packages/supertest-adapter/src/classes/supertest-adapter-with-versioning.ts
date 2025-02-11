@@ -2,7 +2,7 @@ import {
   ApplicationRoutes,
   TypedExpressApplicationWithVersioning,
 } from '@t-rest/express-server'
-import { HTTPMethod, ResponseTypeKey } from '@t-rest/core'
+import { HTTPMethod } from '@t-rest/core'
 import { SupertestConfig } from '../types/supertest-config'
 import { RequestInput } from '../types/request-input'
 import { VersionInjector } from './version-injector'
@@ -13,7 +13,11 @@ export class SupertestAdapterWithVersioning<
 > extends SupertestAdapterBase<TApp> {
   private readonly versionInjector: VersionInjector
 
-  constructor(app: TApp, versionInjector: VersionInjector, defaultConfig: DefaultSupertestAdapterConfig) {
+  constructor(
+    app: TApp,
+    versionInjector: VersionInjector,
+    defaultConfig: DefaultSupertestAdapterConfig
+  ) {
     super(app, defaultConfig)
 
     this.versionInjector = versionInjector
@@ -50,7 +54,7 @@ export class SupertestAdapterWithVersioning<
         Extract<
           ApplicationRoutes<TApp>,
           { method: TMethod; path: TAbsolutePath; version: TVersion }
-        >[ResponseTypeKey]
+        >['~responseType']
       >(method, this.versionInjector.modifyUrl(path, version), {
         ...context,
         headers: this.versionInjector.modifyHeaders(

@@ -1,5 +1,13 @@
 # @t-rest/testing-utilities
 
+## 1.0.1-alpha.1
+
+### Patch Changes
+
+- first version of open api spec generator
+- Updated dependencies
+  - @t-rest/core@1.0.0-alpha.1
+
 ## 1.0.1-alpha.0
 
 ### Patch Changes

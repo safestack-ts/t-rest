@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.1
+
+### Patch Changes
+
+- first version of open api spec generator
+
 ## 1.0.0-alpha.0
 
 ### Minor Changes

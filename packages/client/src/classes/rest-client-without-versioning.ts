@@ -1,10 +1,4 @@
-import {
-  AnyRouteDef,
-  BagOfRoutes,
-  HTTPMethod,
-  ResponseTypeKey,
-  Versioning,
-} from '@t-rest/core'
+import { AnyRouteDef, BagOfRoutes, HTTPMethod, Versioning } from '@t-rest/core'
 import { RESTClientBase } from './rest-client-base'
 import { RequestArgs } from '../types/request-args'
 import { RequestInput } from '../types/request-input'
@@ -37,7 +31,7 @@ export class RESTClientWithoutVersioning<
         Extract<
           TRoutes,
           { method: TMethod; path: TAbsolutePath }
-        >[ResponseTypeKey],
+        >['~responseType'],
         NonNullable<(typeof args)[1]>
       >(method, args[0], args[1])
     }

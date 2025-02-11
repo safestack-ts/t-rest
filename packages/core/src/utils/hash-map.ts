@@ -99,4 +99,12 @@ export class HashMap<TKey, TValue> {
 
     return it
   }
+
+  toJSON() {
+    return Array.from(this.entries())
+  }
+
+  toString() {
+    return JSON.stringify(this.toJSON())
+  }
 }

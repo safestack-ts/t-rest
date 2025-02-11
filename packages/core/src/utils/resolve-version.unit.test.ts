@@ -1,4 +1,3 @@
-import { DateVersionExtractor } from '../types/date-version-extractor'
 import { resolveDateVersion, resolveVersion } from './resolve-version'
 
 const dateVersionHistory = [
@@ -45,10 +44,7 @@ describe('resolveVersion()', () => {
 })
 
 describe('resolveDateVersion()', () => {
-  const dateVersionExtractor: DateVersionExtractor = {
-    extractVersion: () => '', // unused for these test cases
-    parseDate: (version: string) => new Date(version),
-  }
+  const parseDate = (version: string) => new Date(version)
 
   test('should return requested version if it is available', () => {
     const availableVersions = ['2024-01-01', '2024-02-01', '2024-03-01']
@@ -57,7 +53,7 @@ describe('resolveDateVersion()', () => {
       dateVersionHistory,
       availableVersions,
       requestedVersion,
-      dateVersionExtractor
+      parseDate
     )
     expect(result).toBe(requestedVersion)
   })
@@ -69,7 +65,7 @@ describe('resolveDateVersion()', () => {
       dateVersionHistory,
       availableVersions,
       requestedVersion,
-      dateVersionExtractor
+      parseDate
     )
     expect(result).toBe('2024-03-01')
   })
@@ -81,7 +77,7 @@ describe('resolveDateVersion()', () => {
       dateVersionHistory,
       availableVersions,
       requestedVersion,
-      dateVersionExtractor
+      parseDate
     )
     expect(result).toBe('2024-02-01')
   })
@@ -93,7 +89,7 @@ describe('resolveDateVersion()', () => {
       dateVersionHistory,
       availableVersions,
       requestedVersion,
-      dateVersionExtractor
+      parseDate
     )
     expect(result).toBeNull()
   })

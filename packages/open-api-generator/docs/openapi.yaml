@@ -1,0 +1,146 @@
+openapi: 3.0.0
+info:
+  title: My API
+  version: 2024-03-01
+servers:
+  - url: https://api.example.com
+    description: Production server
+tags:
+  - name: users
+    description: Users related operations
+paths:
+  /users/:userId:
+    get:
+      summary: Get user by id
+      description: >-
+        Get user by id if the user exists and is part of the requested client
+        specified in the pratiq-client-id http header.
+
+
+        In addition, this new revision of the route also includes the tags of
+        the user in the response.
+      tags:
+        - users
+      operationId: getUserById
+      parameters:
+        - name: pratiq-client-id
+          in: header
+          description: Global Webshop Client Id
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: number
+        - name: pratiq-channel-uuid
+          in: header
+          description: UUID of the sales channel
+          required: false
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    allOf:
+                      - type: object
+                        properties:
+                          id:
+                            type: number
+                          email:
+                            type: string
+                        required:
+                          - id
+                          - email
+                      - type: object
+                        properties:
+                          tags:
+                            type: array
+                            items:
+                              type: string
+                        required:
+                          - tags
+                  version:
+                    type: string
+                required:
+                  - data
+                  - version
+  /complexRoute:
+    get:
+      parameters:
+        - name: pratiq-client-id
+          in: header
+          description: Global Webshop Client Id
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: number
+        - name: pratiq-channel-uuid
+          in: header
+          description: UUID of the sales channel
+          required: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                validAt:
+                  type: string
+                  format: date-time
+                productDefinitionIds:
+                  type: array
+                  items:
+                    type: number
+                from:
+                  type: string
+                  format: date-time
+                to:
+                  type: string
+                  format: date-time
+                ignoreStale:
+                  type: boolean
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    allOf:
+                      - type: object
+                        properties:
+                          id:
+                            type: number
+                          email:
+                            type: string
+                        required:
+                          - id
+                          - email
+                      - type: object
+                        properties:
+                          tags:
+                            type: array
+                            items:
+                              type: string
+                        required:
+                          - tags
+                  version:
+                    type: string
+                required:
+                  - data
+                  - version

@@ -50,7 +50,7 @@ const initApplication = (expressApp: ExpressApp) => {
       }
     )
 
-  userRouter
+  /*userRouter
     .get('/:userId')
     .version('2024-02-01')
     .handle((_, { params: { userId } }, response) => {
@@ -58,7 +58,7 @@ const initApplication = (expressApp: ExpressApp) => {
         version: '2024-02-01',
         data: { id: 42, email: `user-${userId}@email.com`, tags: ['tag1'] },
       })
-    })
+    })*/
 
   return typedExpressApplication
 }
