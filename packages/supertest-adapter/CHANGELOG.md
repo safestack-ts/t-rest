@@ -1,5 +1,15 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.6
+
+### Patch Changes
+
+- fix esm build setup
+- Updated dependencies
+  - @t-rest/express-server@1.0.0-alpha.4
+  - @t-rest/client-utils@1.0.0-alpha.3
+  - @t-rest/core@1.0.0-alpha.3
+
 ## 1.0.0-alpha.5
 
 ### Minor Changes

@@ -1,5 +1,13 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.4
+
+### Patch Changes
+
+- fix esm build setup
+- Updated dependencies
+  - @t-rest/core@1.0.0-alpha.3
+
 ## 1.0.0-alpha.3
 
 ### Minor Changes

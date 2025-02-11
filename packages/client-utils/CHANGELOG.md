@@ -1,5 +1,11 @@
 # @t-rest/client-utils
 
+## 1.0.0-alpha.3
+
+### Patch Changes
+
+- fix esm build setup
+
 ## 1.0.0-alpha.2
 
 ### Minor Changes

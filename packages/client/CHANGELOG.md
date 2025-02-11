@@ -1,5 +1,14 @@
 # @t-rest/client
 
+## 1.0.0-alpha.6
+
+### Patch Changes
+
+- fix esm build setup
+- Updated dependencies
+  - @t-rest/client-utils@1.0.0-alpha.3
+  - @t-rest/core@1.0.0-alpha.3
+
 ## 1.0.0-alpha.5
 
 ### Minor Changes
