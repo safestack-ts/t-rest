@@ -1,5 +1,16 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.6
+
+### Minor Changes
+
+- esm build support
+
+### Patch Changes
+
+- Updated dependencies
+  - @t-rest/core@1.0.0-alpha.2
+
 ## 1.0.0-alpha.5
 
 ### Patch Changes

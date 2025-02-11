@@ -6,7 +6,9 @@
   "private": true,
   "scripts": {
     "build": "tsc --build",
+    "build:esm": "pnpm recursive run build:esm",
     "build:watch": "tsc --build --watch",
+    "clean": "rm -rf **/dist && rm -rf **/*.tsbuildinfo",
     "test": "pnpm recursive run test",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
@@ -17,7 +19,8 @@
     "changeset:publish": "pnpm changeset publish",
     "changeset:snapshot:publish": "pnpm changeset publish --tag dev --no-git-tag",
     "changeset:snapshot:version": "pnpm changeset version --snapshot dev",
-    "pub:dev": "pnpm build && pnpm exec ./scripts/publish-dev-version.sh"
+    "pub:dev": "pnpm build && pnpm exec ./scripts/publish-dev-version.sh",
+    "prepublish": "pnpm clean && pnpm build && pnpm build:esm"
   },
   "keywords": [],
   "author": "",
