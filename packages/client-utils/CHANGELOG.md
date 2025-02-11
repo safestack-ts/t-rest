@@ -1,5 +1,11 @@
 # @t-rest/client-utils
 
+## 1.0.0-alpha.4
+
+### Patch Changes
+
+- add exports property to package.json
+
 ## 1.0.0-alpha.3
 
 ### Patch Changes
