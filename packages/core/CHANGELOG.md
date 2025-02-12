@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.5
+
+### Patch Changes
+
+- support any type on body validator
+
 ## 1.0.0-alpha.4
 
 ### Patch Changes
