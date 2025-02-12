@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.6
+
+### Patch Changes
+
+- preserve versioning in CombinedBags type
+
 ## 1.0.0-alpha.5
 
 ### Patch Changes

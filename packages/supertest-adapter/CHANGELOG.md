@@ -1,5 +1,13 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies
+  - @t-rest/core@1.0.0-alpha.6
+  - @t-rest/express-server@1.0.0-alpha.7
+
 ## 1.0.0-alpha.8
 
 ### Patch Changes
