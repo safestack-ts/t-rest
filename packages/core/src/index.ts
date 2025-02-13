@@ -39,6 +39,7 @@ export * from './types/newer-versions'
 export * from './types/prefix-matching-routes'
 export * from './types/bag-of-routes-versions'
 export * from './types/without-double-slash'
+export * from './types/route-input-output'
 
 // utils
 export * from './utils/combine'
