@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.8
+
+### Patch Changes
+
+- 7b357b9: fix BranchedRouter path handling
+
 ## 1.0.0-alpha.7
 
 ### Patch Changes

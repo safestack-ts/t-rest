@@ -1,5 +1,13 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.9
+
+### Patch Changes
+
+- 7b357b9: fix BranchedRouter path handling
+- Updated dependencies [7b357b9]
+  - @t-rest/core@1.0.0-alpha.8
+
 ## 1.0.0-alpha.8
 
 ### Patch Changes
