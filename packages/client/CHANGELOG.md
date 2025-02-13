@@ -1,5 +1,11 @@
 # @t-rest/client
 
+## 1.0.0-alpha.12
+
+### Patch Changes
+
+- 5adf782: support custom http adapter request context
+
 ## 1.0.0-alpha.11
 
 ### Patch Changes
