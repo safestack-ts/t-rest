@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { combine } from './combine'
-import { AssertFalse, IsNever } from 'conditional-type-checks'
+import { AssertFalse, AssertTrue, IsNever } from 'conditional-type-checks'
 import { BagOfRoutes } from '../classes/core/bag-of-routes'
 import { Route } from '../classes/core/route'
 import { ExtractRoutes } from '../types/extract-route'
@@ -72,7 +72,8 @@ namespace _WithVersioning {
     .build()
 
   const bagOfRoutes = combine(bagOfRoutesUsers, bagOfRoutesBaskets)
-  type Routes = ExtractRoutes<typeof bagOfRoutes>
+  type BagOfRoutesType = typeof bagOfRoutes
+  type Routes = ExtractRoutes<BagOfRoutesType>
 
   type GetUsersRoute = Extract<
     Routes,
@@ -91,9 +92,40 @@ namespace _WithVersioning {
     { method: 'POST'; path: '/baskets'; version: '2024-01-01' }
   >
 
+  type BagOfRoutesVersioning = BagOfRoutesType extends BagOfRoutes<
+    any,
+    infer TVersioning,
+    any
+  >
+    ? TVersioning
+    : never
+  type VersioningIsDateVersioning =
+    BagOfRoutesVersioning extends Versioning.DATE ? true : false
+
   type _test =
     | AssertFalse<IsNever<GetUsersRoute>>
     | AssertFalse<IsNever<PostUsersRoute>>
     | AssertFalse<IsNever<GetBasketsRoute>>
     | AssertFalse<IsNever<PostBasketsRoute>>
+    | AssertTrue<VersioningIsDateVersioning>
+}
+
+namespace _WithVersioningDifferentVersioning {
+  const bagOfRoutesUsers = BagOfRoutes.withVersioning(
+    Versioning.DATE,
+    versionHistory
+  )
+    .addRoute(Route.version('2024-01-01').get('/users').response<User[]>())
+    .build()
+
+  const bagOfRoutesBaskets = BagOfRoutes.withVersioning(Versioning.SEMVER, [
+    '1.0.0',
+  ])
+    .addRoute(
+      Route.version('1.0.0').get('/baskets/:basketId').response<Basket>()
+    )
+    .build()
+
+  // @ts-expect-error
+  combine(bagOfRoutesUsers, bagOfRoutesBaskets)
 }
