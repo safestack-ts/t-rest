@@ -1,5 +1,11 @@
 # @t-rest/testing-utilities
 
+## 1.0.1-alpha.9
+
+### Patch Changes
+
+- 2186afe: fix versioned router route inference from method, path and version
+
 ## 1.0.1-alpha.8
 
 ### Patch Changes

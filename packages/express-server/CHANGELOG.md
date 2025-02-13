@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.10
+
+### Patch Changes
+
+- 2186afe: fix versioned router route inference from method, path and version
+
 ## 1.0.0-alpha.9
 
 ### Patch Changes
