@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.7
+
+### Patch Changes
+
+- 98fce5d: combine() retain versioning type
+
 ## 1.0.0-alpha.6
 
 ### Patch Changes
