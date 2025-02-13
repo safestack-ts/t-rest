@@ -48,7 +48,7 @@ export class VersionSelector<
   }
 
   private getRouteHandler<TVersion extends string>(version: TVersion) {
-    type TRoute = ExtractVersionMatchingRoute<
+    type TRoutesWithMatchingVersion = ExtractVersionMatchingRoute<
       TRoutes,
       TVersion,
       TVersionHistory
@@ -71,10 +71,15 @@ export class VersionSelector<
 
     return new TypedRouteHandler<
       TVersion,
-      TRoute,
+      TRoutesWithMatchingVersion,
       TPathSuffix,
       TRequest & RequestVersion
-    >(version, route as TRoute, this.pathSuffix, this.router)
+    >(
+      version,
+      route as TRoutesWithMatchingVersion,
+      this.pathSuffix,
+      this.router
+    )
   }
 
   public version<

@@ -3,6 +3,8 @@ import {
   JoinPath,
   RouteHashMap,
   VersioningRequired,
+  WithoutDoubleSlash,
+  WithoutTrailingSlash,
   joinPath,
 } from '@t-rest/core'
 import {
@@ -100,64 +102,104 @@ export class TypedRouterWithVersioning<
     TPathSuffix extends PossiblePathsFromPrefix<TRoutes, 'GET', TPath>
   >(path: TPathSuffix) {
     return new VersionSelector<
-      TRoutes,
+      Extract<
+        TRoutes,
+        {
+          method: 'GET'
+          path: WithoutDoubleSlash<
+            WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>
+          >
+        }
+      >,
       TRequest,
       TPath,
       TPathSuffix,
       'GET',
       TVersionHistory
-    >(this.routes, this.path, path as any, this, 'GET') // @todo resolve any
+    >(this.routes, this.path, path, this, 'GET')
   }
 
   public post<
     TPathSuffix extends PossiblePathsFromPrefix<TRoutes, 'POST', TPath>
   >(path: TPathSuffix) {
     return new VersionSelector<
-      TRoutes,
+      Extract<
+        TRoutes,
+        {
+          method: 'POST'
+          path: WithoutDoubleSlash<
+            WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>
+          >
+        }
+      >,
       TRequest,
       TPath,
       TPathSuffix,
       'POST',
       TVersionHistory
-    >(this.routes, this.path, path as any, this, 'POST') // @todo resolve any
+    >(this.routes, this.path, path, this, 'POST')
   }
 
   public put<
     TPathSuffix extends PossiblePathsFromPrefix<TRoutes, 'PUT', TPath>
   >(path: TPathSuffix) {
     return new VersionSelector<
-      TRoutes,
+      Extract<
+        TRoutes,
+        {
+          method: 'PUT'
+          path: WithoutDoubleSlash<
+            WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>
+          >
+        }
+      >,
       TRequest,
       TPath,
       TPathSuffix,
       'PUT',
       TVersionHistory
-    >(this.routes, this.path, path as any, this, 'PUT') // @todo resolve any
+    >(this.routes, this.path, path, this, 'PUT')
   }
 
   public patch<
     TPathSuffix extends PossiblePathsFromPrefix<TRoutes, 'PATCH', TPath>
   >(path: TPathSuffix) {
     return new VersionSelector<
-      TRoutes,
+      Extract<
+        TRoutes,
+        {
+          method: 'PATCH'
+          path: WithoutDoubleSlash<
+            WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>
+          >
+        }
+      >,
       TRequest,
       TPath,
       TPathSuffix,
       'PATCH',
       TVersionHistory
-    >(this.routes, this.path, path as any, this, 'PATCH') // @todo resolve any
+    >(this.routes, this.path, path, this, 'PATCH')
   }
 
   public delete<
     TPathSuffix extends PossiblePathsFromPrefix<TRoutes, 'DELETE', TPath>
   >(path: TPathSuffix) {
     return new VersionSelector<
-      TRoutes,
+      Extract<
+        TRoutes,
+        {
+          method: 'DELETE'
+          path: WithoutDoubleSlash<
+            WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>
+          >
+        }
+      >,
       TRequest,
       TPath,
       TPathSuffix,
       'DELETE',
       TVersionHistory
-    >(this.routes, this.path, path as any, this, 'DELETE') // @todo resolve any
+    >(this.routes, this.path, path, this, 'DELETE')
   }
 }

@@ -49,5 +49,29 @@ export namespace TestBagOfRoutesWithVersioning {
         )
         .response<ResponseWithVersion<UserWithTags>>()
     )
+    .addRoute(
+      Route.version('2024-02-01')
+        .post('/users')
+        .validate(z.object({ body: z.object({ name: z.string() }) }))
+        .response<ResponseWithVersion<UserWithTags>>()
+    )
+    .addRoute(
+      Route.version('2024-03-01')
+        .post('/users')
+        .validate(z.object({ body: z.object({ email: z.string() }) }))
+        .response<ResponseWithVersion<UserWithTags>>()
+    )
+    .addRoute(
+      Route.version('2024-03-01')
+        .post('/users/:userId/tags')
+        .validate(
+          z.object({
+            params: z.object({ userId: ze.uuid() }),
+            body: z.object({ tag: z.string() }),
+          })
+        )
+        .response<ResponseWithVersion<UserWithTags>>()
+    )
+
     .build()
 }

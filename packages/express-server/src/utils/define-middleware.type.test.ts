@@ -94,6 +94,6 @@ namespace _WithVersioning {
         : false
       type _test = AssertTrue<ContextHasClientIdAndUser>
 
-      response.status(200).json([])
+      response.status(200).json({ id: '123', entries: [] })
     })
 }

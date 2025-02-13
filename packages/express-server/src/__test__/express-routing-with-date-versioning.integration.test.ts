@@ -50,6 +50,22 @@ const initApplication = (expressApp: ExpressApp) => {
       }
     )
 
+  userRouter
+    .post('/')
+    .version('2024-02-01')
+    .handle(
+      (
+        { version: { resolved: resolvedVersion } },
+        { body: { name } },
+        response
+      ) => {
+        response.status(200).json({
+          version: resolvedVersion,
+          data: { id: 42, email: `${name}@email.com`, tags: [] },
+        })
+      }
+    )
+
   return typedExpressApplication
 }
 

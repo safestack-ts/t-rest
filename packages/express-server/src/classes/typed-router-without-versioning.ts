@@ -4,6 +4,7 @@ import {
   JoinPath,
   RouteHashMap,
   Versioning,
+  WithoutDoubleSlash,
   WithoutTrailingSlash,
   joinPath,
 } from '@t-rest/core'
@@ -80,7 +81,9 @@ export class TypedRouterWithoutVersioning<
       TRoutes,
       {
         method: TMethod
-        path: WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>
+        path: WithoutDoubleSlash<
+          WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>
+        >
       }
     >
     const route = this.routes.get([method, joinPath(this.path, path), ''])
