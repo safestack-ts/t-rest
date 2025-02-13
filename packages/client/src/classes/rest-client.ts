@@ -12,11 +12,12 @@ import { VersionInjectorConstructor } from './version-injector'
 
 export abstract class RESTClient<
   TRoutes extends AnyRouteDef,
-  TVersionHistory extends string[]
-> extends RESTClientBase<TRoutes, TVersionHistory> {
-  public static withoutVersioning<TRoutes extends AnyRouteDef>(
+  TVersionHistory extends string[],
+  TRequestContext
+> extends RESTClientBase<TRoutes, TVersionHistory, TRequestContext> {
+  public static withoutVersioning<TRoutes extends AnyRouteDef, TRequestContext>(
     bagOfRoutes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING, never>,
-    httpAdapter: HTTPAdapter
+    httpAdapter: HTTPAdapter<TRequestContext>
   ) {
     return new RESTClientWithoutVersioning(bagOfRoutes, httpAdapter)
   }
@@ -24,11 +25,12 @@ export abstract class RESTClient<
   public static withVersioning<
     TRoutes extends AnyRouteDef,
     TVersionHistory extends string[],
-    TVersion extends TVersionHistory[number]
+    TVersion extends TVersionHistory[number],
+    TRequestContext
   >(
     bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired, TVersionHistory>,
     version: TVersion,
-    httpAdapter: HTTPAdapter,
+    httpAdapter: HTTPAdapter<TRequestContext>,
     versionInjectorConstructor: VersionInjectorConstructor
   ) {
     return new RESTClientWithVersioning(

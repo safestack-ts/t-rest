@@ -6,15 +6,16 @@ import { VersionInjector } from './version-injector'
 
 export abstract class RESTClientBase<
   TRoutes extends AnyRouteDef,
-  TVersionHistory extends string[]
+  TVersionHistory extends string[],
+  TRequestContext
 > {
   protected readonly routes: BagOfRoutes<TRoutes, Versioning, TVersionHistory>
-  protected readonly httpAdapter: HTTPAdapter
+  protected readonly httpAdapter: HTTPAdapter<TRequestContext>
   protected readonly versionInjector: VersionInjector
 
   constructor(
     routes: BagOfRoutes<TRoutes, Versioning, TVersionHistory>,
-    httpAdapter: HTTPAdapter,
+    httpAdapter: HTTPAdapter<TRequestContext>,
     versionInjector: VersionInjector
   ) {
     this.routes = routes
@@ -26,14 +27,14 @@ export abstract class RESTClientBase<
   protected request<
     TMethod extends HTTPMethod,
     TResponse,
-    TRequestConfig extends BaseRequestInput & RequestConfig
+    TRequestConfig extends BaseRequestInput & RequestConfig & TRequestContext
   >(method: TMethod, path: string, requestConfig?: TRequestConfig) {
     return this.httpAdapter.request<TResponse>(
       method,
       this.versionInjector.modifyUrl(buildUrl(path, requestConfig)),
       this.getBody(method, requestConfig),
       {
-        ...requestConfig,
+        ...(requestConfig as TRequestContext),
         headers: this.versionInjector.modifyHeaders(
           requestConfig?.headers ?? {}
         ),

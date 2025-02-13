@@ -15,15 +15,16 @@ import { VersionInjectorConstructor } from './version-injector'
 export class RESTClientWithVersioning<
   TRoutes extends AnyRouteDef,
   TVersion extends TRoutes['version'],
-  TVersionHistory extends string[]
-> extends RESTClientBase<TRoutes, TVersionHistory> {
+  TVersionHistory extends string[],
+  TRequestContext
+> extends RESTClientBase<TRoutes, TVersionHistory, TRequestContext> {
   protected readonly version: TVersion
   protected readonly versionInjectorConstructor: VersionInjectorConstructor
 
   constructor(
     routes: BagOfRoutes<TRoutes, Versioning, TVersionHistory>,
     version: TVersion,
-    httpAdapter: HTTPAdapter,
+    httpAdapter: HTTPAdapter<TRequestContext>,
     versionInjectorConstructor: VersionInjectorConstructor
   ) {
     super(routes, httpAdapter, new versionInjectorConstructor(version))
@@ -48,7 +49,8 @@ export class RESTClientWithVersioning<
             TVersionHistory
           >
         >,
-        TAbsolutePath
+        TAbsolutePath,
+        TRequestContext
       >
     ) => {
       return super.request<
@@ -77,7 +79,12 @@ export class RESTClientWithVersioning<
     TNewVersion extends NewerVersions<TVersionHistory, TVersion>
   >(
     version: TNewVersion
-  ): RESTClientWithVersioning<TRoutes, TNewVersion, TVersionHistory> {
+  ): RESTClientWithVersioning<
+    TRoutes,
+    TNewVersion,
+    TVersionHistory,
+    TRequestContext
+  > {
     return new RESTClientWithVersioning(
       this.routes,
       version,

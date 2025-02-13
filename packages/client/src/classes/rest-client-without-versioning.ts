@@ -6,11 +6,12 @@ import { HTTPAdapter } from '../types/http-adapter'
 import { NoVersionInjector } from './version-injector'
 
 export class RESTClientWithoutVersioning<
-  TRoutes extends AnyRouteDef
-> extends RESTClientBase<TRoutes, never> {
+  TRoutes extends AnyRouteDef,
+  TRequestContext
+> extends RESTClientBase<TRoutes, never, TRequestContext> {
   constructor(
     routes: BagOfRoutes<TRoutes, Versioning.NO_VERSIONING, never>,
-    httpAdapter: HTTPAdapter
+    httpAdapter: HTTPAdapter<TRequestContext>
   ) {
     super(routes, httpAdapter, new NoVersionInjector(''))
   }
@@ -23,7 +24,8 @@ export class RESTClientWithoutVersioning<
         RequestInput<
           Extract<TRoutes, { method: TMethod; path: TAbsolutePath }>
         >,
-        TAbsolutePath
+        TAbsolutePath,
+        TRequestContext
       >
     ) => {
       return super.request<
