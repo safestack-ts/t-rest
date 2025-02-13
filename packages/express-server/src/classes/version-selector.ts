@@ -4,6 +4,7 @@ import {
   HTTPMethod,
   JoinPath,
   RouteHashMap,
+  WithoutDoubleSlash,
   WithoutTrailingSlash,
   joinPath,
 } from '@t-rest/core'
@@ -80,7 +81,7 @@ export class VersionSelector<
     TVersion extends RouteVersions<
       TRoutes,
       TMethod,
-      WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>
+      WithoutDoubleSlash<WithoutTrailingSlash<JoinPath<TPath, TPathSuffix>>>
     >
   >(version: TVersion) {
     return this.getRouteHandler(version)

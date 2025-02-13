@@ -14,9 +14,9 @@ import { ExpressApp, ExpressRequest } from '../types/express-type-shortcuts'
 const { bagOfRoutes: baseBagOfRoutes, versionHistory } =
   TestBagOfRoutesWithVersioning
 
-class PricenowAPIVersionHeaderExtractor implements DateVersionExtractor {
+class APIVersionHeaderExtractor implements DateVersionExtractor {
   extractVersion(request: ExpressRequest) {
-    return request.header('x-pricenow-api-version')
+    return request.header('x-api-version')
   }
   parseDate(version: string) {
     return new Date(version)
@@ -30,7 +30,7 @@ const initApplication = (expressApp: ExpressApp) => {
     expressApp,
     baseBagOfRoutes,
     versionHistory,
-    new PricenowAPIVersionHeaderExtractor()
+    new APIVersionHeaderExtractor()
   )
   const userRouter = typedExpressApplication.branch('/users')
 
@@ -49,16 +49,6 @@ const initApplication = (expressApp: ExpressApp) => {
         })
       }
     )
-
-  /*userRouter
-    .get('/:userId')
-    .version('2024-02-01')
-    .handle((_, { params: { userId } }, response) => {
-      response.status(200).json({
-        version: '2024-02-01',
-        data: { id: 42, email: `user-${userId}@email.com`, tags: ['tag1'] },
-      })
-    })*/
 
   return typedExpressApplication
 }
@@ -90,7 +80,7 @@ test('calling route with newer version resolves to latest available version of t
 
   const response = await request(expressApp)
     .get('/users/7487bdc6-f308-4852-ad06-07ff7fb7a349')
-    .set('X-Pricenow-API-Version', '2024-03-01')
+    .set('X-API-Version', '2024-03-01')
     .expect((res) =>
       !res.status.toString().startsWith('2') ? console.error(res.body) : 0
     )
@@ -112,7 +102,7 @@ test('calling route with outdated version resolves to outdated version of the ro
 
   const response = await request(expressApp)
     .get('/users/1337')
-    .set('X-Pricenow-API-Version', '2024-01-01')
+    .set('X-API-Version', '2024-01-01')
     .expect((res) =>
       !res.status.toString().startsWith('2') ? console.error(res.body) : 0
     )
@@ -133,7 +123,7 @@ test('calling route with version in between two history versions resolves to nea
 
   const response = await request(expressApp)
     .get('/users/1337')
-    .set('X-Pricenow-API-Version', '2024-01-15')
+    .set('X-API-Version', '2024-01-15')
     .expect((res) =>
       !res.status.toString().startsWith('2') ? console.error(res.body) : 0
     )
