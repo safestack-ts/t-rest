@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.9
+
+### Patch Changes
+
+- 55efe76: support RouteInput and RouteOutput types
+
 ## 1.0.0-alpha.8
 
 ### Patch Changes
