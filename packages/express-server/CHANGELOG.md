@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.12
+
+### Patch Changes
+
+- 207ec82: remove internal error handling
+
 ## 1.0.0-alpha.11
 
 ### Patch Changes
