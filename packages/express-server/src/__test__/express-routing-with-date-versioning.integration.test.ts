@@ -51,6 +51,22 @@ const initApplication = (expressApp: ExpressApp) => {
     )
 
   userRouter
+    .get('/:userId')
+    .version('2024-02-01')
+    .handle(
+      (
+        { version: { resolved: resolvedVersion } },
+        { params: { userId } },
+        response
+      ) => {
+        response.status(200).json({
+          version: resolvedVersion,
+          data: { id: 42, email: `user-${userId}@email.com`, tags: ['tag1'] },
+        })
+      }
+    )
+
+  userRouter
     .post('/')
     .version('2024-02-01')
     .handle(

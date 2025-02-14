@@ -30,6 +30,21 @@
       {
         "type": "node",
         "request": "launch",
+        "name": "Debug Jest Express Server Test Case",
+        "presentation": {
+          "group": "Debug Tests"
+        },
+        "program": "${workspaceRoot}/node_modules/jest/bin/jest.js",
+          "cwd": "${workspaceFolder}/packages/express-server/",
+        "env": { "NODE_ENV": "test", "TZ": "UTC" },
+        "args": ["${fileBasename}", "-c", "${workspaceRoot}/packages/express-server/jest.config.js", "--verbose", "-i", "--no-cache"],
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "autoAttachChildProcesses": false
+      },
+      {
+        "type": "node",
+        "request": "launch",
         "name": "Debug Jest OpenAPI Generator Test Case",
         "presentation": {
           "group": "Debug Tests"

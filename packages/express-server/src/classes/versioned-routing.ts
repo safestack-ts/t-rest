@@ -7,7 +7,6 @@ import {
   resolveDateVersion,
   resolveVersion,
 } from '@t-rest/core'
-import { StatusCodes } from 'http-status-codes'
 import { AnyRouteHandlerFn } from '../types/any-route-handler-fn'
 import {
   ExpressRequest,
@@ -68,39 +67,33 @@ export class VersionedRouting {
 
   private getRouteHandler(method: HTTPMethod, path: string) {
     return async (request: ExpressRequest, response: ExpressResponse) => {
-      try {
-        const { routeToExecute, version } = this.getRouteToExecute(
-          method,
-          path,
-          this.versionExtractor.extractVersion(request) ??
-            this.versionHistory.at(-1)
-        )
+      const { routeToExecute, version } = this.getRouteToExecute(
+        method,
+        path,
+        this.versionExtractor.extractVersion(request) ??
+          this.versionHistory.at(-1)
+      )
 
-        const { middlewares, handler, route } = routeToExecute
+      const { middlewares, handler, route } = routeToExecute
 
-        // emulate express behavior for executing middlewares
-        let i = 0
-        const nextMiddleware = async () => {
-          const middleware = middlewares.at(i++)
+      // emulate express behavior for executing middlewares
+      let i = 0
+      const nextMiddleware = async () => {
+        const middleware = middlewares.at(i++)
 
-          if (middleware) {
-            await middleware(request, response, nextMiddleware)
-          } else {
-            const validationOutput = route.validator.parse(request)
+        if (middleware) {
+          await middleware(request, response, nextMiddleware)
+        } else {
+          const validationOutput = route.validator.parse(request)
 
-            await handler(
-              { ...request, version } as any as ExpressRequest,
-              validationOutput,
-              response
-            )
-          }
+          await handler(
+            { ...request, version } as any as ExpressRequest,
+            validationOutput,
+            response
+          )
         }
-        await nextMiddleware()
-      } catch (err) {
-        const error = err as Error
-
-        response.status(StatusCodes.BAD_REQUEST).json({ error: error.message })
       }
+      await nextMiddleware()
     }
   }
 
