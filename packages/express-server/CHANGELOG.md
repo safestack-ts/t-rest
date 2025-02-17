@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.13
+
+### Patch Changes
+
+- a34a499: inject version meta information into global express request context
+
 ## 1.0.0-alpha.12
 
 ### Patch Changes
