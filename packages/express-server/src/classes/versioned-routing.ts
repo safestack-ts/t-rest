@@ -86,11 +86,9 @@ export class VersionedRouting {
         } else {
           const validationOutput = route.validator.parse(request)
 
-          await handler(
-            { ...request, version } as any as ExpressRequest,
-            validationOutput,
-            response
-          )
+          ;(request as any).version = version
+
+          await handler(request, validationOutput, response)
         }
       }
       await nextMiddleware()
