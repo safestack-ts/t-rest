@@ -1,5 +1,13 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.15
+
+### Patch Changes
+
+- cc7eaae: support standard-schema and make library validator agnostic
+- Updated dependencies [cc7eaae]
+  - @t-rest/core@1.0.0-alpha.11
+
 ## 1.0.0-alpha.14
 
 ### Patch Changes

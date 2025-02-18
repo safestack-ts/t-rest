@@ -1,5 +1,12 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.15
+
+### Patch Changes
+
+- Updated dependencies [cc7eaae]
+  - @t-rest/core@1.0.0-alpha.11
+
 ## 1.0.0-alpha.14
 
 ### Patch Changes

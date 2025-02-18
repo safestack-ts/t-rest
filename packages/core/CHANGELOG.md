@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.11
+
+### Patch Changes
+
+- cc7eaae: support standard-schema and make library validator agnostic
+
 ## 1.0.0-alpha.10
 
 ### Patch Changes
