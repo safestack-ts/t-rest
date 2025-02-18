@@ -5,5 +5,5 @@ import { TypedRouteHandlerFn } from './typed-route-handler-fn'
 export type AnyRouteHandlerFn = TypedRouteHandlerFn<
   AnyRouteDef,
   ExpressRequest,
-  any
+  unknown
 >

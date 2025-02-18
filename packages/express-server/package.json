@@ -19,7 +19,7 @@
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "build:esm": "tsc -p tsconfig.esm.json",
-        "test": "TZ=UTC ../../node_modules/.bin/jest --config jest.config.js --colors --passWithNoTests",
+        "test": "TZ=UTC ../../node_modules/.bin/jest --config jest.config.js --colors --passWithNoTests --detectOpenHandles",
         "test:watch": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.js --colors --passWithNoTests",
         "test:unit": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.js --colors --passWithNoTests unit",
         "test:integration": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.js --colors --passWithNoTests integration"

@@ -1,4 +1,4 @@
-import { BagOfRoutes, Route, ze } from '@t-rest/core'
+import { BagOfRoutes, Route, RouteInput, ze } from '@t-rest/core'
 import { User } from '@t-rest/testing-utilities'
 import Express from 'express'
 import { TypedExpressApplication } from '../classes/typed-express-application'
@@ -27,12 +27,11 @@ test('validation with coercions coerced values are passed into route handler', a
 
   const app = TypedExpressApplication.withoutVersioning(expressApp, bagOfRoutes)
 
-  app.get('/users').handle((_, { query: { page, from } }, response) => {
-    expect(page).toBe(2)
-    expect(typeof page).toBe('number')
+  let receivedQuery: RouteInput<typeof bagOfRoutes, 'GET', '/users'>['query'] =
+    {} as any
 
-    expect(from).toBeInstanceOf(Date)
-    expect(from.toISOString()).toBe('2025-01-01T00:00:00.000Z')
+  app.get('/users').handle(async (_, { query }, response) => {
+    receivedQuery = query
 
     response.status(200).json([])
   })
@@ -43,4 +42,10 @@ test('validation with coercions coerced values are passed into route handler', a
       !res.status.toString().startsWith('2') ? console.error(res.body) : 0
     )
     .expect(StatusCodes.OK)
+
+  expect(receivedQuery.page).toBe(2)
+  expect(typeof receivedQuery.page).toBe('number')
+
+  expect(receivedQuery.from).toBeInstanceOf(Date)
+  expect(receivedQuery.from.toISOString()).toBe('2025-01-01T00:00:00.000Z')
 })
