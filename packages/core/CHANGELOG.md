@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.12
+
+### Patch Changes
+
+- 88d2156: fix validation error handling with standard schema
+
 ## 1.0.0-alpha.11
 
 ### Patch Changes
