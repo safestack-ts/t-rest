@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.10
+
+### Patch Changes
+
+- 242e7fc: support more shapes on AnyRouteValidator
+
 ## 1.0.0-alpha.9
 
 ### Patch Changes
