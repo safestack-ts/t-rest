@@ -1,5 +1,12 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.17
+
+### Patch Changes
+
+- Updated dependencies [7586764]
+  - @t-rest/core@1.0.0-alpha.13
+
 ## 1.0.0-alpha.16
 
 ### Patch Changes

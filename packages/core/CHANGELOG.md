@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.13
+
+### Patch Changes
+
+- 7586764: ValidationError expose issues and mimic zod error methods
+
 ## 1.0.0-alpha.12
 
 ### Patch Changes
