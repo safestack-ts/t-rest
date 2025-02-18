@@ -9,6 +9,7 @@ export * from './classes/route-builder/route-builder-with-version-and-method-and
 export * from './classes/route-builder/route-builder-with-version-and-method-and-path-and-meta-data'
 export * from './classes/route-builder/route-builder-with-version-and-method-and-path-and-validator'
 export * from './classes/route-builder/route-builder-with-version-and-method-and-path-and-validator-and-meta-data'
+export * from './classes/error/validation-error'
 
 // enums
 export * from './enums/versioning'

@@ -6,6 +6,7 @@ import {
   typedLowerCase,
   resolveDateVersion,
   resolveVersion,
+  ValidationError,
 } from '@t-rest/core'
 import { AnyRouteHandlerFn } from '../types/any-route-handler-fn'
 import {
@@ -84,12 +85,17 @@ export class VersionedRouting {
         if (middleware) {
           await middleware(request, response, nextMiddleware)
         } else {
-          const validationOutput =
-            route.validator['~standard'].validate(request)
+          const validationOutput = await route.validator['~standard'].validate(
+            request
+          )
+
+          if (validationOutput.issues) {
+            throw new ValidationError(validationOutput.issues)
+          }
 
           ;(request as any).version = version
 
-          await handler(request, validationOutput, response)
+          await handler(request, validationOutput.value, response)
         }
       }
       await nextMiddleware()
