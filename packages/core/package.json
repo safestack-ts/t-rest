@@ -28,5 +28,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.1"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.0.0"
   }
 }

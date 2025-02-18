@@ -1,12 +1,9 @@
-import { z } from 'zod'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 
-type AnyZodShape<T extends z.ZodRawShape> =
-  | z.ZodObject<T>
-  | z.ZodEffects<z.ZodObject<T>>
-
-export type AnyRouteValidator = AnyZodShape<{
-  params?: z.ZodTypeAny
-  query?: z.ZodTypeAny
-  body?: z.ZodTypeAny
-  headers?: z.ZodTypeAny
+export type AnyRouteValidator = StandardSchemaV1<{
+  params?: Record<string, unknown>
+  query?: Record<string, unknown>
+  body?: any
+  headers?: Record<string, unknown>
+  [key: string]: any
 }>

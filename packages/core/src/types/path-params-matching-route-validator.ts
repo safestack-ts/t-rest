@@ -1,20 +1,13 @@
-import { z } from 'zod'
 import { ExtractPathParams } from './extract-path-params'
 import { AnyRouteValidator } from './any-route-validator'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 export type PathParamsMatchingRouteValidator<TPath extends string> =
   {} extends ExtractPathParams<TPath>
     ? AnyRouteValidator
-    : z.ZodObject<{
-        params: z.ZodObject<
-          MappedKeysToZodType<ExtractPathParams<TPath>> &
-            Record<string, z.ZodTypeAny>
-        >
-        query?: z.ZodObject<any> | z.ZodOptional<z.ZodObject<any>>
-        body?: z.AnyZodObject
-        headers?: z.ZodObject<any> | z.ZodOptional<z.ZodObject<any>>
+    : StandardSchemaV1<{
+        params: ExtractPathParams<TPath>
+        query?: StandardSchemaV1.InferInput<AnyRouteValidator>['query']
+        body?: StandardSchemaV1.InferInput<AnyRouteValidator>['body']
+        headers?: StandardSchemaV1.InferInput<AnyRouteValidator>['headers']
       }>
-
-type MappedKeysToZodType<T> = {
-  [K in keyof T]: z.ZodType<T[K]>
-}

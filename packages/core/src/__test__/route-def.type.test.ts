@@ -6,9 +6,17 @@ const _routeWithSuperRefineValidator = Route.post('/')
   .validate(
     z
       .object({
-        body: z.object({
-          name: z.string(),
-        }),
+        body: z
+          .object({
+            name: z.string(),
+          })
+          .superRefine((data, ctx) => {
+            if (data.name === 'John') {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+              })
+            }
+          }),
       })
       .superRefine((data, ctx) => {
         if (data.body.name === 'John') {

@@ -2,15 +2,16 @@ import { AssertTrue, IsExact } from 'conditional-type-checks'
 import { PathParamsMatchingRouteValidator } from './path-params-matching-route-validator'
 import { z } from 'zod'
 import { AnyRouteValidator } from './any-route-validator'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 // single param
 type _path_with_one_param_requires_validator_for_param = AssertTrue<
   IsExact<
-    z.ZodObject<{
-      params: z.ZodObject<{ userId: z.ZodType<string | number> }>
-      query?: z.ZodObject<any>
-      body?: z.ZodObject<any>
-      headers?: z.ZodObject<any>
+    StandardSchemaV1<{
+      params: { userId: string | number }
+      query?: any
+      body?: any
+      headers?: any
     }> extends PathParamsMatchingRouteValidator<'/users/:userId'>
       ? true
       : false,
@@ -36,14 +37,14 @@ _validatorFuncSingle('/users/:userId')(
 // multiple params
 type _path_with_multiple_params_requires_validator_for_each_param = AssertTrue<
   IsExact<
-    z.ZodObject<{
-      params: z.ZodObject<{
-        userId: z.ZodType<string | number>
-        commentId: z.ZodType<string | number>
-      }>
-      query?: z.ZodObject<any>
-      body?: z.ZodObject<any>
-      headers?: z.ZodObject<any>
+    StandardSchemaV1<{
+      params: {
+        userId: string | number
+        commentId: string | number
+      }
+      query?: any
+      body?: any
+      headers?: any
     }> extends PathParamsMatchingRouteValidator<'/users/:userId/comments/:commentId'>
       ? true
       : false,

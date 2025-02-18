@@ -84,7 +84,8 @@ export class VersionedRouting {
         if (middleware) {
           await middleware(request, response, nextMiddleware)
         } else {
-          const validationOutput = route.validator.parse(request)
+          const validationOutput =
+            route.validator['~standard'].validate(request)
 
           ;(request as any).version = version
 
