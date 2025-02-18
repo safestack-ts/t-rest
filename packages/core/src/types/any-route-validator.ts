@@ -1,8 +1,12 @@
 import { z } from 'zod'
 
-export type AnyRouteValidator = z.ZodObject<{
-  params?: z.ZodObject<any>
-  query?: z.ZodObject<any> | z.ZodOptional<z.ZodObject<any>>
+type AnyZodShape<T extends z.ZodRawShape> =
+  | z.ZodObject<T>
+  | z.ZodEffects<z.ZodObject<T>>
+
+export type AnyRouteValidator = AnyZodShape<{
+  params?: z.ZodTypeAny
+  query?: z.ZodTypeAny
   body?: z.ZodTypeAny
-  headers?: z.ZodObject<any> | z.ZodOptional<z.ZodObject<any>>
+  headers?: z.ZodTypeAny
 }>

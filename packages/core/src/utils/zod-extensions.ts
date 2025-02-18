@@ -159,11 +159,6 @@ export namespace ze {
       .transform((value) => new Date(value))
       .or(z.date())
 
-  /*export const parseISO8601Date = (): z.ZodType<Date, z.ZodTypeDef, string | Date> =>
-iso8601DateString()
-  .transform((value) => parseISO(value))
-  .or(z.date())*/
-
   export const parseCSV = () =>
     z.string().transform((value) => {
       if (value.trim().length === 0) {
@@ -187,4 +182,19 @@ iso8601DateString()
 
   export const parseJSON = () =>
     z.string().transform((value) => JSON.parse(value))
+
+  export const file = () =>
+    z.object({
+      buffer: z.custom<Buffer>((value) => {
+        if (Buffer.isBuffer(value)) return value
+        throw new z.ZodError([
+          { message: 'Expected a Buffer', code: 'custom', path: [] },
+        ])
+      }),
+      encoding: z.string(),
+      fieldname: z.string(),
+      mimetype: z.string(),
+      originalname: z.string(),
+      size: z.number(),
+    })
 }
