@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.20
+
+### Patch Changes
+
+- bf34b7e: add type handling of build in types
+
 ## 1.0.0-alpha.19
 
 ### Patch Changes
