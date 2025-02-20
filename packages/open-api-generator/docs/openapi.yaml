@@ -58,9 +58,12 @@ paths:
               schema:
                 type: object
                 properties:
+                  email:
+                    type: string
                   message:
                     type: string
                 required:
+                  - email
                   - message
   /users/:userId:
     get:

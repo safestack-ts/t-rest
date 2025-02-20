@@ -48,7 +48,7 @@ export const bagOfRoutes = BagOfRoutes.withVersioning(
           tags: ['checkout', 'discounts'],
         })
       )
-      .response<{ message: string }>()
+      .response<Omit<User, 'id'> & { message: string }>()
   )
   .addRoute(
     Route.version('2024-01-01')

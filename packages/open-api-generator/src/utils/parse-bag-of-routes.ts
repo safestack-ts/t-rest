@@ -90,7 +90,7 @@ function transformTypeToIntermediate(
 
     // Get the generic type structure
     const properties: Record<string, TypeDefinition> = {}
-    const required: string[] = []
+    const required = new Set<string>()
 
     type.getApparentProperties().forEach((prop) => {
       const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
@@ -102,7 +102,7 @@ function transformTypeToIntermediate(
       )
 
       if (!(prop.flags & ts.SymbolFlags.Optional)) {
-        required.push(prop.name)
+        required.add(prop.name)
       }
     })
 
@@ -112,7 +112,7 @@ function transformTypeToIntermediate(
       structure: {
         kind: 'object',
         properties,
-        ...(required.length > 0 ? { required } : {}),
+        ...(required.size > 0 ? { required: Array.from(required) } : {}),
       },
     }
   }
@@ -210,17 +210,18 @@ function transformTypeToIntermediate(
 
     // Get all properties from all object types in the intersection
     const properties: Record<string, TypeDefinition> = {}
-    const required: string[] = []
+    const required = new Set<string>()
     let hasNonObjectType = false
+
+    // we want to track named intersection types to not re-visit them again
+    // important that we add this first before traversing the properties, because it could be a recursive type
+    typeName = type.aliasSymbol?.escapedName?.toString()
+    if (type.aliasSymbol && typeName) {
+      metadata.visitedTypes?.add(typeName)
+    }
 
     validTypes.forEach((t) => {
       if (t.isClassOrInterface() || t.flags & ts.TypeFlags.Object) {
-        // we want to track named intersection types to not re-visit them again
-        // important that we add this first before traversing the properties, because it could be a recursive type
-        if (typeName) {
-          metadata.visitedTypes?.add(typeName)
-        }
-
         t.getProperties().forEach((prop) => {
           const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
           properties[prop.name] = transformTypeToIntermediate(
@@ -230,7 +231,7 @@ function transformTypeToIntermediate(
             metadata
           )
           if (!(prop.flags & ts.SymbolFlags.Optional)) {
-            required.push(prop.name)
+            required.add(prop.name)
           }
         })
       } else {
@@ -243,7 +244,7 @@ function transformTypeToIntermediate(
       return {
         kind: 'object',
         properties,
-        ...(required.length > 0 ? { required } : {}),
+        ...(required.size > 0 ? { required: Array.from(required) } : {}),
         ...(typeName ? { name: typeName } : {}),
       }
     }
@@ -399,7 +400,7 @@ function transformObjectToIntermediate(
   metadata: TraverseMeta
 ): ObjectType {
   const properties: Record<string, TypeDefinition> = {}
-  const required: string[] = []
+  const required = new Set<string>()
 
   const typeName = type.aliasSymbol?.escapedName?.toString()
 
@@ -418,14 +419,14 @@ function transformObjectToIntermediate(
     )
 
     if (!(prop.flags & ts.SymbolFlags.Optional)) {
-      required.push(prop.name)
+      required.add(prop.name)
     }
   })
 
   return {
     kind: 'object',
     properties,
-    ...(required.length > 0 ? { required } : {}),
+    ...(required.size > 0 ? { required: Array.from(required) } : {}),
     ...(typeName ? { name: typeName } : {}),
   }
 }
