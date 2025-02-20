@@ -4,6 +4,7 @@ import { ObjectType, TypeDefinition } from '../schema/type-schema'
 import debug from 'debug'
 
 const parserLog = debug('t-rest:open-api-generator:parser')
+const typeDiscoveryLog = debug('t-rest:open-api-generator:type-discovery')
 
 export type RouteTypeInfo = {
   input: TypeDefinition | undefined
@@ -117,8 +118,9 @@ function transformTypeToIntermediate(
   }
 
   typeName = typeName || typeChecker.typeToString(type)
-  console.log('typeName', typeName)
-  console.log('visitedTypes', metadata.visitedTypes)
+  typeDiscoveryLog('typeName %s', typeName)
+  typeDiscoveryLog('visitedTypes %s', metadata.visitedTypes)
+
   // Check for recursion
   if (typeName && metadata.visitedTypes?.has(typeName)) {
     return {
@@ -269,19 +271,74 @@ function transformTypeToIntermediate(
     }
   }
 
-  if (type.isClassOrInterface()) {
-    if (symbol?.name === 'Date') {
+  const handleBuiltInTypes = () => {
+    const buildInTypeName = symbol?.name ?? symbol?.escapedName?.toString()
+    if (buildInTypeName === 'Date') {
       return {
-        kind: 'date',
+        kind: 'date' as const,
       }
     }
+    if (
+      buildInTypeName?.endsWith('Buffer') ||
+      typeAsString.endsWith('Buffer')
+    ) {
+      return {
+        kind: 'buffer' as const,
+      }
+    }
+    if (buildInTypeName === 'BigInt') {
+      return {
+        kind: 'bigint' as const,
+      }
+    }
+    if (buildInTypeName === 'Symbol') {
+      return {
+        kind: 'symbol' as const,
+      }
+    }
+    if (buildInTypeName === 'Map') {
+      return {
+        kind: 'map' as const,
+      }
+    }
+    if (buildInTypeName === 'Set') {
+      return {
+        kind: 'set' as const,
+      }
+    }
+    if (buildInTypeName === 'RegExp') {
+      return {
+        kind: 'regexp' as const,
+      }
+    }
+    if (buildInTypeName === 'Stream') {
+      return {
+        kind: 'stream' as const,
+      }
+    }
+
+    return null
+  }
+
+  const buildInType = handleBuiltInTypes()
+  if (buildInType) {
+    return buildInType
+  }
+
+  if (type.isClassOrInterface()) {
+    const buildInType = handleBuiltInTypes()
+    if (buildInType) {
+      return buildInType
+    }
+
     return transformObjectToIntermediate(type, typeChecker, rootNode, metadata)
   }
 
   // Handle objects
   if (type.isClassOrInterface()) {
-    if (symbol?.name === 'Date') {
-      return { kind: 'date' }
+    const buildInType = handleBuiltInTypes()
+    if (buildInType) {
+      return buildInType
     }
 
     const result = transformObjectToIntermediate(
@@ -479,6 +536,38 @@ function resolveTypeToOpenAPI3({
       return {
         type: 'string',
         format: 'date-time',
+      }
+    case 'buffer':
+      return {
+        type: 'string',
+        format: 'binary',
+      }
+    case 'bigint':
+      return {
+        type: 'string',
+        format: 'bigint',
+      }
+    case 'symbol':
+      return {} // ignore
+    case 'map':
+      return {
+        type: 'object',
+        additionalProperties: true,
+      }
+    case 'set':
+      return {
+        type: 'array',
+        items: { type: 'string' },
+      }
+    case 'regexp':
+      return {
+        type: 'string',
+        format: 'regexp',
+      }
+    case 'stream':
+      return {
+        type: 'string',
+        format: 'stream',
       }
     case 'enum':
       return {

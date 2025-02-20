@@ -24,6 +24,7 @@ type Identify<T> = T
 type UserWithSubUsers = User & {
   subUsers: UserWithSubUsers[]
   credit: Identify<number>
+  photo: Buffer
 }
 
 export const bagOfRoutes = BagOfRoutes.withVersioning(

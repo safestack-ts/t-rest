@@ -223,6 +223,104 @@ export const DateType = (args?: Omit<DateType, 'kind'>): DateType => ({
   ...args,
 })
 
+export const validateBufferType: z.ZodType<BufferType> = validateBaseType.and(
+  z.object({
+    kind: z.literal('buffer'),
+  })
+)
+export interface BufferType extends BaseType {
+  kind: 'buffer'
+}
+
+export const BufferType = (args?: Omit<BufferType, 'kind'>): BufferType => ({
+  kind: 'buffer',
+  ...args,
+})
+
+export const validateBigIntType: z.ZodType<BigIntType> = validateBaseType.and(
+  z.object({
+    kind: z.literal('bigint'),
+  })
+)
+export interface BigIntType extends BaseType {
+  kind: 'bigint'
+}
+
+export const BigIntType = (args?: Omit<BigIntType, 'kind'>): BigIntType => ({
+  kind: 'bigint',
+  ...args,
+})
+
+export const validateSymbolType: z.ZodType<SymbolType> = validateBaseType.and(
+  z.object({
+    kind: z.literal('symbol'),
+  })
+)
+export interface SymbolType extends BaseType {
+  kind: 'symbol'
+}
+
+export const SymbolType = (args?: Omit<SymbolType, 'kind'>): SymbolType => ({
+  kind: 'symbol',
+  ...args,
+})
+
+export const validateMapType: z.ZodType<MapType> = validateBaseType.and(
+  z.object({
+    kind: z.literal('map'),
+  })
+)
+export interface MapType extends BaseType {
+  kind: 'map'
+}
+
+export const MapType = (args?: Omit<MapType, 'kind'>): MapType => ({
+  kind: 'map',
+  ...args,
+})
+
+export const validateSetType: z.ZodType<SetType> = validateBaseType.and(
+  z.object({
+    kind: z.literal('set'),
+  })
+)
+export interface SetType extends BaseType {
+  kind: 'set'
+}
+
+export const SetType = (args?: Omit<SetType, 'kind'>): SetType => ({
+  kind: 'set',
+  ...args,
+})
+
+export const validateRegexpType: z.ZodType<RegexpType> = validateBaseType.and(
+  z.object({
+    kind: z.literal('regexp'),
+  })
+)
+export interface RegexpType extends BaseType {
+  kind: 'regexp'
+}
+
+export const RegexpType = (args?: Omit<RegexpType, 'kind'>): RegexpType => ({
+  kind: 'regexp',
+  ...args,
+})
+
+export const validateStreamType: z.ZodType<StreamType> = validateBaseType.and(
+  z.object({
+    kind: z.literal('stream'),
+  })
+)
+export interface StreamType extends BaseType {
+  kind: 'stream'
+}
+
+export const StreamType = (args?: Omit<StreamType, 'kind'>): StreamType => ({
+  kind: 'stream',
+  ...args,
+})
+
 export const validateEnumType: z.ZodType<EnumType> = validateBaseType.and(
   z.object({
     kind: z.literal('enum'),
@@ -261,6 +359,13 @@ export const validateTypeDefinition: z.ZodType<TypeDefinition> = z
       validateLiteralType,
       validateDateType,
       validateEnumType,
+      validateBufferType,
+      validateBigIntType,
+      validateSymbolType,
+      validateMapType,
+      validateSetType,
+      validateRegexpType,
+      validateStreamType,
     ])
   )
 
@@ -279,6 +384,13 @@ export type TypeDefinition = {
   | LiteralType
   | DateType
   | EnumType
+  | BufferType
+  | BigIntType
+  | SymbolType
+  | MapType
+  | SetType
+  | RegexpType
+  | StreamType
   | {
       kind: 'generic'
       name: string

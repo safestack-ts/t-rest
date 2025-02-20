@@ -12,8 +12,7 @@ paths:
   /users/:userId:
     get:
       summary: Get user by id
-      description:
-        Get user by id if the user exists and is part of the requested
+      description: Get user by id if the user exists and is part of the requested
         client specified in the pratiq-client-id http header.
       tags:
         - users
@@ -47,7 +46,7 @@ paths:
               type: object
               properties: {}
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
@@ -55,7 +54,7 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/UserWithSubUsers'
+                    $ref: "#/components/schemas/UserWithSubUsers"
                   version:
                     type: string
                 required:
@@ -73,12 +72,15 @@ components:
         subUsers:
           type: array
           items:
-            $ref: '#/components/schemas/UserWithSubUsers'
-
+            $ref: "#/components/schemas/UserWithSubUsers"
         credit:
           type: number
+        photo:
+          type: string
+          format: binary
       required:
         - id
         - email
         - subUsers
         - credit
+        - photo
