@@ -1,5 +1,12 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.22
+
+### Patch Changes
+
+- fc48b4a: fix handling of null in open api 3.0
+- 18f8020: fix handling of unnamed intersection types
+
 ## 1.0.0-alpha.21
 
 ### Patch Changes
