@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.14
+
+### Patch Changes
+
+- 67f3eaa: fix handling of union which include primitives
+
 ## 1.0.0-alpha.13
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.18
+
+### Patch Changes
+
+- Updated dependencies [67f3eaa]
+  - @t-rest/core@1.0.0-alpha.14
+
 ## 1.0.0-alpha.17
 
 ### Patch Changes

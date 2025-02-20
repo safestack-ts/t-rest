@@ -1,5 +1,12 @@
 # @t-rest/testing-utilities
 
+## 1.0.1-alpha.15
+
+### Patch Changes
+
+- Updated dependencies [67f3eaa]
+  - @t-rest/core@1.0.0-alpha.14
+
 ## 1.0.1-alpha.14
 
 ### Patch Changes

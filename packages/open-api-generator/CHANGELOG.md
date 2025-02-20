@@ -1,5 +1,13 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.21
+
+### Patch Changes
+
+- 67f3eaa: fix handling of union which include primitives
+- Updated dependencies [67f3eaa]
+  - @t-rest/core@1.0.0-alpha.14
+
 ## 1.0.0-alpha.20
 
 ### Patch Changes
