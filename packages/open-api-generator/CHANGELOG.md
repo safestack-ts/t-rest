@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.19
+
+### Patch Changes
+
+- 6c2d54d: extending AST parsing to handle generics, handle recursive types and generating object schemas
+
 ## 1.0.0-alpha.18
 
 ### Patch Changes
