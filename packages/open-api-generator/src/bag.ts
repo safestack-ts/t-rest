@@ -33,8 +33,29 @@ export const bagOfRoutes = BagOfRoutes.withVersioning(
 )
   .addRoute(
     Route.version('2024-01-01')
+      .delete('/api/checkout/:checkoutId/discounts/:discountId')
+      .validate(
+        z.object({
+          params: z.strictObject({
+            checkoutId: z.string().uuid(),
+            discountId: ze.parseDatabaseId(),
+          }),
+        })
+      )
+      .metaData(
+        RouteMeta({
+          description: 'Delete a discount code from a checkout',
+          tags: ['checkout', 'discounts'],
+        })
+      )
+      .response<{ message: string }>()
+  )
+  .addRoute(
+    Route.version('2024-01-01')
       .get('/users/:userId')
-      .validate(z.object({ params: z.object({ userId: ze.parseInteger() }) }))
+      .validate(
+        z.object({ params: z.object({ userId: ze.parseDatabaseId() }) })
+      )
       .metaData(
         RouteMeta({
           summary: 'Get user by id',

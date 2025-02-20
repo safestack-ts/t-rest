@@ -188,7 +188,10 @@ function transformTypeToIntermediate(
     }
 
     // we want to track named union types to not re-visit them again
-    if (typeName) {
+    if (
+      typeName &&
+      type.types.some((t) => t.flags & ts.TypeFlags.NonPrimitive)
+    ) {
       metadata.visitedTypes?.add(typeName)
     }
 

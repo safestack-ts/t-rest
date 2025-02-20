@@ -9,6 +9,59 @@ tags:
   - name: users
     description: Users related operations
 paths:
+  /api/checkout/:checkoutId/discounts/:discountId:
+    delete:
+      description: Delete a discount code from a checkout
+      tags:
+        - checkout
+        - discounts
+      parameters:
+        - name: pratiq-client-id
+          in: header
+          description: Global Webshop Client Id
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: number
+        - name: pratiq-channel-uuid
+          in: header
+          description: UUID of the sales channel
+          required: false
+          schema:
+            type: string
+        - name: checkoutId
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: number
+        - name: discountId
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: number
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
   /users/:userId:
     get:
       summary: Get user by id

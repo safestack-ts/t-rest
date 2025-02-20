@@ -197,4 +197,6 @@ export namespace ze {
       originalname: z.string(),
       size: z.number(),
     })
+
+  export const parseDatabaseId = () => parseInteger().pipe(z.number().min(0))
 }
