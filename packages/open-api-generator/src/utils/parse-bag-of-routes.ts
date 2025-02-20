@@ -476,7 +476,7 @@ function resolveTypeToOpenAPI3({
     case 'boolean':
       return { type: 'boolean' }
     case 'null':
-      return { type: 'null' }
+      return { nullable: true }
     case 'array':
       return {
         type: 'array',
