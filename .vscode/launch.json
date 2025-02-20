@@ -6,7 +6,7 @@
         "request": "launch",
         "name": "Debug OpenAPI Spec Generator",
         "cwd": "${workspaceFolder}/packages/open-api-generator",
-        "program": "./dist/index.js",
+        "program": "./dist/cjs/playground.js",
         "env": {
           "NODE_ENV": "development"
         },
@@ -19,7 +19,7 @@
         "request": "launch",
         "name": "Debug OpenAPI Spec Generator Demo",
         "cwd": "${workspaceFolder}/packages/open-api-generator",
-        "program": "./dist/demo.js",
+        "program": "./dist/cjs/demo.js",
         "env": {
           "NODE_ENV": "development"
         },

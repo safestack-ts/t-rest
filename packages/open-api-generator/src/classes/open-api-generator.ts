@@ -1,5 +1,5 @@
 import { OpenAPIMetaData } from '../types/open-api-meta-data'
-import { OpenAPIPathsSchema, OpenAPISchema } from '../types/open-api-schema'
+import { OpenAPISchema } from '../types/open-api-schema'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import YAML from 'yaml'
@@ -16,7 +16,7 @@ import {
 import {
   parseBagOfRoutes,
   RouteTypeInfo,
-  transformToOpenAPI3,
+  getOpenAPI3Spec,
 } from '../utils/parse-bag-of-routes'
 import { groupBy, merge } from 'lodash'
 import { validateRouteMeta } from '../schema/route-meta'
@@ -45,14 +45,24 @@ export abstract class OpenAPIGenerator {
     await this.ensureOutputDir(outputDir)
 
     const schema = this.metaDataToSchema(spec.metaData)
-    const paths = this.bagOfRoutesToSchema(
+    const { paths, components } = this.bagOfRoutesToSchema(
       spec.bagOfRoutes,
       entry,
       spec.metaData
     )
     await this.writeFile(
       path.join(outputDir, outputFile),
-      YAML.stringify({ ...schema, paths }, null, 2)
+      YAML.stringify(
+        {
+          ...schema,
+          paths,
+          components: {
+            schemas: components,
+          },
+        },
+        null,
+        2
+      )
     )
   }
 
@@ -60,7 +70,7 @@ export abstract class OpenAPIGenerator {
     bagOfRoutes: BagOfRoutes<any, any, any>,
     entryPath: string,
     metaData: OpenAPIMetaData
-  ): OpenAPIPathsSchema {
+  ) {
     const routes = parseBagOfRoutes(entryPath)
     const routesUnfolded = Array.from(routes.entries()).reduce(
       (acc, [[method, path, version], typeInfo]) => {
@@ -99,9 +109,8 @@ export abstract class OpenAPIGenerator {
                   )
 
             if (resolvedVersion === null) {
-              throw new Error(
-                `No compatible route version found for requested version ${metaData.version} of route ${method} ${path}`
-              )
+              // ignore routes that are not compatible with the requested version
+              return null
             }
 
             return values.find(({ version }) => version === resolvedVersion)
@@ -121,6 +130,8 @@ export abstract class OpenAPIGenerator {
       .filter(isDefined)
 
     const routesByPath = groupBy(finalRoutes, (route) => route.path)
+
+    const allComponents: Record<string, any> = {}
 
     const paths = Object.entries(routesByPath).map(([path, routes]) => {
       const sortedRoutes = routes.sort(
@@ -156,6 +167,25 @@ export abstract class OpenAPIGenerator {
             ...(metaData.headers ?? []),
           ]
 
+          const bodySchema =
+            route.typeInfo.input?.kind === 'object' &&
+            route.typeInfo.input.properties.body
+              ? getOpenAPI3Spec(route.typeInfo.input.properties.body, true)
+              : undefined
+
+          const responseSchema = route.typeInfo.output
+            ? getOpenAPI3Spec(route.typeInfo.output, true)
+            : undefined
+
+          const components = {
+            ...(bodySchema?.components ?? {}),
+            ...(responseSchema?.components ?? {}),
+          }
+
+          Object.entries(components).forEach(([key, value]) => {
+            allComponents[key] = value
+          })
+
           return {
             ...acc,
             [method.toLowerCase()]: {
@@ -166,7 +196,7 @@ export abstract class OpenAPIGenerator {
                   in: 'header',
                   description: header.description,
                   required: header.required ?? false,
-                  schema: transformToOpenAPI3(header.type),
+                  schema: getOpenAPI3Spec(header.type, false).spec,
                 })) ?? []),
                 ...(route.typeInfo?.input?.kind === 'object' &&
                 route.typeInfo.input.properties.params?.kind === 'object' &&
@@ -177,7 +207,7 @@ export abstract class OpenAPIGenerator {
                       name,
                       in: 'path',
                       required: true,
-                      schema: transformToOpenAPI3(schema),
+                      schema: getOpenAPI3Spec(schema, false).spec,
                     }))
                   : []),
                 ...(route.typeInfo?.input?.kind === 'object' &&
@@ -196,31 +226,25 @@ export abstract class OpenAPIGenerator {
                             name
                           )) ??
                         false,
-                      schema: transformToOpenAPI3(schema),
+                      schema: getOpenAPI3Spec(schema, false).spec,
                     }))
                   : []),
               ],
-              requestBody:
-                route.typeInfo.input?.kind === 'object' &&
-                route.typeInfo.input.properties.body
-                  ? {
-                      content: {
-                        'application/json': {
-                          schema: transformToOpenAPI3(
-                            route.typeInfo.input.properties.body
-                          ),
-                        },
+              requestBody: bodySchema
+                ? {
+                    content: {
+                      'application/json': {
+                        schema: bodySchema.spec,
                       },
-                    }
-                  : undefined,
+                    },
+                  }
+                : undefined,
               responses: {
                 '200': {
                   description: 'Successful response',
                   content: {
                     'application/json': {
-                      schema: route.typeInfo.output
-                        ? transformToOpenAPI3(route.typeInfo.output)
-                        : undefined,
+                      schema: responseSchema?.spec,
                     },
                   },
                 },
@@ -231,7 +255,10 @@ export abstract class OpenAPIGenerator {
       }
     })
 
-    return merge({}, ...paths)
+    return {
+      paths: merge({}, ...paths),
+      components: allComponents,
+    }
   }
 
   private static metaDataToSchema(metaData: OpenAPIMetaData): OpenAPISchema {

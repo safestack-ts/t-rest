@@ -20,6 +20,12 @@ export const versionHistory = VersionHistory([
   '2024-03-01',
 ] as const)
 
+type Identify<T> = T
+type UserWithSubUsers = User & {
+  subUsers: UserWithSubUsers[]
+  credit: Identify<number>
+}
+
 export const bagOfRoutes = BagOfRoutes.withVersioning(
   Versioning.DATE,
   versionHistory
@@ -37,7 +43,7 @@ export const bagOfRoutes = BagOfRoutes.withVersioning(
           operationId: 'getUserById',
         })
       )
-      .response<ResponseWithVersion<User>>()
+      .response<ResponseWithVersion<UserWithSubUsers>>()
   )
   .addRoute(
     Route.version('2024-02-01')

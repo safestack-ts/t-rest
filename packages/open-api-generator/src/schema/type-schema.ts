@@ -133,6 +133,7 @@ export const ArrayType = (args: Omit<ArrayType, 'kind'>): ArrayType => ({
 export const validateObjectType: z.ZodType<ObjectType> = validateBaseType.and(
   z.object({
     kind: z.literal('object'),
+    originalName: z.string().optional(),
     properties: z.record(z.lazy(() => validateTypeDefinition)),
     required: z.array(z.string()).optional(),
     additionalProperties: z
@@ -144,6 +145,7 @@ export const validateObjectType: z.ZodType<ObjectType> = validateBaseType.and(
 )
 export interface ObjectType extends BaseType {
   kind: 'object'
+  originalName?: string
   properties: Record<string, TypeDefinition>
   required?: string[]
   additionalProperties?: boolean | TypeDefinition
@@ -241,29 +243,48 @@ export const EnumType = (args: Omit<EnumType, 'kind'>): EnumType => ({
   ...args,
 })
 
-export const validateTypeDefinition: z.ZodType<TypeDefinition> = z.union([
-  validateStringType,
-  validateNumberType,
-  validateBooleanType,
-  validateNullType,
-  validateArrayType,
-  validateObjectType,
-  validateUnionType,
-  validateIntersectionType,
-  validateLiteralType,
-  validateDateType,
-  validateEnumType,
-])
+export const validateTypeDefinition: z.ZodType<TypeDefinition> = z
+  .object({
+    originalName: z.string().optional(),
+    typeParameters: z.record(z.lazy(() => validateTypeDefinition)).optional(),
+  })
+  .and(
+    z.union([
+      validateStringType,
+      validateNumberType,
+      validateBooleanType,
+      validateNullType,
+      validateArrayType,
+      validateObjectType,
+      validateUnionType,
+      validateIntersectionType,
+      validateLiteralType,
+      validateDateType,
+      validateEnumType,
+    ])
+  )
 
-export type TypeDefinition =
+export type TypeDefinition = {
+  name?: string
+  typeParameters?: Record<string, TypeDefinition>
+} & (
   | StringType
   | NumberType
   | BooleanType
+  | ObjectType
   | NullType
   | ArrayType
-  | ObjectType
   | UnionType
   | IntersectionType
   | LiteralType
   | DateType
   | EnumType
+  | {
+      kind: 'generic'
+      name: string
+      structure: TypeDefinition
+    }
+  | { kind: 'ref'; name: string }
+  | { kind: 'any' }
+  | { kind: 'unknown' }
+)

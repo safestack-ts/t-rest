@@ -30,17 +30,35 @@ export const parseBagOfRoutes = (modulePath: string) => {
 
     parserLog('Processing route: %s %s (v%s)', method, path, version)
 
+    parserLog(
+      'Parsing validator type of route: %s %s (v%s)',
+      method,
+      path,
+      version
+    )
     const validatorType = extractValidatorType(routeType, typeChecker, rootNode)
+    parserLog(
+      'Parsing response type of route: %s %s (v%s)',
+      method,
+      path,
+      version
+    )
     const responseType = extractResponseType(routeType, typeChecker, rootNode)
 
-    results.set([method, path, version], {
+    const inputOutputIntermediate = {
       input: validatorType
-        ? transformTypeToIntermediate(validatorType, typeChecker, rootNode)
+        ? transformTypeToIntermediate(validatorType, typeChecker, rootNode, {
+            visitedTypes: new Set(),
+          })
         : undefined,
       output: responseType
-        ? transformTypeToIntermediate(responseType, typeChecker, rootNode)
+        ? transformTypeToIntermediate(responseType, typeChecker, rootNode, {
+            visitedTypes: new Set(),
+          })
         : undefined,
-    })
+    }
+
+    results.set([method, path, version], inputOutputIntermediate)
   }
 
   parserLog('Finished parsing %d routes', results.size)
@@ -48,13 +66,68 @@ export const parseBagOfRoutes = (modulePath: string) => {
   return results
 }
 
+type TraverseMeta = {
+  visitedTypes?: Set<string>
+}
+
 function transformTypeToIntermediate(
   type: ts.Type,
   typeChecker: ts.TypeChecker,
-  rootNode: ts.Node
+  rootNode: ts.Node,
+  metadata: TraverseMeta
 ): TypeDefinition {
   if (!type) throw new Error('Type is undefined')
 
+  // Get type name and handle generic types
+  const symbol = type.getSymbol()
+  const typeRef = type as ts.TypeReference
+  let typeName = type.aliasSymbol?.escapedName?.toString()
+
+  if (typeRef.aliasTypeArguments?.length) {
+    const baseTypeName =
+      typeName || symbol?.getName() || typeChecker.typeToString(type)
+
+    // Get the generic type structure
+    const properties: Record<string, TypeDefinition> = {}
+    const required: string[] = []
+
+    type.getApparentProperties().forEach((prop) => {
+      const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
+      properties[prop.name] = transformTypeToIntermediate(
+        propType,
+        typeChecker,
+        rootNode,
+        metadata
+      )
+
+      if (!(prop.flags & ts.SymbolFlags.Optional)) {
+        required.push(prop.name)
+      }
+    })
+
+    return {
+      kind: 'generic',
+      name: baseTypeName,
+      structure: {
+        kind: 'object',
+        properties,
+        ...(required.length > 0 ? { required } : {}),
+      },
+    }
+  }
+
+  typeName = typeName || typeChecker.typeToString(type)
+  console.log('typeName', typeName)
+  console.log('visitedTypes', metadata.visitedTypes)
+  // Check for recursion
+  if (typeName && metadata.visitedTypes?.has(typeName)) {
+    return {
+      kind: 'ref',
+      name: typeName,
+    }
+  }
+
+  // Basic types handling
   if (type.isStringLiteral()) {
     return {
       kind: 'literal',
@@ -75,6 +148,7 @@ function transformTypeToIntermediate(
     }
   }
 
+  // Handle unions
   if (type.isUnion()) {
     // Check if this is a boolean represented as true | false
     if (type.types.every((t) => t.flags & ts.TypeFlags.BooleanLiteral)) {
@@ -111,32 +185,87 @@ function transformTypeToIntermediate(
       }
     }
 
+    // we want to track named union types to not re-visit them again
+    if (typeName) {
+      metadata.visitedTypes?.add(typeName)
+    }
+
     return {
       kind: 'union',
       types: type.types.map((t) =>
-        transformTypeToIntermediate(t, typeChecker, rootNode)
+        transformTypeToIntermediate(t, typeChecker, rootNode, metadata)
       ),
     }
   }
 
+  // Handle intersections
   if (type.isIntersection()) {
+    // Filter out 'never' types
+    const validTypes = type.types.filter((t) => !(t.flags & ts.TypeFlags.Never))
+
+    // Get all properties from all object types in the intersection
+    const properties: Record<string, TypeDefinition> = {}
+    const required: string[] = []
+    let hasNonObjectType = false
+
+    validTypes.forEach((t) => {
+      if (t.isClassOrInterface() || t.flags & ts.TypeFlags.Object) {
+        // we want to track named intersection types to not re-visit them again
+        // important that we add this first before traversing the properties, because it could be a recursive type
+        if (typeName) {
+          metadata.visitedTypes?.add(typeName)
+        }
+
+        t.getProperties().forEach((prop) => {
+          const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
+          properties[prop.name] = transformTypeToIntermediate(
+            propType,
+            typeChecker,
+            rootNode,
+            metadata
+          )
+          if (!(prop.flags & ts.SymbolFlags.Optional)) {
+            required.push(prop.name)
+          }
+        })
+      } else {
+        hasNonObjectType = true
+      }
+    })
+
+    // If we only have object types, return merged object
+    if (!hasNonObjectType && Object.keys(properties).length > 0) {
+      return {
+        kind: 'object',
+        properties,
+        ...(required.length > 0 ? { required } : {}),
+        ...(typeName ? { name: typeName } : {}),
+      }
+    }
+
+    // Otherwise return intersection type
     return {
       kind: 'intersection',
-      types: type.types.map((t) =>
-        transformTypeToIntermediate(t, typeChecker, rootNode)
+      types: validTypes.map((t) =>
+        transformTypeToIntermediate(t, typeChecker, rootNode, metadata)
       ),
     }
   }
 
+  // Handle arrays
   const typeAsString = typeChecker.typeToString(type)
-  const symbol = type.getSymbol()
 
   if (symbol?.name === 'Array' || typeAsString.endsWith('[]]')) {
     const elementType = (type as ts.TypeReference).typeArguments?.at(0)
     if (!elementType) throw new Error('Array element type not found')
     return {
       kind: 'array',
-      items: transformTypeToIntermediate(elementType, typeChecker, rootNode),
+      items: transformTypeToIntermediate(
+        elementType,
+        typeChecker,
+        rootNode,
+        metadata
+      ),
     }
   }
 
@@ -146,7 +275,28 @@ function transformTypeToIntermediate(
         kind: 'date',
       }
     }
-    return transformObjectToIntermediate(type, typeChecker, rootNode)
+    return transformObjectToIntermediate(type, typeChecker, rootNode, metadata)
+  }
+
+  // Handle objects
+  if (type.isClassOrInterface()) {
+    if (symbol?.name === 'Date') {
+      return { kind: 'date' }
+    }
+
+    const result = transformObjectToIntermediate(
+      type,
+      typeChecker,
+      rootNode,
+      metadata
+    )
+
+    // Add type information
+    if (typeName) {
+      result.originalName = typeName
+    }
+
+    return result
   }
 
   // Check for enum type
@@ -178,24 +328,33 @@ function transformTypeToIntermediate(
 
   return (
     basicTypeMap[typeAsString] ||
-    transformObjectToIntermediate(type, typeChecker, rootNode)
+    transformObjectToIntermediate(type, typeChecker, rootNode, metadata)
   )
 }
 
 function transformObjectToIntermediate(
   type: ts.Type,
   typeChecker: ts.TypeChecker,
-  rootNode: ts.Node
+  rootNode: ts.Node,
+  metadata: TraverseMeta
 ): ObjectType {
   const properties: Record<string, TypeDefinition> = {}
   const required: string[] = []
+
+  const typeName = type.aliasSymbol?.escapedName?.toString()
+
+  // we want to track named object types to not re-visit them again
+  if (typeName) {
+    metadata.visitedTypes?.add(typeName)
+  }
 
   type.getProperties().forEach((prop) => {
     const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
     properties[prop.name] = transformTypeToIntermediate(
       propType,
       typeChecker,
-      rootNode
+      rootNode,
+      metadata
     )
 
     if (!(prop.flags & ts.SymbolFlags.Optional)) {
@@ -207,10 +366,35 @@ function transformObjectToIntermediate(
     kind: 'object',
     properties,
     ...(required.length > 0 ? { required } : {}),
+    ...(typeName ? { name: typeName } : {}),
   }
 }
 
-export function transformToOpenAPI3(type: TypeDefinition): any {
+export function getOpenAPI3Spec(rootType: TypeDefinition, replaceRefs = true) {
+  const components: Record<string, any> = {}
+  const spec = resolveTypeToOpenAPI3({
+    type: rootType,
+    components,
+    replaceRefs,
+  })
+
+  return {
+    spec,
+    components,
+  }
+}
+
+type ResolveTypeToOpenAPI3Args = {
+  type: TypeDefinition
+  components: Record<string, any>
+  replaceRefs: boolean
+}
+
+function resolveTypeToOpenAPI3({
+  type,
+  components,
+  replaceRefs,
+}: ResolveTypeToOpenAPI3Args): any {
   switch (type.kind) {
     case 'string':
       return {
@@ -235,24 +419,43 @@ export function transformToOpenAPI3(type: TypeDefinition): any {
     case 'array':
       return {
         type: 'array',
-        items: transformToOpenAPI3(type.items),
+        items: resolveTypeToOpenAPI3({
+          type: type.items,
+          components,
+          replaceRefs,
+        }),
         ...(type.minItems ? { minItems: type.minItems } : {}),
         ...(type.maxItems ? { maxItems: type.maxItems } : {}),
         ...(type.uniqueItems ? { uniqueItems: type.uniqueItems } : {}),
       }
-    case 'object':
-      return {
+    case 'object': {
+      const objectSpec = {
         type: 'object',
         properties: Object.fromEntries(
           Object.entries(type.properties).map(([key, value]) => [
             key,
-            transformToOpenAPI3(value),
+            resolveTypeToOpenAPI3({ type: value, components, replaceRefs }),
           ])
         ),
         ...(type.required ? { required: type.required } : {}),
       }
+
+      if (type.name) {
+        components[type.name] = objectSpec
+
+        if (replaceRefs) {
+          return {
+            $ref: `#/components/schemas/${type.name}`,
+          }
+        }
+      }
+
+      return objectSpec
+    }
     case 'union': {
-      const unionTypes = type.types.map((t) => transformToOpenAPI3(t))
+      const unionTypes = type.types.map((t) =>
+        resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
+      )
       if (unionTypes.every((t) => t.enum)) {
         return {
           type: unionTypes[0].type,
@@ -263,7 +466,9 @@ export function transformToOpenAPI3(type: TypeDefinition): any {
     }
     case 'intersection':
       return {
-        allOf: type.types.map((t) => transformToOpenAPI3(t)),
+        allOf: type.types.map((t) =>
+          resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
+        ),
       }
     case 'literal':
       return {
@@ -280,6 +485,19 @@ export function transformToOpenAPI3(type: TypeDefinition): any {
         type: type.type,
         enum: type.values,
       }
+    case 'generic':
+      return resolveTypeToOpenAPI3({
+        type: type.structure,
+        components,
+        replaceRefs,
+      })
+    case 'ref':
+      return {
+        $ref: `#/components/schemas/${type.name}`,
+      }
+    case 'any':
+    case 'unknown':
+      return { type: 'object' }
   }
 }
 
