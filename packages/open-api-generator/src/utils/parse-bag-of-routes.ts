@@ -1,6 +1,9 @@
 import { HashMap } from '@t-rest/core'
 import ts from 'typescript'
 import { ObjectType, TypeDefinition } from '../schema/type-schema'
+import debug from 'debug'
+
+const parserLog = debug('t-rest:open-api-generator:parser')
 
 export type RouteTypeInfo = {
   input: TypeDefinition | undefined
@@ -8,6 +11,8 @@ export type RouteTypeInfo = {
 }
 
 export const parseBagOfRoutes = (modulePath: string) => {
+  parserLog('Parsing routes from module: %s', modulePath)
+
   const { sourceFile, typeChecker } = initializeProgram(modulePath)
   const rootNode = findDefaultExport(sourceFile)
   const routeTypes = extractRouteTypes(rootNode, typeChecker)
@@ -23,6 +28,8 @@ export const parseBagOfRoutes = (modulePath: string) => {
       rootNode
     )
 
+    parserLog('Processing route: %s %s (v%s)', method, path, version)
+
     const validatorType = extractValidatorType(routeType, typeChecker, rootNode)
     const responseType = extractResponseType(routeType, typeChecker, rootNode)
 
@@ -35,6 +42,8 @@ export const parseBagOfRoutes = (modulePath: string) => {
         : undefined,
     })
   }
+
+  parserLog('Finished parsing %d routes', results.size)
 
   return results
 }

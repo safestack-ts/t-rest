@@ -41,7 +41,15 @@ paths:
           in: path
           required: true
           schema:
-            type: string
+            oneOf:
+              - type: string
+              - type: number
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
       responses:
         "200":
           description: Successful response
