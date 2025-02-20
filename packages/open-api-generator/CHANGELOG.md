@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.18
+
+### Patch Changes
+
+- 7a5c5d7: add debug package with basic debug logs
+
 ## 1.0.0-alpha.17
 
 ### Patch Changes
