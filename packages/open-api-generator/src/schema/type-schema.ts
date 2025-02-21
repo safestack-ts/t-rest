@@ -26,6 +26,13 @@ export type TypeKind =
   | 'literal'
   | 'date'
   | 'enum'
+  | 'buffer'
+  | 'bigint'
+  | 'symbol'
+  | 'map'
+  | 'set'
+  | 'regexp'
+  | 'stream'
 
 const validateBaseType: z.ZodType<BaseType> = z.object({
   description: z.string().optional(),
@@ -155,6 +162,23 @@ export interface ObjectType extends BaseType {
 
 export const ObjectType = (args: Omit<ObjectType, 'kind'>): ObjectType => ({
   kind: 'object',
+  ...args,
+})
+
+export const validateRecordType: z.ZodType<RecordType> = validateBaseType.and(
+  z.object({
+    kind: z.literal('record'),
+    value: z.lazy(() => validateTypeDefinition),
+  })
+)
+
+export interface RecordType extends BaseType {
+  kind: 'record'
+  value: TypeDefinition
+}
+
+export const RecordType = (args: Omit<RecordType, 'kind'>): RecordType => ({
+  kind: 'record',
   ...args,
 })
 
@@ -354,6 +378,7 @@ export const validateTypeDefinition: z.ZodType<TypeDefinition> = z
       validateNullType,
       validateArrayType,
       validateObjectType,
+      validateRecordType,
       validateUnionType,
       validateIntersectionType,
       validateLiteralType,
@@ -377,6 +402,7 @@ export type TypeDefinition = {
   | NumberType
   | BooleanType
   | ObjectType
+  | RecordType
   | NullType
   | ArrayType
   | UnionType

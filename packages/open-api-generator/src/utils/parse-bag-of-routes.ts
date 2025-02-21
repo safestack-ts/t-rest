@@ -38,8 +38,7 @@ export const parseBagOfRoutes = (modulePath: string) => {
       version
     )
     const validatorType = extractValidatorType(routeType, typeChecker, rootNode)
-    const validatorTypeStr =
-      validatorType && typeChecker.typeToString(validatorType)
+
     parserLog(
       'Parsing response type of route: %s %s (v%s)',
       method,
@@ -89,6 +88,24 @@ function transformTypeToIntermediate(
   if (typeRef.aliasTypeArguments?.length) {
     const baseTypeName =
       typeName || symbol?.getName() || typeChecker.typeToString(type)
+
+    if (baseTypeName === 'Record') {
+      const stringIndexType = typeChecker.getIndexInfoOfType(
+        type,
+        ts.IndexKind.String
+      )
+      if (stringIndexType && stringIndexType.type) {
+        return {
+          kind: 'record',
+          value: transformTypeToIntermediate(
+            stringIndexType.type,
+            typeChecker,
+            rootNode,
+            metadata
+          ),
+        }
+      }
+    }
 
     // Get the generic type structure
     const properties: Record<string, TypeDefinition> = {}
@@ -514,6 +531,16 @@ function resolveTypeToOpenAPI3({
       }
 
       return objectSpec
+    }
+    case 'record': {
+      return {
+        type: 'object',
+        additionalProperties: resolveTypeToOpenAPI3({
+          type: type.value,
+          components,
+          replaceRefs,
+        }),
+      }
     }
     case 'union': {
       const unionTypes = type.types.map((t) =>
