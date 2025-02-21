@@ -1,13 +1,12 @@
 import { HTTPMethod } from '../../types/http-method'
 import { RouteDef } from '../core/route-def'
 import { RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData } from './route-builder-with-version-and-method-and-path-and-validator-and-meta-data'
-import { AnyRouteValidator } from '../../types/any-route-validator'
 
 export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
   TVersion extends string,
   TMethod extends HTTPMethod,
   TPath extends string,
-  TValidator extends AnyRouteValidator
+  TValidator
 > {
   constructor(
     private version: TVersion,

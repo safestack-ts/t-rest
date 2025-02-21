@@ -1,12 +1,11 @@
 import { HTTPMethod } from '../../types/http-method'
-import { AnyRouteValidator } from '../../types/any-route-validator'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 export class RouteDef<
   TVersion extends string,
   TMethod extends HTTPMethod,
   TPath extends string,
-  TValidator extends AnyRouteValidator,
+  TValidator,
   TResponse,
   TMetaData
 > {
@@ -15,7 +14,9 @@ export class RouteDef<
   public readonly path: TPath
   public readonly validator: TValidator
   public readonly ['~responseType']: TResponse
-  public readonly ['~validatorOutputType']: StandardSchemaV1.InferOutput<TValidator>
+  public readonly ['~validatorOutputType']: TValidator extends StandardSchemaV1
+    ? StandardSchemaV1.InferOutput<TValidator>
+    : never
   public readonly metaData: TMetaData
 
   constructor(

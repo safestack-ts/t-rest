@@ -56,9 +56,9 @@ export class SupertestAdapterWithVersioning<
           { method: TMethod; path: TAbsolutePath; version: TVersion }
         >['~responseType']
       >(method, this.versionInjector.modifyUrl(path, version), {
-        ...context,
+        ...(context as any),
         headers: this.versionInjector.modifyHeaders(
-          context.headers ?? {},
+          (context as any)?.headers ?? {},
           version
         ),
       })

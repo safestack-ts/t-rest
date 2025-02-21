@@ -38,6 +38,8 @@ export const parseBagOfRoutes = (modulePath: string) => {
       version
     )
     const validatorType = extractValidatorType(routeType, typeChecker, rootNode)
+    const validatorTypeStr =
+      validatorType && typeChecker.typeToString(validatorType)
     parserLog(
       'Parsing response type of route: %s %s (v%s)',
       method,
@@ -670,11 +672,35 @@ function extractValidatorType(
   typeChecker: ts.TypeChecker,
   rootNode: ts.Node
 ) {
-  const validatorOutput = routeType.getProperty('~validatorOutputType')
-  return (
-    validatorOutput &&
-    typeChecker.getTypeOfSymbolAtLocation(validatorOutput, rootNode)
-  )
+  const typeArguments = (routeType as ts.TypeReference).typeArguments
+  if (!typeArguments || typeArguments.length < 4) return undefined
+
+  const validatorOutputType = typeArguments[3]
+
+  if (validatorOutputType) {
+    const outputTypeStr = typeChecker.typeToString(validatorOutputType)
+    parserLog('Validator output type: %s', outputTypeStr)
+    const standardProperty = validatorOutputType.getProperty('~standard')
+    if (!standardProperty) return undefined
+
+    const standardType = typeChecker.getTypeOfSymbolAtLocation(
+      standardProperty,
+      rootNode
+    )
+    const typesProperty = standardType.getProperty('types')
+    if (!typesProperty) return undefined
+
+    const typesType = typeChecker.getTypeOfSymbolAtLocation(
+      typesProperty,
+      rootNode
+    )
+    const outputProperty = typesType.getProperty('output')
+    if (!outputProperty) return undefined
+
+    return typeChecker.getTypeOfSymbolAtLocation(outputProperty, rootNode)
+  }
+
+  return undefined
 }
 
 function extractResponseType(
