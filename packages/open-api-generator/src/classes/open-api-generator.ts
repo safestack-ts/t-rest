@@ -57,7 +57,11 @@ export abstract class OpenAPIGenerator {
           ...schema,
           paths,
           components: {
-            schemas: components,
+            schemas: Object.fromEntries(
+              Object.keys(components)
+                .sort()
+                .map((key) => [key, components[key]])
+            ),
           },
         },
         null,

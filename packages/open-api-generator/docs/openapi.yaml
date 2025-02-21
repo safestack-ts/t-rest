@@ -34,22 +34,71 @@ paths:
           in: path
           required: true
           schema:
-            oneOf:
-              - type: string
-              - type: number
+            type: string
         - name: discountId
           in: path
           required: true
           schema:
-            oneOf:
-              - type: string
-              - type: number
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties: {}
+            type: number
+        - name: formState
+          in: query
+          required: false
+          schema:
+            type: object
+            properties:
+              validity:
+                type: object
+                properties:
+                  from:
+                    type: string
+                  to:
+                    type: string
+              allocation:
+                oneOf:
+                  - type: object
+                    properties:
+                      value:
+                        type: number
+                      kind:
+                        type: string
+                        enum:
+                          - quantity
+                  - type: object
+                    properties:
+                      values:
+                        type: array
+                        items:
+                          oneOf:
+                            - type: object
+                              properties:
+                                kind:
+                                  type: string
+                                  enum:
+                                    - anonymous
+                                quantity:
+                                  type: number
+                                personType:
+                                  type: string
+                            - type: object
+                              properties:
+                                kind:
+                                  type: string
+                                  enum:
+                                    - personalized
+                                personType:
+                                  type: string
+                                personIds:
+                                  type: array
+                                  items:
+                                    type: number
+                      kind:
+                        type: string
+                        enum:
+                          - persontype
+              attributes:
+                type: object
+                additionalProperties:
+                  type: string
       responses:
         "200":
           description: Successful response
@@ -92,15 +141,7 @@ paths:
           in: path
           required: true
           schema:
-            oneOf:
-              - type: string
-              - type: number
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties: {}
+            type: number
       responses:
         "200":
           description: Successful response
