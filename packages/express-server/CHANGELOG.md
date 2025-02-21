@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.19
+
+### Patch Changes
+
+- 8637247: support semantic changes in route params
+
 ## 1.0.0-alpha.18
 
 ### Patch Changes
