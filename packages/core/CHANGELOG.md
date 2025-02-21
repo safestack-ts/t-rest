@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.15
+
+### Patch Changes
+
+- 0e4422d: temporary remove route validator input shape for correct type inference in open api generator
+
 ## 1.0.0-alpha.14
 
 ### Patch Changes

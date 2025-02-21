@@ -1,5 +1,13 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.23
+
+### Patch Changes
+
+- 0e4422d: sort schema components alphabetically & support detection of records
+- Updated dependencies [0e4422d]
+  - @t-rest/core@1.0.0-alpha.15
+
 ## 1.0.0-alpha.22
 
 ### Patch Changes
