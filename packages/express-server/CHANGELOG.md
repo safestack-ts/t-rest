@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.20
+
+### Patch Changes
+
+- dd94030: fix request params alias modification preserver object integrity
+
 ## 1.0.0-alpha.19
 
 ### Patch Changes
