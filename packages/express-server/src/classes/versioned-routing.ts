@@ -13,7 +13,7 @@ import {
   ExpressRequest,
   ExpressResponse,
 } from '../types/express-type-shortcuts'
-import { RouteBundle } from '../types/route-bundle'
+import { ParamAlias, RouteBundle } from '../types/route-bundle'
 import { TypedMiddleware } from '../types/typed-middleware'
 import { VersionExtractor } from '../types/version-extractor'
 import { isDateVersionExtractor } from '../utils/is-date-version-extractor'
@@ -46,12 +46,22 @@ export class VersionedRouting {
     handler: AnyRouteHandlerFn,
     middlewares: TypedMiddleware<any, any>[]
   ) {
-    const key = [route.method, route.path] as [HTTPMethod, string]
+    const key = [route.method, this.getNormalizedPathPattern(route.path)] as [
+      HTTPMethod,
+      string
+    ]
 
     if (this.routes.has(key)) {
-      this.routes.get(key)!.push({ route, handler, middlewares })
+      const currentRoutes = this.routes.get(key)!
+      this.routes.set(
+        key,
+        this.getRoutesWithPathParamAliases([
+          ...currentRoutes,
+          { route, handler, middlewares, paramAliases: [] },
+        ])
+      )
     } else {
-      this.routes.set(key, [{ route, handler, middlewares }])
+      this.routes.set(key, [{ route, handler, middlewares, paramAliases: [] }])
 
       this.initRouting(route)
     }
@@ -75,7 +85,7 @@ export class VersionedRouting {
           this.versionHistory.at(-1)
       )
 
-      const { middlewares, handler, route } = routeToExecute
+      const { middlewares, handler, route, paramAliases } = routeToExecute
 
       // emulate express behavior for executing middlewares
       let i = 0
@@ -85,17 +95,26 @@ export class VersionedRouting {
         if (middleware) {
           await middleware(request, response, nextMiddleware)
         } else {
+          const requestWithParamAliases = this.getRequestWithParamAliases(
+            request,
+            paramAliases
+          )
+
           const validationOutput = await route.validator['~standard'].validate(
-            request
+            requestWithParamAliases
           )
 
           if (validationOutput.issues) {
             throw new ValidationError(validationOutput.issues)
           }
 
-          ;(request as any).version = version
+          ;(requestWithParamAliases as any).version = version
 
-          await handler(request, validationOutput.value, response)
+          await handler(
+            requestWithParamAliases,
+            validationOutput.value,
+            response
+          )
         }
       }
       await nextMiddleware()
@@ -107,7 +126,10 @@ export class VersionedRouting {
     path: string,
     requestedVersion: string | undefined
   ) {
-    const key = [method, path] as [HTTPMethod, string]
+    const key = [method, this.getNormalizedPathPattern(path)] as [
+      HTTPMethod,
+      string
+    ]
     const routes = this.routes.get(key)
 
     if (!routes) {
@@ -161,5 +183,85 @@ export class VersionedRouting {
         version: { requested: requestedVersion, resolved: resolvedVersion },
       }
     }
+  }
+
+  protected getNormalizedPathPattern(path: string): string {
+    // Replace Express-style params (:paramName) with %s
+    return path.replace(/:[a-zA-Z0-9]+/g, '%s')
+  }
+
+  protected getRoutesWithPathParamAliases(
+    routes: RouteBundle[]
+  ): RouteBundle[] {
+    const routesSortedByVersion = this.getRoutesSortedByVersion(routes)
+
+    return routesSortedByVersion.map((route) => {
+      const firstRoute = routesSortedByVersion[0]
+      const currentParams = route.route.path.match(/:[a-zA-Z0-9]+/g) || []
+      const firstRouteParams =
+        firstRoute.route.path.match(/:[a-zA-Z0-9]+/g) || []
+
+      const paramAliases = currentParams.reduce((aliases, param, index) => {
+        if (param !== firstRouteParams[index]) {
+          aliases.push({
+            oldName: firstRouteParams[index].replace(':', ''),
+            newName: param.replace(':', ''),
+            since: route.route.version,
+          })
+        }
+        return aliases
+      }, [] as ParamAlias[])
+
+      return {
+        ...route,
+        paramAliases,
+      }
+    })
+  }
+
+  protected getRequestWithParamAliases(
+    request: ExpressRequest,
+    paramAliases: ParamAlias[]
+  ): ExpressRequest {
+    const newRequest = { ...request, params: { ...request.params } }
+
+    paramAliases.forEach((alias) => {
+      newRequest.params[alias.newName] = request.params[alias.oldName]
+      delete newRequest.params[alias.oldName]
+    })
+
+    return newRequest as ExpressRequest
+  }
+
+  protected getRoutesSortedByVersion(routes: RouteBundle[]): RouteBundle[] {
+    return routes.sort((a, b) => {
+      const versionA = a.route.version
+      const versionB = b.route.version
+
+      if (isDateVersionExtractor(this.versionExtractor)) {
+        // Check if versions are dates using this.versionExtractor.parseDate
+        const dateA = this.versionExtractor.parseDate(versionA)
+        const dateB = this.versionExtractor.parseDate(versionB)
+
+        if (dateA && dateB) {
+          return dateA.getTime() - dateB.getTime()
+        }
+      }
+
+      // Check if versions are semver
+      const semverRegex = /^\d+\.\d+\.\d+$/
+      const isSemverA = semverRegex.test(versionA)
+      const isSemverB = semverRegex.test(versionB)
+
+      if (isSemverA && isSemverB) {
+        return versionA.localeCompare(versionB, undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        })
+      }
+
+      // Fallback to simple string comparison for no versioning or other cases
+      return versionA.localeCompare(versionB)
+    })
   }
 }

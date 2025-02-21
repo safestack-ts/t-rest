@@ -10,6 +10,8 @@ import { StatusCodes } from 'http-status-codes'
 import { DateVersionExtractor } from '../types/date-version-extractor'
 import { TypedExpressApplication } from '../classes/typed-express-application'
 import { ExpressApp, ExpressRequest } from '../types/express-type-shortcuts'
+import { BagOfRoutes, Route, Versioning, ze } from '@t-rest/core'
+import { z } from 'zod'
 
 const { bagOfRoutes: baseBagOfRoutes, versionHistory } =
   TestBagOfRoutesWithVersioning
@@ -167,5 +169,92 @@ test('calling route with version in between two history versions resolves to nea
       email: `user-1337@email.com`,
     },
     version: '2024-01-01',
+  })
+})
+
+test('calling versioned route with semantic parameter change both versions are still resolvable', async () => {
+  const bagOfRoutes = BagOfRoutes.withVersioning(
+    Versioning.DATE,
+    versionHistory
+  )
+    .addRoute(
+      Route.version('2024-01-01')
+        .get('/users/:userId')
+        .validate(z.object({ params: z.object({ userId: ze.parseInteger() }) }))
+        .response<ResponseWithVersion<User>>()
+    )
+    .addRoute(
+      Route.version('2024-02-01')
+        .get('/users/:userIdentifier')
+        .validate(z.object({ params: z.object({ userIdentifier: ze.uuid() }) }))
+        .response<ResponseWithVersion<User>>()
+    )
+    .build()
+
+  const expressApp = Express()
+
+  const typedExpressApplication = TypedExpressApplication.withVersioning(
+    expressApp,
+    bagOfRoutes,
+    versionHistory,
+    new APIVersionHeaderExtractor()
+  )
+
+  typedExpressApplication
+    .get('/users/:userId')
+    .version('2024-01-01')
+    .handle(
+      (
+        { version: { resolved: resolvedVersion } },
+        { params: { userId } },
+        response
+      ) => {
+        response.status(200).json({
+          version: resolvedVersion,
+          data: { id: userId, email: `user-${userId}@email.com` },
+        })
+      }
+    )
+
+  typedExpressApplication
+    .get('/users/:userIdentifier')
+    .version('2024-02-01')
+    .handle(
+      (
+        { version: { resolved: resolvedVersion } },
+        { params: { userIdentifier } },
+        response
+      ) => {
+        response.status(200).json({
+          version: resolvedVersion,
+          data: { id: 42, email: `user-${userIdentifier}@email.com` },
+        })
+      }
+    )
+
+  const responseV20240101 = await request(expressApp)
+    .get('/users/1337')
+    .set('X-API-Version', '2024-01-01')
+    .expect(StatusCodes.OK)
+
+  expect(responseV20240101.body).toEqual<ResponseWithVersion<User>>({
+    data: {
+      id: 1337,
+      email: `user-1337@email.com`,
+    },
+    version: '2024-01-01',
+  })
+
+  const responseV20240201 = await request(expressApp)
+    .get('/users/5042df2b-3760-4bdb-9789-babd5a917d93')
+    .set('X-API-Version', '2024-02-01')
+    .expect(StatusCodes.OK)
+
+  expect(responseV20240201.body).toEqual<ResponseWithVersion<User>>({
+    data: {
+      id: 42,
+      email: `user-5042df2b-3760-4bdb-9789-babd5a917d93@email.com`,
+    },
+    version: '2024-02-01',
   })
 })
