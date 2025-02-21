@@ -223,14 +223,15 @@ export class VersionedRouting {
     request: ExpressRequest,
     paramAliases: ParamAlias[]
   ): ExpressRequest {
-    const newRequest = { ...request, params: { ...request.params } }
+    const newRequest = Object.create(request)
+    newRequest.params = { ...request.params }
 
     paramAliases.forEach((alias) => {
       newRequest.params[alias.newName] = request.params[alias.oldName]
       delete newRequest.params[alias.oldName]
     })
 
-    return newRequest as ExpressRequest
+    return newRequest
   }
 
   protected getRoutesSortedByVersion(routes: RouteBundle[]): RouteBundle[] {
