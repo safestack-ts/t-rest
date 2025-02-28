@@ -95,7 +95,7 @@ export const versionHistory = VersionHistory([
 
 type Identify<T> = T
 type UserWithSubUsers = User & {
-  subUsers: UserWithSubUsers[]
+  subUsers: (User | UserWithSubUsers)[]
   credit: Identify<number>
   photo: Buffer
 }

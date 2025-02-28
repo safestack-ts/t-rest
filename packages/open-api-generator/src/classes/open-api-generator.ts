@@ -199,6 +199,13 @@ export abstract class OpenAPIGenerator {
             ...(metaData.headers ?? []),
           ]
 
+          const querySchema =
+            route.typeInfo.input?.kind === 'object' &&
+            route.typeInfo.input.properties.query?.kind === 'object' &&
+            route.typeInfo.input.properties.query.properties
+              ? getOpenAPI3Spec(route.typeInfo.input.properties.query, true)
+              : undefined
+
           const bodySchema =
             route.typeInfo.input?.kind === 'object' &&
             route.typeInfo.input.properties.body
@@ -212,6 +219,7 @@ export abstract class OpenAPIGenerator {
           const components = {
             ...(bodySchema?.components ?? {}),
             ...(responseSchema?.components ?? {}),
+            ...(querySchema?.components ?? {}),
           }
 
           Object.entries(components).forEach(([key, value]) => {
@@ -258,7 +266,7 @@ export abstract class OpenAPIGenerator {
                             name
                           )) ??
                         false,
-                      schema: getOpenAPI3Spec(schema, false).spec,
+                      schema: getOpenAPI3Spec(schema, true).spec,
                     }))
                   : []),
               ],

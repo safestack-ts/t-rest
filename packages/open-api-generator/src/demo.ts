@@ -5,7 +5,7 @@ import bagOfRoutes from './bag'
 import { validateRouteMeta } from './schema/route-meta'
 
 const main = async () => {
-  const spec = OpenAPISpec.ofVersion(bagOfRoutes, '2024-02-01').withMetaData({
+  const spec = OpenAPISpec.ofVersion(bagOfRoutes, '2024-01-01').withMetaData({
     title: 'My API',
     description: 'My API description',
     contact: {
