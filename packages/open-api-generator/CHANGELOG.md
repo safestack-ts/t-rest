@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.25
+
+### Patch Changes
+
+- eb762ab: resolve components in query params
+
 ## 1.0.0-alpha.24
 
 ### Patch Changes
