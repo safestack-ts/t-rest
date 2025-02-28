@@ -145,11 +145,11 @@ export const bagOfRoutes = BagOfRoutes.withVersioning(
   )
   .addRoute(
     Route.version('2024-02-01')
-      .get('/users/:userId')
-      .validate(z.object({ params: z.object({ userId: ze.uuid() }) }))
+      .get('/users/:userIdentifier')
+      .validate(z.object({ params: z.object({ userIdentifier: ze.uuid() }) }))
       .metaData(
         RouteMeta({
-          summary: 'Get user by id',
+          summary: 'Get user by identifier',
           description: dedent`
             Get user by id if the user exists and is part of the requested client specified in the pratiq-client-id http header.
             

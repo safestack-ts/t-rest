@@ -93,7 +93,7 @@ export abstract class OpenAPIGenerator {
     )
 
     const finalRoutes = Array.from(routesUnfolded.entries())
-      .map(([[method, path], values]) => {
+      .map(([[method], values]) => {
         const resolvedRoute = (() => {
           if (bagOfRoutes.versioning === Versioning.NO_VERSIONING) {
             return values.at(0)
@@ -127,7 +127,7 @@ export abstract class OpenAPIGenerator {
 
         return {
           method,
-          path,
+          path: resolvedRoute.typeInfo.routeMeta.originalPath,
           route: resolvedRoute,
         }
       })

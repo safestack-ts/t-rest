@@ -1,4 +1,4 @@
-import { HashMap } from '@t-rest/core'
+import { HashMap, normalizePathPattern } from '@t-rest/core'
 import ts from 'typescript'
 import { ObjectType, TypeDefinition } from '../schema/type-schema'
 import debug from 'debug'
@@ -9,6 +9,9 @@ const typeDiscoveryLog = debug('t-rest:open-api-generator:type-discovery')
 export type RouteTypeInfo = {
   input: TypeDefinition | undefined
   output: TypeDefinition | undefined
+  routeMeta: {
+    originalPath: string
+  }
 }
 
 export const parseBagOfRoutes = (modulePath: string) => {
@@ -58,9 +61,15 @@ export const parseBagOfRoutes = (modulePath: string) => {
             visitedTypes: new Set(),
           })
         : undefined,
+      routeMeta: {
+        originalPath: path,
+      },
     }
 
-    results.set([method, path, version], inputOutputIntermediate)
+    results.set(
+      [method, normalizePathPattern(path), version],
+      inputOutputIntermediate
+    )
   }
 
   parserLog('Finished parsing %d routes', results.size)

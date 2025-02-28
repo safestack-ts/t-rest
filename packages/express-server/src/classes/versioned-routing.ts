@@ -7,6 +7,7 @@ import {
   resolveDateVersion,
   resolveVersion,
   ValidationError,
+  normalizePathPattern,
 } from '@t-rest/core'
 import { AnyRouteHandlerFn } from '../types/any-route-handler-fn'
 import {
@@ -46,7 +47,7 @@ export class VersionedRouting {
     handler: AnyRouteHandlerFn,
     middlewares: TypedMiddleware<any, any>[]
   ) {
-    const key = [route.method, this.getNormalizedPathPattern(route.path)] as [
+    const key = [route.method, normalizePathPattern(route.path)] as [
       HTTPMethod,
       string
     ]
@@ -126,10 +127,7 @@ export class VersionedRouting {
     path: string,
     requestedVersion: string | undefined
   ) {
-    const key = [method, this.getNormalizedPathPattern(path)] as [
-      HTTPMethod,
-      string
-    ]
+    const key = [method, normalizePathPattern(path)] as [HTTPMethod, string]
     const routes = this.routes.get(key)
 
     if (!routes) {
@@ -183,11 +181,6 @@ export class VersionedRouting {
         version: { requested: requestedVersion, resolved: resolvedVersion },
       }
     }
-  }
-
-  protected getNormalizedPathPattern(path: string): string {
-    // Replace Express-style params (:paramName) with %s
-    return path.replace(/:[a-zA-Z0-9]+/g, '%s')
   }
 
   protected getRoutesWithPathParamAliases(

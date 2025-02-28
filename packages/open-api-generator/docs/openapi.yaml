@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: My API
-  version: 2024-01-01
+  version: 2024-02-01
 servers:
   - url: https://api.example.com
     description: Production server
@@ -114,11 +114,16 @@ paths:
                 required:
                   - email
                   - message
-  /users/:userId:
+  /users/:userIdentifier:
     get:
-      summary: Get user by id
-      description: Get user by id if the user exists and is part of the requested
-        client specified in the pratiq-client-id http header.
+      summary: Get user by identifier
+      description: >-
+        Get user by id if the user exists and is part of the requested client
+        specified in the pratiq-client-id http header.
+
+
+        In addition, this new revision of the route also includes the tags of
+        the user in the response.
       tags:
         - users
       operationId: getUserById
@@ -137,11 +142,11 @@ paths:
           required: false
           schema:
             type: string
-        - name: userId
+        - name: userIdentifier
           in: path
           required: true
           schema:
-            type: number
+            type: string
       responses:
         "200":
           description: Successful response
@@ -151,7 +156,60 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: "#/components/schemas/UserWithSubUsers"
+                    $ref: "#/components/schemas/UserWithTags"
+                  version:
+                    type: string
+                required:
+                  - data
+                  - version
+  /complexRoute:
+    get:
+      parameters:
+        - name: pratiq-client-id
+          in: header
+          description: Global Webshop Client Id
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: number
+        - name: pratiq-channel-uuid
+          in: header
+          description: UUID of the sales channel
+          required: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                from:
+                  type: string
+                  format: date-time
+                to:
+                  type: string
+                  format: date-time
+                validAt:
+                  type: string
+                  format: date-time
+                productDefinitionIds:
+                  type: array
+                  items:
+                    type: number
+                ignoreStale:
+                  type: boolean
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/UserWithTags"
                   version:
                     type: string
                 required:
@@ -159,25 +217,18 @@ paths:
                   - version
 components:
   schemas:
-    UserWithSubUsers:
+    UserWithTags:
       type: object
       properties:
         id:
           type: number
         email:
           type: string
-        subUsers:
+        tags:
           type: array
           items:
-            $ref: "#/components/schemas/UserWithSubUsers"
-        credit:
-          type: number
-        photo:
-          type: string
-          format: binary
+            type: string
       required:
         - id
         - email
-        - subUsers
-        - credit
-        - photo
+        - tags
