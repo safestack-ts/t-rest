@@ -21,11 +21,21 @@ import {
 import { groupBy, merge } from 'lodash'
 import { validateRouteMeta } from '../schema/route-meta'
 
+type SpecFilterRoute = {
+  method: HTTPMethod
+  path: string
+  version?: string
+  metaData?: unknown
+}
+
+type SpecFilter = (route: SpecFilterRoute) => boolean
+
 type GenerateSpec = {
   spec: OpenAPISpecWithMetaData<any>
   outputFile: string
   outputDir: string
   entry: string
+  filter?: SpecFilter
 }
 
 export abstract class OpenAPIGenerator {
@@ -40,6 +50,7 @@ export abstract class OpenAPIGenerator {
     outputFile,
     outputDir,
     entry,
+    filter = () => true,
   }: GenerateSpec) {
     this.validateOutputFile(outputFile)
     await this.ensureOutputDir(outputDir)
@@ -48,7 +59,8 @@ export abstract class OpenAPIGenerator {
     const { paths, components } = this.bagOfRoutesToSchema(
       spec.bagOfRoutes,
       entry,
-      spec.metaData
+      spec.metaData,
+      filter
     )
     await this.writeFile(
       path.join(outputDir, outputFile),
@@ -73,11 +85,27 @@ export abstract class OpenAPIGenerator {
   private static bagOfRoutesToSchema(
     bagOfRoutes: BagOfRoutes<any, any, any>,
     entryPath: string,
-    metaData: OpenAPIMetaData
+    metaData: OpenAPIMetaData,
+    filter: SpecFilter
   ) {
     const routes = parseBagOfRoutes(entryPath)
     const routesUnfolded = Array.from(routes.entries()).reduce(
       (acc, [[method, path, version], typeInfo]) => {
+        const routeDef = bagOfRoutes.routes.get([
+          method as HTTPMethod,
+          path,
+          version,
+        ])
+        if (
+          !filter({
+            method: method as HTTPMethod,
+            path: typeInfo.routeMeta.originalPath,
+            version,
+            metaData: routeDef?.metaData,
+          })
+        )
+          return acc
+
         if (acc.has([method, path])) {
           acc.get([method, path])?.push({ version, typeInfo })
         } else {

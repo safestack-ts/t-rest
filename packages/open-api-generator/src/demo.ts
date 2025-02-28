@@ -2,6 +2,7 @@ import { OpenAPISpec } from './classes/open-api-spec'
 import { OpenAPIGenerator } from './classes/open-api-generator'
 import { NumberType, StringType, UnionType } from './schema/type-schema'
 import bagOfRoutes from './bag'
+import { validateRouteMeta } from './schema/route-meta'
 
 const main = async () => {
   const spec = OpenAPISpec.ofVersion(bagOfRoutes, '2024-02-01').withMetaData({
@@ -48,6 +49,12 @@ const main = async () => {
       outputFile: 'openapi.yaml',
       outputDir: 'docs',
       entry: './src/bag.ts',
+      /*filter: ({ metaData }) => {
+        const metaDataValidation = validateRouteMeta.safeParse(metaData)
+        return metaDataValidation.success
+          ? metaDataValidation.data.tags?.includes('public') ?? false
+          : false
+      },*/
     },
   ])
 }
