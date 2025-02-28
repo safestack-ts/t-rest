@@ -1,5 +1,13 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.22
+
+### Patch Changes
+
+- 29fb852: move normalizePathPattern() utility to core package
+- Updated dependencies [29fb852]
+  - @t-rest/core@1.0.0-alpha.16
+
 ## 1.0.0-alpha.21
 
 ### Patch Changes

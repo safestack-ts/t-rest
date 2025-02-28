@@ -1,5 +1,14 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.24
+
+### Patch Changes
+
+- 29fb852: normalize route paths
+- a0e7da7: support filtering
+- Updated dependencies [29fb852]
+  - @t-rest/core@1.0.0-alpha.16
+
 ## 1.0.0-alpha.23
 
 ### Patch Changes

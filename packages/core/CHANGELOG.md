@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.16
+
+### Patch Changes
+
+- 29fb852: move normalizePathPattern() utility to core package
+
 ## 1.0.0-alpha.15
 
 ### Patch Changes
