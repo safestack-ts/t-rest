@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.26
+
+### Patch Changes
+
+- e4f7501: fix filter metaData argument
+
 ## 1.0.0-alpha.25
 
 ### Patch Changes
