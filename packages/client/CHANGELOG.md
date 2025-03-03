@@ -1,5 +1,11 @@
 # @t-rest/client
 
+## 1.0.0-alpha.21
+
+### Patch Changes
+
+- ef1862d: axios http adapter support whole axios request config
+
 ## 1.0.0-alpha.20
 
 ### Patch Changes
