@@ -93,7 +93,7 @@ export abstract class OpenAPIGenerator {
       (acc, [[method, path, version], typeInfo]) => {
         const routeDef = bagOfRoutes.routes.get([
           method as HTTPMethod,
-          path,
+          typeInfo.routeMeta.originalPath,
           version,
         ])
         if (
