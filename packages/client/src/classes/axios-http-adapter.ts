@@ -1,9 +1,9 @@
-import { AxiosInstance } from 'axios'
+import { AxiosInstance, AxiosRequestConfig } from 'axios'
 import { HTTPAdapter } from '../types/http-adapter'
 import { HTTPMethod } from '@t-rest/core'
 import { RequestConfig } from '../types/request-config'
 
-export class AxiosHTTPAdapter implements HTTPAdapter {
+export class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
   private readonly axiosInstance: AxiosInstance
 
   constructor(axiosInstance: AxiosInstance) {
@@ -14,13 +14,14 @@ export class AxiosHTTPAdapter implements HTTPAdapter {
     method: HTTPMethod,
     url: string,
     data: unknown,
-    requestConfig?: RequestConfig
+    requestConfig?: RequestConfig & AxiosRequestConfig
   ) {
     const response = await this.axiosInstance.request<TResponse>({
       url,
       method,
       data,
       headers: requestConfig?.headers,
+      ...requestConfig,
     })
 
     return {
