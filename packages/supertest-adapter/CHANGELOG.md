@@ -1,5 +1,15 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.26
+
+### Patch Changes
+
+- 4263092: fix alpha release process build esm version
+- Updated dependencies [4263092]
+  - @t-rest/client-utils@1.0.0-alpha.6
+  - @t-rest/core@1.0.0-alpha.18
+  - @t-rest/express-server@1.0.0-alpha.24
+
 ## 1.0.0-alpha.25
 
 ### Patch Changes

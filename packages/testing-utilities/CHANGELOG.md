@@ -1,5 +1,13 @@
 # @t-rest/testing-utilities
 
+## 1.0.1-alpha.19
+
+### Patch Changes
+
+- 4263092: fix alpha release process build esm version
+- Updated dependencies [4263092]
+  - @t-rest/core@1.0.0-alpha.18
+
 ## 1.0.1-alpha.18
 
 ### Patch Changes

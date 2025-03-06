@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.18
+
+### Patch Changes
+
+- 4263092: fix alpha release process build esm version
+
 ## 1.0.0-alpha.17
 
 ### Patch Changes

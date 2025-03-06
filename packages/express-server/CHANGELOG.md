@@ -1,5 +1,13 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.24
+
+### Patch Changes
+
+- 4263092: fix alpha release process build esm version
+- Updated dependencies [4263092]
+  - @t-rest/core@1.0.0-alpha.18
+
 ## 1.0.0-alpha.23
 
 ### Patch Changes

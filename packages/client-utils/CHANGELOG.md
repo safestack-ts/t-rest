@@ -1,5 +1,11 @@
 # @t-rest/client-utils
 
+## 1.0.0-alpha.6
+
+### Patch Changes
+
+- 4263092: fix alpha release process build esm version
+
 ## 1.0.0-alpha.5
 
 ### Patch Changes
