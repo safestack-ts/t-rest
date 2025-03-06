@@ -1,5 +1,15 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.25
+
+### Patch Changes
+
+- fbed986: increment version of all packages
+- Updated dependencies [fbed986]
+  - @t-rest/client-utils@1.0.0-alpha.5
+  - @t-rest/core@1.0.0-alpha.17
+  - @t-rest/express-server@1.0.0-alpha.23
+
 ## 1.0.0-alpha.24
 
 ### Patch Changes

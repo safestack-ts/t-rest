@@ -1,5 +1,13 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.27
+
+### Patch Changes
+
+- fbed986: increment version of all packages
+- Updated dependencies [fbed986]
+  - @t-rest/core@1.0.0-alpha.17
+
 ## 1.0.0-alpha.26
 
 ### Patch Changes

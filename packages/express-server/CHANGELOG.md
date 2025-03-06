@@ -1,5 +1,13 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.23
+
+### Patch Changes
+
+- fbed986: increment version of all packages
+- Updated dependencies [fbed986]
+  - @t-rest/core@1.0.0-alpha.17
+
 ## 1.0.0-alpha.22
 
 ### Patch Changes

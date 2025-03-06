@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.17
+
+### Patch Changes
+
+- fbed986: increment version of all packages
+
 ## 1.0.0-alpha.16
 
 ### Patch Changes

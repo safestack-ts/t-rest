@@ -1,5 +1,11 @@
 # @t-rest/client-utils
 
+## 1.0.0-alpha.5
+
+### Patch Changes
+
+- fbed986: increment version of all packages
+
 ## 1.0.0-alpha.4
 
 ### Patch Changes

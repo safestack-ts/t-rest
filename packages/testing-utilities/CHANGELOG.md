@@ -1,5 +1,13 @@
 # @t-rest/testing-utilities
 
+## 1.0.1-alpha.18
+
+### Patch Changes
+
+- fbed986: increment version of all packages
+- Updated dependencies [fbed986]
+  - @t-rest/core@1.0.0-alpha.17
+
 ## 1.0.1-alpha.17
 
 ### Patch Changes
