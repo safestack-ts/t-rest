@@ -27,7 +27,7 @@ const runTestCase = (testCase: RouteTestCase) => {
   })
 }
 
-const filter = null //'zod-branded-utility'
+const filter = null // 'recursive-types'
 
 describe('BagOfRoutes Parsing', () => {
   const scenarioFilePaths = fs.readdirSync(path.join(__dirname, 'scenarios'))

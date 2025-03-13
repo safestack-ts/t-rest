@@ -483,11 +483,22 @@ function transformTypeToIntermediate(
     }
 
     // we want to track named object types to not re-visit them again
+    const isFirstVisit = !metadata.visitedTypes?.has(typeName)
     if (typeName) {
       metadata.visitedTypes?.add(typeName)
     }
 
-    return transformObjectToIntermediate(type, typeChecker, rootNode, metadata)
+    const objectSchema = transformObjectToIntermediate(
+      type,
+      typeChecker,
+      rootNode,
+      metadata
+    )
+
+    return {
+      ...objectSchema,
+      ...(isFirstVisit ? { name: typeName } : {}),
+    }
   }
 
   // Handle objects
