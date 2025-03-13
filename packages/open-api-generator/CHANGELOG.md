@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.31
+
+### Patch Changes
+
+- 66c53fe: fix name tracking of recursive interface types
+
 ## 1.0.0-alpha.30
 
 ### Patch Changes
