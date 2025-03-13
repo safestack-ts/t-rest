@@ -1,5 +1,12 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.30
+
+### Patch Changes
+
+- 744a809: fix open api spec yaml path param schema
+- 252aaa3: add ast parsing test case setup; fix handling of Omit/Pick and zods branded types
+
 ## 1.0.0-alpha.29
 
 ### Patch Changes
