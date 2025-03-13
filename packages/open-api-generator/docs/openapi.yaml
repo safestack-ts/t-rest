@@ -9,7 +9,7 @@ tags:
   - name: users
     description: Users related operations
 paths:
-  /api/checkout/:checkoutId/discounts/:discountId:
+  /api/checkout/{checkoutId}/discounts/{discountId}:
     post:
       description: Delete a discount code from a checkout
       tags:
@@ -85,7 +85,7 @@ paths:
                 required:
                   - email
                   - message
-  /users/:userId:
+  /users/{userId}:
     get:
       summary: Get user by id
       description: Get user by id if the user exists and is part of the requested

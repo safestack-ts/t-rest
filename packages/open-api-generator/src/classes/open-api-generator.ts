@@ -172,126 +172,131 @@ export abstract class OpenAPIGenerator {
           httpMethodOrder[b.method as HTTPMethod]
       )
 
+      const pathWithParamPlaceholders = path.replace(/:(\w+)/g, '{$1}')
+
       return {
-        [path]: sortedRoutes.reduce((acc, { method, route }) => {
-          const routeDefinition = bagOfRoutes.routes.get([
-            method as HTTPMethod,
-            path,
-            route.version,
-          ])
-          const routeMetaParsed = validateRouteMeta.safeParse(
-            routeDefinition?.metaData
-          )
-
-          if (
-            !routeMetaParsed.success &&
-            isDefined(routeDefinition?.metaData)
-          ) {
-            console.warn(
-              `Route ${method} ${path} revision ${route.version} has invalid meta data`
+        [pathWithParamPlaceholders]: sortedRoutes.reduce(
+          (acc, { method, route }) => {
+            const routeDefinition = bagOfRoutes.routes.get([
+              method as HTTPMethod,
+              path,
+              route.version,
+            ])
+            const routeMetaParsed = validateRouteMeta.safeParse(
+              routeDefinition?.metaData
             )
-          }
 
-          const { headers: localHeaders, ...routeMeta } =
-            routeMetaParsed.data ?? {}
-          const mergedHeaders = [
-            ...(localHeaders ?? []),
-            ...(metaData.headers ?? []),
-          ]
+            if (
+              !routeMetaParsed.success &&
+              isDefined(routeDefinition?.metaData)
+            ) {
+              console.warn(
+                `Route ${method} ${path} revision ${route.version} has invalid meta data`
+              )
+            }
 
-          const querySchema =
-            route.typeInfo.input?.kind === 'object' &&
-            route.typeInfo.input.properties.query?.kind === 'object' &&
-            route.typeInfo.input.properties.query.properties
-              ? getOpenAPI3Spec(route.typeInfo.input.properties.query, true)
+            const { headers: localHeaders, ...routeMeta } =
+              routeMetaParsed.data ?? {}
+            const mergedHeaders = [
+              ...(localHeaders ?? []),
+              ...(metaData.headers ?? []),
+            ]
+
+            const querySchema =
+              route.typeInfo.input?.kind === 'object' &&
+              route.typeInfo.input.properties.query?.kind === 'object' &&
+              route.typeInfo.input.properties.query.properties
+                ? getOpenAPI3Spec(route.typeInfo.input.properties.query, true)
+                : undefined
+
+            const bodySchema =
+              route.typeInfo.input?.kind === 'object' &&
+              route.typeInfo.input.properties.body
+                ? getOpenAPI3Spec(route.typeInfo.input.properties.body, true)
+                : undefined
+
+            const responseSchema = route.typeInfo.output
+              ? getOpenAPI3Spec(route.typeInfo.output, true)
               : undefined
 
-          const bodySchema =
-            route.typeInfo.input?.kind === 'object' &&
-            route.typeInfo.input.properties.body
-              ? getOpenAPI3Spec(route.typeInfo.input.properties.body, true)
-              : undefined
+            const components = {
+              ...(bodySchema?.components ?? {}),
+              ...(responseSchema?.components ?? {}),
+              ...(querySchema?.components ?? {}),
+            }
 
-          const responseSchema = route.typeInfo.output
-            ? getOpenAPI3Spec(route.typeInfo.output, true)
-            : undefined
+            Object.entries(components).forEach(([key, value]) => {
+              allComponents[key] = value
+            })
 
-          const components = {
-            ...(bodySchema?.components ?? {}),
-            ...(responseSchema?.components ?? {}),
-            ...(querySchema?.components ?? {}),
-          }
-
-          Object.entries(components).forEach(([key, value]) => {
-            allComponents[key] = value
-          })
-
-          return {
-            ...acc,
-            [method.toLowerCase()]: {
-              ...routeMeta,
-              parameters: [
-                ...(mergedHeaders?.map((header) => ({
-                  name: header.name,
-                  in: 'header',
-                  description: header.description,
-                  required: header.required ?? false,
-                  schema: getOpenAPI3Spec(header.type, false).spec,
-                })) ?? []),
-                ...(route.typeInfo?.input?.kind === 'object' &&
-                route.typeInfo.input.properties.params?.kind === 'object' &&
-                route.typeInfo.input.properties.params.properties
-                  ? Object.entries(
-                      route.typeInfo.input.properties.params.properties
-                    ).map(([name, schema]) => ({
-                      name,
-                      in: 'path',
-                      required: true,
-                      schema: getOpenAPI3Spec(schema, false).spec,
-                    }))
-                  : []),
-                ...(route.typeInfo?.input?.kind === 'object' &&
-                route.typeInfo.input.properties.query?.kind === 'object' &&
-                route.typeInfo.input.properties.query.properties
-                  ? Object.entries(
-                      route.typeInfo.input.properties.query.properties
-                    ).map(([name, schema]) => ({
-                      name,
-                      in: 'query',
-                      required:
-                        (route.typeInfo.input?.kind === 'object' &&
-                          route.typeInfo.input.properties.query?.kind ===
-                            'object' &&
-                          route.typeInfo.input.properties.query.required?.includes(
-                            name
-                          )) ??
-                        false,
-                      schema: getOpenAPI3Spec(schema, true).spec,
-                    }))
-                  : []),
-              ],
-              requestBody: bodySchema
-                ? {
+            return {
+              ...acc,
+              [method.toLowerCase()]: {
+                ...routeMeta,
+                parameters: [
+                  ...(mergedHeaders?.map((header) => ({
+                    name: header.name,
+                    in: 'header',
+                    description: header.description,
+                    required: header.required ?? false,
+                    schema: getOpenAPI3Spec(header.type, false).spec,
+                  })) ?? []),
+                  ...(route.typeInfo?.input?.kind === 'object' &&
+                  route.typeInfo.input.properties.params?.kind === 'object' &&
+                  route.typeInfo.input.properties.params.properties
+                    ? Object.entries(
+                        route.typeInfo.input.properties.params.properties
+                      ).map(([name, schema]) => ({
+                        name,
+                        in: 'path',
+                        required: true,
+                        schema: getOpenAPI3Spec(schema, false).spec,
+                      }))
+                    : []),
+                  ...(route.typeInfo?.input?.kind === 'object' &&
+                  route.typeInfo.input.properties.query?.kind === 'object' &&
+                  route.typeInfo.input.properties.query.properties
+                    ? Object.entries(
+                        route.typeInfo.input.properties.query.properties
+                      ).map(([name, schema]) => ({
+                        name,
+                        in: 'query',
+                        required:
+                          (route.typeInfo.input?.kind === 'object' &&
+                            route.typeInfo.input.properties.query?.kind ===
+                              'object' &&
+                            route.typeInfo.input.properties.query.required?.includes(
+                              name
+                            )) ??
+                          false,
+                        schema: getOpenAPI3Spec(schema, true).spec,
+                      }))
+                    : []),
+                ],
+                requestBody: bodySchema
+                  ? {
+                      content: {
+                        'application/json': {
+                          schema: bodySchema.spec,
+                        },
+                      },
+                    }
+                  : undefined,
+                responses: {
+                  '200': {
+                    description: 'Successful response',
                     content: {
                       'application/json': {
-                        schema: bodySchema.spec,
+                        schema: responseSchema?.spec,
                       },
-                    },
-                  }
-                : undefined,
-              responses: {
-                '200': {
-                  description: 'Successful response',
-                  content: {
-                    'application/json': {
-                      schema: responseSchema?.spec,
                     },
                   },
                 },
               },
-            },
-          }
-        }, {}),
+            }
+          },
+          {}
+        ),
       }
     })
 
