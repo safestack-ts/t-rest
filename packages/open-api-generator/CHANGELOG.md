@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.29
+
+### Patch Changes
+
+- a600465: fix handling of recursive interfaces
+
 ## 1.0.0-alpha.28
 
 ### Patch Changes
