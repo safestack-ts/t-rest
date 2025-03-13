@@ -363,6 +363,11 @@ function transformTypeToIntermediate(
       return buildInType
     }
 
+    // we want to track named object types to not re-visit them again
+    if (typeName) {
+      metadata.visitedTypes?.add(typeName)
+    }
+
     return transformObjectToIntermediate(type, typeChecker, rootNode, metadata)
   }
 

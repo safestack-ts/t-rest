@@ -100,21 +100,50 @@ type UserWithSubUsers = User & {
   photo: Buffer
 }
 
+interface CreateBasketChildEntryPayload {
+  productDefinitionId: number
+  slotId: number | null
+  children?: CreateBasketChildEntryPayload[]
+}
+
+const validateCreateBasketChildEntryPayload: z.ZodSchema<CreateBasketChildEntryPayload> =
+  z.strictObject({
+    productDefinitionId: z.number().int().min(1),
+    slotId: z.number().int().min(1).nullable(),
+    children: z
+      .array(z.lazy(() => validateCreateBasketChildEntryPayload))
+      .optional(),
+  })
+
+const validateCreateBasketOriginatedEntryPayload = z.strictObject({
+  productDefinitionId: z.number().int().min(1),
+  slotId: z.number().int().min(1).nullable(),
+})
+
 export const bagOfRoutes = BagOfRoutes.withVersioning(
   Versioning.DATE,
   versionHistory
 )
   .addRoute(
     Route.version('2024-01-01')
-      .delete('/api/checkout/:checkoutId/discounts/:discountId')
+      .post('/api/checkout/:checkoutId/discounts/:discountId')
       .validate(
         z.object({
-          params: z.strictObject({
-            checkoutId: z.string().uuid(),
-            discountId: ze.parseDatabaseId(),
-          }),
-          query: z.object({
-            formState: validateFormState,
+          body: z.strictObject({
+            entries: z
+              .array(
+                z.strictObject({
+                  productDefinitionId: z.number().int().min(1),
+                  slotId: z.number().int().min(1).nullable(),
+                  children: z
+                    .array(validateCreateBasketChildEntryPayload)
+                    .optional(),
+                  originatedEntries: z
+                    .array(validateCreateBasketOriginatedEntryPayload)
+                    .optional(),
+                })
+              )
+              .optional(),
           }),
         })
       )

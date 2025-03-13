@@ -14,6 +14,8 @@ class TestVersionInjector extends VersionInjector {
   }
 }
 
+class MyTestAdapter extends AxiosHTTPAdapter {}
+
 axios.defaults.adapter = 'http'
 
 const axiosInstance = axios.create({
@@ -22,7 +24,7 @@ const axiosInstance = axios.create({
 const apiClient = RESTClient.withVersioning(
   demoBagOfRoutes,
   '2024-03-01',
-  new AxiosHTTPAdapter(axiosInstance),
+  new MyTestAdapter(axiosInstance),
   TestVersionInjector
 )
 

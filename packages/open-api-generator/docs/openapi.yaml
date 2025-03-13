@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: My API
-  version: 2024-02-01
+  version: 2024-01-01
 servers:
   - url: https://api.example.com
     description: Production server
@@ -10,160 +10,11 @@ tags:
     description: Users related operations
 paths:
   /api/checkout/:checkoutId/discounts/:discountId:
-    delete:
+    post:
       description: Delete a discount code from a checkout
       tags:
         - checkout
         - discounts
-      parameters:
-        - name: pratiq-client-id
-          in: header
-          description: Global Webshop Client Id
-          required: true
-          schema:
-            oneOf:
-              - type: string
-              - type: number
-        - name: pratiq-channel-uuid
-          in: header
-          description: UUID of the sales channel
-          required: false
-          schema:
-            type: string
-        - name: checkoutId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: discountId
-          in: path
-          required: true
-          schema:
-            type: number
-        - name: formState
-          in: query
-          required: false
-          schema:
-            type: object
-            properties:
-              validity:
-                type: object
-                properties:
-                  from:
-                    type: string
-                  to:
-                    type: string
-              allocation:
-                oneOf:
-                  - type: object
-                    properties:
-                      value:
-                        type: number
-                      kind:
-                        type: string
-                        enum:
-                          - quantity
-                  - type: object
-                    properties:
-                      values:
-                        type: array
-                        items:
-                          oneOf:
-                            - type: object
-                              properties:
-                                kind:
-                                  type: string
-                                  enum:
-                                    - anonymous
-                                quantity:
-                                  type: number
-                                personType:
-                                  type: string
-                            - type: object
-                              properties:
-                                kind:
-                                  type: string
-                                  enum:
-                                    - personalized
-                                personType:
-                                  type: string
-                                personIds:
-                                  type: array
-                                  items:
-                                    type: number
-                      kind:
-                        type: string
-                        enum:
-                          - persontype
-              attributes:
-                type: object
-                additionalProperties:
-                  type: string
-      responses:
-        "200":
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  email:
-                    type: string
-                  message:
-                    type: string
-                required:
-                  - email
-                  - message
-  /users/:userIdentifier:
-    get:
-      summary: Get user by identifier
-      description: >-
-        Get user by id if the user exists and is part of the requested client
-        specified in the pratiq-client-id http header.
-
-
-        In addition, this new revision of the route also includes the tags of
-        the user in the response.
-      tags:
-        - users
-      operationId: getUserById
-      parameters:
-        - name: pratiq-client-id
-          in: header
-          description: Global Webshop Client Id
-          required: true
-          schema:
-            oneOf:
-              - type: string
-              - type: number
-        - name: pratiq-channel-uuid
-          in: header
-          description: UUID of the sales channel
-          required: false
-          schema:
-            type: string
-        - name: userIdentifier
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: "#/components/schemas/UserWithTags"
-                  version:
-                    type: string
-                required:
-                  - data
-                  - version
-  /complexRoute:
-    get:
       parameters:
         - name: pratiq-client-id
           in: header
@@ -185,21 +36,83 @@ paths:
             schema:
               type: object
               properties:
-                from:
-                  type: string
-                  format: date-time
-                to:
-                  type: string
-                  format: date-time
-                validAt:
-                  type: string
-                  format: date-time
-                productDefinitionIds:
+                entries:
                   type: array
                   items:
-                    type: number
-                ignoreStale:
-                  type: boolean
+                    type: object
+                    properties:
+                      productDefinitionId:
+                        type: number
+                      slotId:
+                        type: number
+                      children:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            productDefinitionId:
+                              type: number
+                            slotId:
+                              type: number
+                            children:
+                              type: array
+                              items:
+                                $ref: "#/components/schemas/CreateBasketChildEntryPayload"
+                          required:
+                            - productDefinitionId
+                            - slotId
+                      originatedEntries:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            productDefinitionId:
+                              type: number
+                            slotId:
+                              type: number
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  message:
+                    type: string
+                required:
+                  - email
+                  - message
+  /users/:userId:
+    get:
+      summary: Get user by id
+      description: Get user by id if the user exists and is part of the requested
+        client specified in the pratiq-client-id http header.
+      tags:
+        - users
+      operationId: getUserById
+      parameters:
+        - name: pratiq-client-id
+          in: header
+          description: Global Webshop Client Id
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: number
+        - name: pratiq-channel-uuid
+          in: header
+          description: UUID of the sales channel
+          required: false
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: number
       responses:
         "200":
           description: Successful response
@@ -209,7 +122,7 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: "#/components/schemas/UserWithTags"
+                    $ref: "#/components/schemas/UserWithSubUsers"
                   version:
                     type: string
                 required:
@@ -217,18 +130,37 @@ paths:
                   - version
 components:
   schemas:
-    UserWithTags:
+    User:
       type: object
       properties:
         id:
           type: number
         email:
           type: string
-        tags:
-          type: array
-          items:
-            type: string
       required:
         - id
         - email
-        - tags
+    UserWithSubUsers:
+      type: object
+      properties:
+        id:
+          type: number
+        email:
+          type: string
+        subUsers:
+          type: array
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/User"
+              - $ref: "#/components/schemas/UserWithSubUsers"
+        credit:
+          type: number
+        photo:
+          type: string
+          format: binary
+      required:
+        - id
+        - email
+        - subUsers
+        - credit
+        - photo

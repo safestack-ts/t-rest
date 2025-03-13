@@ -49,19 +49,6 @@ const main = async () => {
       outputFile: 'openapi.yaml',
       outputDir: 'docs',
       entry: './src/bag.ts',
-      filter: ({ metaData, method, path, version }) => {
-        if (!metaData) {
-          console.warn(
-            `No meta data found for route ${method} ${path} ${version}`
-          )
-          return false
-        }
-
-        const metaDataValidation = validateRouteMeta.safeParse(metaData)
-        return metaDataValidation.success
-          ? metaDataValidation.data.tags?.includes('public') ?? false
-          : false
-      },
     },
   ])
 }
