@@ -2,7 +2,6 @@ import { OpenAPISpec } from './classes/open-api-spec'
 import { OpenAPIGenerator } from './classes/open-api-generator'
 import { NumberType, StringType, UnionType } from './schema/type-schema'
 import bagOfRoutes from './bag'
-import { validateRouteMeta } from './schema/route-meta'
 
 const main = async () => {
   const spec = OpenAPISpec.ofVersion(bagOfRoutes, '2024-01-01').withMetaData({

@@ -114,6 +114,122 @@ function transformTypeToIntermediate(
           ),
         }
       }
+    } else if (baseTypeName === 'Omit' || baseTypeName === 'Pick') {
+      // Get the type arguments for Omit/Pick
+      const [originalType, keysType] = typeRef.aliasTypeArguments || []
+      if (!originalType) {
+        throw new Error(`Invalid ${baseTypeName} type parameters`)
+      }
+
+      // Get the actual type that results from applying Omit/Pick
+      const apparentType = typeChecker.getApparentType(originalType)
+
+      // Get the keys to keep/remove
+      const keys = new Set<string>()
+      if (keysType?.isUnion()) {
+        keysType.types.forEach((t) => {
+          if (t.isStringLiteral()) {
+            keys.add(t.value)
+          }
+        })
+      } else if (keysType?.isStringLiteral()) {
+        keys.add(keysType.value)
+      }
+
+      // Handle union types
+      if (apparentType.isUnion()) {
+        return {
+          kind: 'union',
+          types: apparentType.types
+            .filter((unionType) => {
+              if (!unionType.isLiteral()) return true
+              const literalValue = unionType.isStringLiteral()
+                ? unionType.value
+                : String(unionType.value)
+              return baseTypeName === 'Pick'
+                ? keys.has(literalValue)
+                : !keys.has(literalValue)
+            })
+            .map((unionType) => {
+              if (unionType.isLiteral()) {
+                // For literal types, just pass them through
+                return transformTypeToIntermediate(
+                  unionType,
+                  typeChecker,
+                  rootNode,
+                  metadata
+                )
+              }
+
+              // For object types, apply the Pick/Omit logic
+              const properties = unionType.getProperties()
+              const resultProperties: Record<string, TypeDefinition> = {}
+              const required = new Set<string>()
+
+              properties.forEach((prop) => {
+                const shouldInclude =
+                  baseTypeName === 'Pick'
+                    ? keys.has(prop.name)
+                    : !keys.has(prop.name)
+
+                if (shouldInclude) {
+                  const propType = typeChecker.getTypeOfSymbolAtLocation(
+                    prop,
+                    rootNode
+                  )
+                  resultProperties[prop.name] = transformTypeToIntermediate(
+                    propType,
+                    typeChecker,
+                    rootNode,
+                    metadata
+                  )
+
+                  if (!(prop.flags & ts.SymbolFlags.Optional)) {
+                    required.add(prop.name)
+                  }
+                }
+              })
+
+              return {
+                kind: 'object',
+                properties: resultProperties,
+                ...(required.size > 0
+                  ? { required: Array.from(required) }
+                  : {}),
+              }
+            }),
+        }
+      }
+
+      // Continue with regular object type handling
+      const properties = apparentType.getProperties()
+      const resultProperties: Record<string, TypeDefinition> = {}
+      const required = new Set<string>()
+
+      properties.forEach((prop) => {
+        const shouldInclude =
+          baseTypeName === 'Pick' ? keys.has(prop.name) : !keys.has(prop.name)
+
+        if (shouldInclude) {
+          const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
+          resultProperties[prop.name] = transformTypeToIntermediate(
+            propType,
+            typeChecker,
+            rootNode,
+            metadata
+          )
+
+          if (!(prop.flags & ts.SymbolFlags.Optional)) {
+            required.add(prop.name)
+          }
+        }
+      })
+
+      return {
+        kind: 'object',
+        properties: resultProperties,
+        ...(required.size > 0 ? { required: Array.from(required) } : {}),
+      }
     }
 
     // Get the generic type structure
@@ -233,8 +349,11 @@ function transformTypeToIntermediate(
 
   // Handle intersections
   if (type.isIntersection()) {
-    // Filter out 'never' types
-    const validTypes = type.types.filter((t) => !(t.flags & ts.TypeFlags.Never))
+    // Filter out 'never' types and BRAND types
+    const validTypes = type.types.filter((t) => {
+      const typeName = t.aliasSymbol?.escapedName?.toString()
+      return !(t.flags & ts.TypeFlags.Never) && typeName !== 'BRAND' // zod branded types should be ignored
+    })
 
     // Get all properties from all object types in the intersection
     const properties: Record<string, TypeDefinition> = {}
