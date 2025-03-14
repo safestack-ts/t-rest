@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.34
+
+### Patch Changes
+
+- 2a390bd: fix additional meta field compiling
+
 ## 1.0.0-alpha.33
 
 ### Patch Changes
