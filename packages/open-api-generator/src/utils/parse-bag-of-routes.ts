@@ -677,19 +677,21 @@ function resolveTypeToOpenAPI3({
     case 'string':
       return {
         type: 'string',
-        ...(type.format ? { format: type.format } : {}),
-        ...(type.pattern ? { pattern: type.pattern } : {}),
-        ...(type.minLength ? { minLength: type.minLength } : {}),
-        ...(type.maxLength ? { maxLength: type.maxLength } : {}),
+        ...(type.format !== undefined ? { format: type.format } : {}),
+        ...(type.pattern !== undefined ? { pattern: type.pattern } : {}),
+        ...(type.minLength !== undefined ? { minLength: type.minLength } : {}),
+        ...(type.maxLength !== undefined ? { maxLength: type.maxLength } : {}),
         ...(nullable ? { nullable: true } : {}),
       }
     case 'number':
       return {
         type: 'number',
-        ...(type.format ? { format: type.format } : {}),
-        ...(type.minimum ? { minimum: type.minimum } : {}),
-        ...(type.maximum ? { maximum: type.maximum } : {}),
-        ...(type.multipleOf ? { multipleOf: type.multipleOf } : {}),
+        ...(type.format !== undefined ? { format: type.format } : {}),
+        ...(type.minimum !== undefined ? { minimum: type.minimum } : {}),
+        ...(type.maximum !== undefined ? { maximum: type.maximum } : {}),
+        ...(type.multipleOf !== undefined
+          ? { multipleOf: type.multipleOf }
+          : {}),
         ...(nullable ? { nullable: true } : {}),
       }
     case 'boolean':
@@ -709,9 +711,11 @@ function resolveTypeToOpenAPI3({
               replaceRefs,
             })
           : undefined,
-        ...(type.minItems ? { minItems: type.minItems } : {}),
-        ...(type.maxItems ? { maxItems: type.maxItems } : {}),
-        ...(type.uniqueItems ? { uniqueItems: type.uniqueItems } : {}),
+        ...(type.minItems !== undefined ? { minItems: type.minItems } : {}),
+        ...(type.maxItems !== undefined ? { maxItems: type.maxItems } : {}),
+        ...(type.uniqueItems !== undefined
+          ? { uniqueItems: type.uniqueItems }
+          : {}),
         ...(nullable ? { nullable: true } : {}),
       }
     case 'tuple': {
