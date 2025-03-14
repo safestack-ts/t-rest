@@ -73,6 +73,7 @@ export const expectedResult = [
                   },
                   slotId: {
                     kind: 'number',
+                    nullable: true,
                   },
                   children: {
                     kind: 'array',
@@ -85,6 +86,7 @@ export const expectedResult = [
                         },
                         slotId: {
                           kind: 'number',
+                          nullable: true,
                         },
                         children: {
                           kind: 'array',
@@ -107,16 +109,20 @@ export const expectedResult = [
                         },
                         slotId: {
                           kind: 'number',
+                          nullable: true,
                         },
                       },
+                      required: ['productDefinitionId', 'slotId'],
                     },
                   },
                 },
+                required: ['productDefinitionId', 'slotId'],
               },
             },
           },
         },
       },
+      required: ['body'],
     } satisfies TypeDefinition,
     output: {
       kind: 'object',

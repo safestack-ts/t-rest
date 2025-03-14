@@ -25,7 +25,7 @@ export const expectedResult = [
         name: { kind: 'string' },
         age: { kind: 'number' },
       },
-      //required: ['name', 'age'],
+      required: ['name', 'age'],
     },
     output: { kind: 'string' },
     routeMeta: { originalPath: '/hello' },

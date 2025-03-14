@@ -397,6 +397,7 @@ export const validateTypeDefinition: z.ZodType<TypeDefinition> = z
 export type TypeDefinition = {
   name?: string
   typeParameters?: Record<string, TypeDefinition>
+  nullable?: boolean
 } & (
   | StringType
   | NumberType

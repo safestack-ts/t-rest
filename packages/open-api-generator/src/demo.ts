@@ -2,6 +2,7 @@ import { OpenAPISpec } from './classes/open-api-spec'
 import { OpenAPIGenerator } from './classes/open-api-generator'
 import { NumberType, StringType, UnionType } from './schema/type-schema'
 import bagOfRoutes from './bag'
+import path from 'path'
 
 const main = async () => {
   const spec = OpenAPISpec.ofVersion(bagOfRoutes, '2024-01-01').withMetaData({
@@ -48,6 +49,7 @@ const main = async () => {
       outputFile: 'openapi.yaml',
       outputDir: 'docs',
       entry: './src/bag.ts',
+      tsConfigPath: path.join(__dirname, '../', 'tsconfig.json'),
     },
   ])
 }

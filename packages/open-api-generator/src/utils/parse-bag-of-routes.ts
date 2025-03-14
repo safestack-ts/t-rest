@@ -2,6 +2,7 @@ import { HashMap, normalizePathPattern } from '@t-rest/core'
 import ts from 'typescript'
 import { ObjectType, TypeDefinition } from '../schema/type-schema'
 import debug from 'debug'
+import path from 'path'
 
 const parserLog = debug('t-rest:open-api-generator:parser')
 const typeDiscoveryLog = debug('t-rest:open-api-generator:type-discovery')
@@ -14,10 +15,13 @@ export type RouteTypeInfo = {
   }
 }
 
-export const parseBagOfRoutes = (modulePath: string) => {
+export const parseBagOfRoutes = (modulePath: string, tsConfigPath: string) => {
   parserLog('Parsing routes from module: %s', modulePath)
 
-  const { sourceFile, typeChecker } = initializeProgram(modulePath)
+  const { sourceFile, typeChecker } = initializeProgram(
+    modulePath,
+    tsConfigPath
+  )
   const rootNode = findDefaultExport(sourceFile)
   const routeTypes = extractRouteTypes(rootNode, typeChecker)
 
@@ -303,6 +307,28 @@ function transformTypeToIntermediate(
       }
     }
 
+    // Check if this is a nullable type (T | null)
+    const nullTypes = type.types.filter(
+      (t) =>
+        (t.flags & ts.TypeFlags.Null) !== 0 ||
+        (t.flags & ts.TypeFlags.Undefined) !== 0
+    )
+    const nonNullTypes = type.types.filter(
+      (t) =>
+        (t.flags & ts.TypeFlags.Null) === 0 &&
+        (t.flags & ts.TypeFlags.Undefined) === 0
+    )
+
+    // If we have exactly one non-null type and at least one null/undefined type, this is a nullable type
+    if (nonNullTypes.length === 1 && nullTypes.length > 0) {
+      return transformTypeToIntermediate(
+        nonNullTypes[0],
+        typeChecker,
+        rootNode,
+        metadata
+      )
+    }
+
     // Check if this is an enum type by looking at the flags of the type itself
     if (
       type.flags & ts.TypeFlags.Enum ||
@@ -574,12 +600,27 @@ function transformObjectToIntermediate(
 
   type.getProperties().forEach((prop) => {
     const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
+
+    // Check if the property type is a union that includes null
+    let isNullable = false
+    if (propType.isUnion()) {
+      isNullable = propType.types.some(
+        (t) => (t.flags & ts.TypeFlags.Null) !== 0
+      )
+    }
+
+    // Transform the property type
     properties[prop.name] = transformTypeToIntermediate(
       propType,
       typeChecker,
       rootNode,
       metadata
     )
+
+    // Set nullable flag if needed
+    if (isNullable) {
+      properties[prop.name].nullable = true
+    }
 
     if (!(prop.flags & ts.SymbolFlags.Optional)) {
       required.add(prop.name)
@@ -619,6 +660,8 @@ function resolveTypeToOpenAPI3({
   components,
   replaceRefs,
 }: ResolveTypeToOpenAPI3Args): any {
+  const nullable = type.nullable === true
+
   switch (type.kind) {
     case 'string':
       return {
@@ -627,6 +670,7 @@ function resolveTypeToOpenAPI3({
         ...(type.pattern ? { pattern: type.pattern } : {}),
         ...(type.minLength ? { minLength: type.minLength } : {}),
         ...(type.maxLength ? { maxLength: type.maxLength } : {}),
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'number':
       return {
@@ -635,9 +679,13 @@ function resolveTypeToOpenAPI3({
         ...(type.minimum ? { minimum: type.minimum } : {}),
         ...(type.maximum ? { maximum: type.maximum } : {}),
         ...(type.multipleOf ? { multipleOf: type.multipleOf } : {}),
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'boolean':
-      return { type: 'boolean' }
+      return {
+        type: 'boolean',
+        ...(nullable ? { nullable: true } : {}),
+      }
     case 'null':
       return { nullable: true }
     case 'array':
@@ -651,6 +699,7 @@ function resolveTypeToOpenAPI3({
         ...(type.minItems ? { minItems: type.minItems } : {}),
         ...(type.maxItems ? { maxItems: type.maxItems } : {}),
         ...(type.uniqueItems ? { uniqueItems: type.uniqueItems } : {}),
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'object': {
       const objectSpec = {
@@ -662,6 +711,7 @@ function resolveTypeToOpenAPI3({
           ])
         ),
         ...(type.required ? { required: type.required } : {}),
+        ...(nullable ? { nullable: true } : {}),
       }
 
       if (type.name) {
@@ -670,6 +720,7 @@ function resolveTypeToOpenAPI3({
         if (replaceRefs) {
           return {
             $ref: `#/components/schemas/${type.name}`,
+            ...(nullable ? { nullable: true } : {}),
           }
         }
       }
@@ -684,6 +735,7 @@ function resolveTypeToOpenAPI3({
           components,
           replaceRefs,
         }),
+        ...(nullable ? { nullable: true } : {}),
       }
     }
     case 'union': {
@@ -694,35 +746,44 @@ function resolveTypeToOpenAPI3({
         return {
           type: unionTypes[0].type,
           enum: unionTypes.flatMap((t) => t.enum),
+          ...(nullable ? { nullable: true } : {}),
         }
       }
-      return { oneOf: unionTypes }
+      return {
+        oneOf: unionTypes,
+        ...(nullable ? { nullable: true } : {}),
+      }
     }
     case 'intersection':
       return {
         allOf: type.types.map((t) =>
           resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
         ),
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'literal':
       return {
         type: typeof type.value === 'string' ? 'string' : 'number',
         enum: [type.value],
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'date':
       return {
         type: 'string',
         format: 'date-time',
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'buffer':
       return {
         type: 'string',
         format: 'binary',
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'bigint':
       return {
         type: 'string',
         format: 'bigint',
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'symbol':
       return {} // ignore
@@ -730,48 +791,73 @@ function resolveTypeToOpenAPI3({
       return {
         type: 'object',
         additionalProperties: true,
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'set':
       return {
         type: 'array',
         items: { type: 'string' },
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'regexp':
       return {
         type: 'string',
         format: 'regexp',
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'stream':
       return {
         type: 'string',
         format: 'stream',
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'enum':
       return {
         type: type.type,
         enum: type.values,
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'generic':
-      return resolveTypeToOpenAPI3({
-        type: type.structure,
-        components,
-        replaceRefs,
-      })
+      return {
+        ...resolveTypeToOpenAPI3({
+          type: type.structure,
+          components,
+          replaceRefs,
+        }),
+        ...(nullable ? { nullable: true } : {}),
+      }
     case 'ref':
       return {
         $ref: `#/components/schemas/${type.name}`,
+        ...(nullable ? { nullable: true } : {}),
       }
     case 'any':
     case 'unknown':
-      return { type: 'object' }
+      return {
+        type: 'object',
+        ...(nullable ? { nullable: true } : {}),
+      }
   }
 }
 
 // Helper functions remain unchanged
-function initializeProgram(modulePath: string) {
+function initializeProgram(modulePath: string, tsConfigPath: string) {
+  // read tsconfig
+  const tsConfig = ts.readConfigFile(tsConfigPath, ts.sys.readFile)
+
+  if (tsConfig.error || !tsConfig.config) {
+    throw new Error(`Could not read tsconfig: ${tsConfigPath}`)
+  }
+
+  const parsedConfig = ts.parseJsonConfigFileContent(
+    tsConfig.config,
+    ts.sys,
+    path.dirname(tsConfigPath)
+  )
+
   const program = ts.createProgram({
     rootNames: [modulePath],
-    options: {},
+    options: parsedConfig.options,
   })
 
   const sourceFile = program.getSourceFile(modulePath)
@@ -851,24 +937,85 @@ function extractValidatorType(
   if (validatorOutputType) {
     const outputTypeStr = typeChecker.typeToString(validatorOutputType)
     parserLog('Validator output type: %s', outputTypeStr)
+
+    // Try to find the output property directly
+    const outputProperty = validatorOutputType.getProperty('output')
+    if (outputProperty) {
+      parserLog('Found output property directly')
+      return typeChecker.getTypeOfSymbolAtLocation(outputProperty, rootNode)
+    }
+
     const standardProperty = validatorOutputType.getProperty('~standard')
-    if (!standardProperty) return undefined
+    if (!standardProperty) {
+      parserLog('No ~standard property found')
+      return undefined
+    }
 
     const standardType = typeChecker.getTypeOfSymbolAtLocation(
       standardProperty,
       rootNode
     )
+
     const typesProperty = standardType.getProperty('types')
-    if (!typesProperty) return undefined
+    if (!typesProperty) {
+      parserLog('No types property found')
+      return undefined
+    }
 
     const typesType = typeChecker.getTypeOfSymbolAtLocation(
       typesProperty,
       rootNode
     )
-    const outputProperty = typesType.getProperty('output')
-    if (!outputProperty) return undefined
 
-    return typeChecker.getTypeOfSymbolAtLocation(outputProperty, rootNode)
+    // Check if typesType is a union type
+    if (typesType.isUnion()) {
+      parserLog('Found union type with', typesType.types.length, 'types')
+
+      // In a union type, the second element is typically the output
+      if (typesType.types.length >= 2) {
+        // Get the second type from the union (index 1)
+        const outputType = typesType.types[1]
+
+        // Check if this is a tuple type that contains both input and output
+        if (outputType.flags & ts.TypeFlags.Object) {
+          const outputObjectType = outputType as ts.ObjectType
+
+          // If it's a tuple, we need to extract just the output part
+          if (outputObjectType.objectFlags & ts.ObjectFlags.Tuple) {
+            parserLog('Second union element is a tuple, extracting output')
+            const outputTupleType = outputObjectType as ts.TupleType
+            if (
+              outputTupleType.typeArguments &&
+              outputTupleType.typeArguments.length > 0
+            ) {
+              // For output, we want just the first element of this tuple
+              return outputTupleType.typeArguments[0]
+            }
+          }
+
+          // If it has an 'output' property, extract that
+          const outputProp = outputType.getProperty('output')
+          if (outputProp) {
+            parserLog('Found output property on second union element')
+            return typeChecker.getTypeOfSymbolAtLocation(outputProp, rootNode)
+          }
+        }
+
+        // If we couldn't extract a specific output part, return the whole second element
+        parserLog('Returning second union element as output type')
+        return outputType
+      }
+    }
+
+    // Try to access the output type through type arguments if it's a type reference
+    const typeRef = typesType as ts.TypeReference
+    if (typeRef.typeArguments && typeRef.typeArguments.length > 1) {
+      parserLog('Found output type through type arguments')
+      return typeRef.typeArguments[1]
+    }
+
+    parserLog('Could not extract output type')
+    return undefined
   }
 
   return undefined

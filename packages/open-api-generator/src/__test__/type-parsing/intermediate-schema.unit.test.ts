@@ -5,7 +5,8 @@ import * as path from 'path'
 describe('input types', () => {
   test.skip('native enum', () => {
     const routes = parseBagOfRoutes(
-      path.resolve(__dirname, './examples/native-enum.example.ts')
+      path.resolve(__dirname, './examples/native-enum.example.ts'),
+      path.resolve(__dirname, '../../../tsconfig.json')
     )
 
     const routeInputSchema = routes.get(['GET', '/orders', ''])?.input

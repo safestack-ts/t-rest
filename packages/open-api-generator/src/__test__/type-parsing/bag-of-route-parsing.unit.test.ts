@@ -3,6 +3,8 @@ import path from 'path'
 import fs from 'fs'
 import { isEqual } from 'lodash'
 
+const tsConfigPath = path.join(__dirname, '../../../', 'tsconfig.json')
+
 /**
  * Test case definition type
  */
@@ -17,7 +19,7 @@ interface RouteTestCase {
  */
 const runTestCase = (testCase: RouteTestCase) => {
   test(testCase.name, () => {
-    const results = parseBagOfRoutes(testCase.modulePath)
+    const results = parseBagOfRoutes(testCase.modulePath, tsConfigPath)
 
     if (!isEqual(Array.from(results.values()), testCase.expectedOutput)) {
       console.log(JSON.stringify(Array.from(results.values()), null, 2))
@@ -27,7 +29,7 @@ const runTestCase = (testCase: RouteTestCase) => {
   })
 }
 
-const filter = null // 'recursive-types'
+const filter = null //'nullable-properties'
 
 describe('BagOfRoutes Parsing', () => {
   const scenarioFilePaths = fs.readdirSync(path.join(__dirname, 'scenarios'))

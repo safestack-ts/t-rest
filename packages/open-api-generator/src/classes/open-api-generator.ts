@@ -35,6 +35,7 @@ type GenerateSpec = {
   outputFile: string
   outputDir: string
   entry: string
+  tsConfigPath: string
   filter?: SpecFilter
 }
 
@@ -50,6 +51,7 @@ export abstract class OpenAPIGenerator {
     outputFile,
     outputDir,
     entry,
+    tsConfigPath,
     filter = () => true,
   }: GenerateSpec) {
     this.validateOutputFile(outputFile)
@@ -59,6 +61,7 @@ export abstract class OpenAPIGenerator {
     const { paths, components } = this.bagOfRoutesToSchema(
       spec.bagOfRoutes,
       entry,
+      tsConfigPath,
       spec.metaData,
       filter
     )
@@ -85,10 +88,11 @@ export abstract class OpenAPIGenerator {
   private static bagOfRoutesToSchema(
     bagOfRoutes: BagOfRoutes<any, any, any>,
     entryPath: string,
+    tsConfigPath: string,
     metaData: OpenAPIMetaData,
     filter: SpecFilter
   ) {
-    const routes = parseBagOfRoutes(entryPath)
+    const routes = parseBagOfRoutes(entryPath, tsConfigPath)
     const routesUnfolded = Array.from(routes.entries()).reduce(
       (acc, [[method, path, version], typeInfo]) => {
         const routeDef = bagOfRoutes.routes.get([
