@@ -29,7 +29,7 @@ const runTestCase = (testCase: RouteTestCase) => {
   })
 }
 
-const filter = null //'nullable-properties'
+const filter = null //'arrays'
 
 describe('BagOfRoutes Parsing', () => {
   const scenarioFilePaths = fs.readdirSync(path.join(__dirname, 'scenarios'))

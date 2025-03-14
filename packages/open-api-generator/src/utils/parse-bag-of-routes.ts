@@ -434,17 +434,28 @@ function transformTypeToIntermediate(
   // Handle arrays
   const typeAsString = typeChecker.typeToString(type)
 
-  if (symbol?.name === 'Array' || typeAsString.endsWith('[]]')) {
+  if (
+    symbol?.name === 'Array' ||
+    typeAsString.endsWith('[]]') ||
+    typeAsString === '[]' ||
+    typeAsString.endsWith('[]')
+  ) {
     const elementType = (type as ts.TypeReference).typeArguments?.at(0)
-    if (!elementType) throw new Error('Array element type not found')
+
+    // Handle regular array
     return {
       kind: 'array',
-      items: transformTypeToIntermediate(
-        elementType,
-        typeChecker,
-        rootNode,
-        metadata
-      ),
+      ...(elementType
+        ? {
+            items: transformTypeToIntermediate(
+              elementType,
+              typeChecker,
+              rootNode,
+              metadata
+            ),
+          }
+        : {}),
+      ...(!elementType ? { maxItems: 0 } : {}),
     }
   }
 
@@ -691,16 +702,29 @@ function resolveTypeToOpenAPI3({
     case 'array':
       return {
         type: 'array',
-        items: resolveTypeToOpenAPI3({
-          type: type.items,
-          components,
-          replaceRefs,
-        }),
+        items: type.items
+          ? resolveTypeToOpenAPI3({
+              type: type.items,
+              components,
+              replaceRefs,
+            })
+          : undefined,
         ...(type.minItems ? { minItems: type.minItems } : {}),
         ...(type.maxItems ? { maxItems: type.maxItems } : {}),
         ...(type.uniqueItems ? { uniqueItems: type.uniqueItems } : {}),
         ...(nullable ? { nullable: true } : {}),
       }
+    case 'tuple': {
+      return {
+        type: 'array',
+        items: type.elementTypes.map((t) =>
+          resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
+        ),
+        minItems: type.elementTypes.length,
+        maxItems: type.elementTypes.length,
+        ...(nullable ? { nullable: true } : {}),
+      }
+    }
     case 'object': {
       const objectSpec = {
         type: 'object',

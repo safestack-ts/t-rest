@@ -118,7 +118,7 @@ export const NullType = (args?: Omit<NullType, 'kind'>): NullType => ({
 export const validateArrayType: z.ZodType<ArrayType> = validateBaseType.and(
   z.object({
     kind: z.literal('array'),
-    items: z.lazy(() => validateTypeDefinition),
+    items: z.lazy(() => validateTypeDefinition).optional(),
     minItems: z.number().optional(),
     maxItems: z.number().optional(),
     uniqueItems: z.boolean().optional(),
@@ -126,7 +126,7 @@ export const validateArrayType: z.ZodType<ArrayType> = validateBaseType.and(
 )
 export interface ArrayType extends BaseType {
   kind: 'array'
-  items: TypeDefinition
+  items?: TypeDefinition
   minItems?: number
   maxItems?: number
   uniqueItems?: boolean
@@ -365,6 +365,22 @@ export const EnumType = (args: Omit<EnumType, 'kind'>): EnumType => ({
   ...args,
 })
 
+export const validateTupleType: z.ZodType<TupleType> = validateBaseType.and(
+  z.object({
+    kind: z.literal('tuple'),
+    elementTypes: z.array(z.lazy(() => validateTypeDefinition)),
+  })
+)
+export interface TupleType extends BaseType {
+  kind: 'tuple'
+  elementTypes: TypeDefinition[]
+}
+
+export const TupleType = (args: Omit<TupleType, 'kind'>): TupleType => ({
+  kind: 'tuple',
+  ...args,
+})
+
 export const validateTypeDefinition: z.ZodType<TypeDefinition> = z
   .object({
     originalName: z.string().optional(),
@@ -391,6 +407,7 @@ export const validateTypeDefinition: z.ZodType<TypeDefinition> = z
       validateSetType,
       validateRegexpType,
       validateStreamType,
+      validateTupleType,
     ])
   )
 
@@ -418,6 +435,7 @@ export type TypeDefinition = {
   | SetType
   | RegexpType
   | StreamType
+  | TupleType
   | {
       kind: 'generic'
       name: string
