@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.33
+
+### Patch Changes
+
+- 67a6e7a: support detection of empty array
+
 ## 1.0.0-alpha.32
 
 ### Patch Changes
