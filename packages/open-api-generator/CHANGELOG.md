@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.32
+
+### Patch Changes
+
+- d59ae9b: fix detection of nullable and optional properties
+
 ## 1.0.0-alpha.31
 
 ### Patch Changes
