@@ -258,3 +258,59 @@ test('calling versioned route with semantic parameter change both versions are s
     version: '2024-02-01',
   })
 })
+
+test('query params and path params are kept separate', async () => {
+  const bagOfRoutes = BagOfRoutes.withVersioning(
+    Versioning.DATE,
+    versionHistory
+  )
+    .addRoute(
+      Route.version('2024-01-01')
+        .get('/users/:userId')
+        .validate(
+          z.object({
+            params: z.strictObject({ userId: ze.parseInteger() }),
+            query: z.strictObject({ email: z.string() }),
+          })
+        )
+        .response<ResponseWithVersion<User>>()
+    )
+    .build()
+
+  const expressApp = Express()
+
+  const typedExpressApplication = TypedExpressApplication.withVersioning(
+    expressApp,
+    bagOfRoutes,
+    versionHistory,
+    new APIVersionHeaderExtractor()
+  )
+
+  typedExpressApplication
+    .get('/users/:userId')
+    .version('2024-01-01')
+    .handle(
+      (
+        { version: { resolved: resolvedVersion } },
+        { params, query },
+        response
+      ) => {
+        expect(params).toEqual({ userId: 1337 })
+        expect(query).toEqual({ email: 'test@email.com' })
+        response.status(200).json({
+          version: resolvedVersion,
+          data: { id: 1337, email: `user-1337@email.com` },
+        })
+      }
+    )
+
+  const response = await request(expressApp)
+    .get('/users/1337?email=test@email.com')
+    .set('X-API-Version', '2024-01-01')
+    .expect(StatusCodes.OK)
+
+  expect(response.body).toEqual<ResponseWithVersion<User>>({
+    data: { id: 1337, email: `user-1337@email.com` },
+    version: '2024-01-01',
+  })
+})
