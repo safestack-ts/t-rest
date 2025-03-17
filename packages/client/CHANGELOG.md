@@ -1,5 +1,11 @@
 # @t-rest/client
 
+## 1.0.0-alpha.24
+
+### Patch Changes
+
+- 86f2fb3: axios http adapter prevent path params from being appened as query params to url
+
 ## 1.0.0-alpha.23
 
 ### Patch Changes
