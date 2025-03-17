@@ -67,3 +67,23 @@ test('POST request works', async () => {
 
   scope.done()
 })
+
+test('path params are replaced', async () => {
+  const scope = nock('http://localhost')
+    .get('/basket/123/entries')
+    .reply(200, function () {
+      expect(this.req.path).toBe('/basket/123/entries')
+
+      return [{ id: 'a' }, { id: 'b' }]
+    })
+
+  const response = await apiClient.get('/basket/:basketId/entries', {
+    params: {
+      basketId: '123',
+    },
+  })
+
+  expect(response.data).toEqual([{ id: 'a' }, { id: 'b' }])
+
+  scope.done()
+})

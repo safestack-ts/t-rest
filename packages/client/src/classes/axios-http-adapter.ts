@@ -16,12 +16,14 @@ export class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
     data: unknown,
     requestConfig?: RequestConfig & AxiosRequestConfig
   ) {
+    const { params: _params, ...requestConfigWithoutParams } =
+      requestConfig ?? {}
     const response = await this.axiosInstance.request<TResponse>({
       url,
       method,
       data,
       headers: requestConfig?.headers,
-      ...requestConfig,
+      ...requestConfigWithoutParams,
     })
 
     return {
