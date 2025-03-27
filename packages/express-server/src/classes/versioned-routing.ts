@@ -11,6 +11,7 @@ import {
 } from '@t-rest/core'
 import { AnyRouteHandlerFn } from '../types/any-route-handler-fn'
 import {
+  ExpressNextFunction,
   ExpressRequest,
   ExpressResponse,
 } from '../types/express-type-shortcuts'
@@ -78,7 +79,11 @@ export class VersionedRouting {
   }
 
   private getRouteHandler(method: HTTPMethod, path: string) {
-    return async (request: ExpressRequest, response: ExpressResponse) => {
+    return async (
+      request: ExpressRequest,
+      response: ExpressResponse,
+      next: ExpressNextFunction
+    ) => {
       const { routeToExecute, version } = this.getRouteToExecute(
         method,
         path,
@@ -90,7 +95,12 @@ export class VersionedRouting {
 
       // emulate express behavior for executing middlewares
       let i = 0
-      const nextMiddleware = async () => {
+      const nextMiddleware = async (error?: unknown) => {
+        if (error) {
+          // abort middleware chain and call original next middleware with error
+          return next(error)
+        }
+
         const middleware = middlewares.at(i++)
 
         if (middleware) {
