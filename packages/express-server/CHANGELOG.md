@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.25
+
+### Patch Changes
+
+- 5bec3d7: express server route handle middleware handling abort chain on error
+
 ## 1.0.0-alpha.24
 
 ### Patch Changes
