@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.26
+
+### Patch Changes
+
+- 4f46084: export types for typed middleware
+
 ## 1.0.0-alpha.25
 
 ### Patch Changes
