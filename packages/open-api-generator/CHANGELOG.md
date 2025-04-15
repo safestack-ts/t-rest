@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.36
+
+### Patch Changes
+
+- 15055bd: bump version
+
 ## 1.0.0-alpha.35
 
 ### Patch Changes
