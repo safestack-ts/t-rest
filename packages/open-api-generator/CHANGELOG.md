@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.35
+
+### Patch Changes
+
+- 924bc29: export OpenAPIMetaData type
+
 ## 1.0.0-alpha.34
 
 ### Patch Changes
