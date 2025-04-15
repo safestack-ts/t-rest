@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.27
+
+### Patch Changes
+
+- 2522b06: add exports for typed router
+
 ## 1.0.0-alpha.26
 
 ### Patch Changes
