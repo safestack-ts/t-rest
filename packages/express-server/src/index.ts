@@ -2,6 +2,8 @@
 export * from './classes/typed-express-application'
 export * from './classes/typed-express-application-with-versioning'
 export * from './classes/typed-express-application-without-versioning'
+export * from './classes/typed-router-with-versioning'
+export * from './classes/typed-router-without-versioning'
 
 // types
 export * from './types/version-extractor'
