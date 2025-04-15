@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.28
+
+### Patch Changes
+
+- 7510ad3: bump version
+
 ## 1.0.0-alpha.27
 
 ### Patch Changes
