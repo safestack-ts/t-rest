@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.38
+
+### Patch Changes
+
+- 372372f: increment version
+
 ## 1.0.0-alpha.37
 
 ### Patch Changes

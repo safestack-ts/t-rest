@@ -1,6 +1,6 @@
 {
     "name": "@t-rest/open-api-generator",
-    "version": "1.0.0-alpha.37",
+    "version": "1.0.0-alpha.38",
     "description": "",
     "main": "./dist/cjs/index.js",
     "module": "./dist/esm/index.js",
