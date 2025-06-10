@@ -18,7 +18,7 @@ import {
   RouteTypeInfo,
   getOpenAPI3Spec,
 } from '../utils/parse-bag-of-routes'
-import { groupBy, merge } from 'lodash'
+import { groupBy, merge, uniqBy } from 'lodash'
 import { validateRouteMeta } from '../schema/route-meta'
 
 type SpecFilterRoute = {
@@ -201,10 +201,11 @@ export abstract class OpenAPIGenerator {
 
             const { headers: localHeaders, ...routeMeta } =
               routeMetaParsed.data ?? {}
-            const mergedHeaders = [
-              ...(localHeaders ?? []),
-              ...(metaData.headers ?? []),
-            ]
+            //  local headers of the route definition have precedence over the global headers, which is enforced by array order using lodashs uniqBy
+            const mergedHeaders = uniqBy(
+              [...(localHeaders ?? []), ...(metaData.headers ?? [])],
+              (header) => header.name
+            )
 
             const querySchema =
               route.typeInfo.input?.kind === 'object' &&
