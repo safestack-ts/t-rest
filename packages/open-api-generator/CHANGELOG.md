@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.37
+
+### Patch Changes
+
+- 60f992f: avoid duplicate header definitions on routes when merging local and global headers
+
 ## 1.0.0-alpha.36
 
 ### Patch Changes
