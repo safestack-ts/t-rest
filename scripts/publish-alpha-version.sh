@@ -9,5 +9,6 @@ fi
 pnpm changeset version
 git commit -am "chore: increment version"
 git push
+pnpm build
 pnpm build:esm
 pnpm changeset publish
