@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.41
+
+### Patch Changes
+
+- b42e529: fix array handling of single ref items
+
 ## 1.0.0-alpha.40
 
 ### Patch Changes
