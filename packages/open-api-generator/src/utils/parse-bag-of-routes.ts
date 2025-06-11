@@ -306,7 +306,82 @@ function transformTypeToIntermediate(
     }
   }
 
-  // Handle arrays first, before tuple detection
+  // Handle unions first, before array detection
+  if (type.isUnion()) {
+    // Check if this is a boolean represented as true | false
+    if (type.types.every((t) => t.flags & ts.TypeFlags.BooleanLiteral)) {
+      return {
+        kind: 'boolean',
+      }
+    }
+
+    // Check if this is a nullable type (T | null)
+    const nullTypes = type.types.filter(
+      (t) =>
+        (t.flags & ts.TypeFlags.Null) !== 0 ||
+        (t.flags & ts.TypeFlags.Undefined) !== 0
+    )
+    const nonNullTypes = type.types.filter(
+      (t) =>
+        (t.flags & ts.TypeFlags.Null) === 0 &&
+        (t.flags & ts.TypeFlags.Undefined) === 0
+    )
+
+    // If we have exactly one non-null type and at least one null/undefined type, this is a nullable type
+    if (nonNullTypes.length === 1 && nullTypes.length > 0) {
+      return transformTypeToIntermediate(
+        nonNullTypes[0],
+        typeChecker,
+        rootNode,
+        metadata
+      )
+    }
+
+    // Check if this is an enum type by looking at the flags of the type itself
+    if (
+      type.flags & ts.TypeFlags.Enum ||
+      type.flags & ts.TypeFlags.EnumLiteral
+    ) {
+      const enumMembers = typeChecker.getPropertiesOfType(type)
+      const values = enumMembers.map((member) => {
+        const memberType = typeChecker.getTypeOfSymbolAtLocation(
+          member,
+          rootNode
+        )
+        if (memberType.isStringLiteral()) return memberType.value
+        if (memberType.isNumberLiteral()) return memberType.value
+        throw new Error('Unsupported enum member type')
+      })
+
+      // Get enum name from the type's symbol or parent symbol
+      const enumSymbol = type.symbol || type.getSymbol()
+      const enumName = enumSymbol?.name || ''
+
+      return {
+        kind: 'enum',
+        values,
+        type: typeof values[0] === 'string' ? 'string' : 'number',
+        name: enumName,
+      }
+    }
+
+    // we want to track named union types to not re-visit them again
+    if (
+      typeName &&
+      type.types.some((t) => t.flags & ts.TypeFlags.NonPrimitive)
+    ) {
+      metadata.visitedTypes?.add(typeName)
+    }
+
+    return {
+      kind: 'union',
+      types: type.types.map((t) =>
+        transformTypeToIntermediate(t, typeChecker, rootNode, metadata)
+      ),
+    }
+  }
+
+  // Handle arrays after union detection
   const typeAsString = typeChecker.typeToString(type)
 
   if (
@@ -568,81 +643,6 @@ function transformTypeToIntermediate(
   if (type.flags & ts.TypeFlags.BooleanLiteral) {
     return {
       kind: 'boolean',
-    }
-  }
-
-  // Handle unions
-  if (type.isUnion()) {
-    // Check if this is a boolean represented as true | false
-    if (type.types.every((t) => t.flags & ts.TypeFlags.BooleanLiteral)) {
-      return {
-        kind: 'boolean',
-      }
-    }
-
-    // Check if this is a nullable type (T | null)
-    const nullTypes = type.types.filter(
-      (t) =>
-        (t.flags & ts.TypeFlags.Null) !== 0 ||
-        (t.flags & ts.TypeFlags.Undefined) !== 0
-    )
-    const nonNullTypes = type.types.filter(
-      (t) =>
-        (t.flags & ts.TypeFlags.Null) === 0 &&
-        (t.flags & ts.TypeFlags.Undefined) === 0
-    )
-
-    // If we have exactly one non-null type and at least one null/undefined type, this is a nullable type
-    if (nonNullTypes.length === 1 && nullTypes.length > 0) {
-      return transformTypeToIntermediate(
-        nonNullTypes[0],
-        typeChecker,
-        rootNode,
-        metadata
-      )
-    }
-
-    // Check if this is an enum type by looking at the flags of the type itself
-    if (
-      type.flags & ts.TypeFlags.Enum ||
-      type.flags & ts.TypeFlags.EnumLiteral
-    ) {
-      const enumMembers = typeChecker.getPropertiesOfType(type)
-      const values = enumMembers.map((member) => {
-        const memberType = typeChecker.getTypeOfSymbolAtLocation(
-          member,
-          rootNode
-        )
-        if (memberType.isStringLiteral()) return memberType.value
-        if (memberType.isNumberLiteral()) return memberType.value
-        throw new Error('Unsupported enum member type')
-      })
-
-      // Get enum name from the type's symbol or parent symbol
-      const enumSymbol = type.symbol || type.getSymbol()
-      const enumName = enumSymbol?.name || ''
-
-      return {
-        kind: 'enum',
-        values,
-        type: typeof values[0] === 'string' ? 'string' : 'number',
-        name: enumName,
-      }
-    }
-
-    // we want to track named union types to not re-visit them again
-    if (
-      typeName &&
-      type.types.some((t) => t.flags & ts.TypeFlags.NonPrimitive)
-    ) {
-      metadata.visitedTypes?.add(typeName)
-    }
-
-    return {
-      kind: 'union',
-      types: type.types.map((t) =>
-        transformTypeToIntermediate(t, typeChecker, rootNode, metadata)
-      ),
     }
   }
 
