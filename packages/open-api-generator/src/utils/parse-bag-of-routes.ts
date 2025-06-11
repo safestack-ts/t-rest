@@ -265,15 +265,288 @@ function transformTypeToIntermediate(
     }
   }
 
-  typeName = typeName || typeChecker.typeToString(type)
+  // Improve type name detection - try multiple sources
+  if (!typeName) {
+    typeName = symbol?.getName()
+  }
+  if (!typeName && type.aliasSymbol) {
+    typeName = type.aliasSymbol.getName()
+  }
+  // For types that don't have alias symbols but have symbols (like interface/type references)
+  if (!typeName && symbol && symbol.name && symbol.name !== '__type') {
+    typeName = symbol.name
+  }
+  if (!typeName) {
+    typeName = typeChecker.typeToString(type)
+  }
+
   typeDiscoveryLog('typeName %s', typeName)
+  typeDiscoveryLog('symbol name: %s', symbol?.name)
+  typeDiscoveryLog('symbol escapedName: %s', symbol?.escapedName)
+  typeDiscoveryLog('aliasSymbol name: %s', type.aliasSymbol?.name)
+  typeDiscoveryLog('aliasSymbol escapedName: %s', type.aliasSymbol?.escapedName)
+  typeDiscoveryLog('typeToString: %s', typeChecker.typeToString(type))
   typeDiscoveryLog('visitedTypes %s', metadata.visitedTypes)
 
-  // Check for recursion
-  if (typeName && metadata.visitedTypes?.has(typeName)) {
+  // Check for recursion - but only for named types that aren't basic types
+  if (
+    typeName &&
+    typeName !== 'string' &&
+    typeName !== 'number' &&
+    typeName !== 'boolean' &&
+    typeName !== 'null' &&
+    typeName !== '__type' && // Don't treat anonymous types as refs
+    !typeName.match(/^\[.*\]$/) && // not tuple strings
+    !typeName.match(/^\{.*\}$/) && // not anonymous object types like "{ id: number }"
+    metadata.visitedTypes?.has(typeName)
+  ) {
     return {
       kind: 'ref',
       name: typeName,
+    }
+  }
+
+  // Handle arrays first, before tuple detection
+  const typeAsString = typeChecker.typeToString(type)
+
+  if (
+    symbol?.name === 'Array' ||
+    typeAsString.endsWith('[]]') ||
+    typeAsString === '[]' ||
+    typeAsString.endsWith('[]')
+  ) {
+    const elementType = (type as ts.TypeReference).typeArguments?.at(0)
+
+    // Handle regular array
+    return {
+      kind: 'array',
+      ...(elementType
+        ? {
+            items: transformTypeToIntermediate(
+              elementType,
+              typeChecker,
+              rootNode,
+              metadata
+            ),
+          }
+        : {}),
+      ...(!elementType ? { maxItems: 0 } : {}),
+    }
+  }
+
+  // Check for tuple types - but be more specific to avoid catching empty arrays
+  const objectType = type as ts.ObjectType
+
+  // Multiple ways to detect tuple types - but exclude empty arrays
+  const isTuple =
+    (objectType.objectFlags & ts.ObjectFlags.Tuple ||
+      (objectType.objectFlags & ts.ObjectFlags.Reference &&
+        (objectType as ts.TypeReference).target?.objectFlags &
+          ts.ObjectFlags.Tuple)) &&
+    typeAsString !== '[]' // Exclude empty arrays from tuple detection
+
+  if (isTuple) {
+    typeDiscoveryLog('Found tuple type: %s', typeChecker.typeToString(type))
+
+    const elementTypes: TypeDefinition[] = []
+
+    // Try to extract element types from properties first (more reliable)
+    const properties = type.getProperties()
+    const numericProps = properties.filter((prop) => /^\d+$/.test(prop.name))
+
+    if (numericProps.length > 0) {
+      typeDiscoveryLog(
+        'Extracting tuple elements from properties, found %d numeric properties',
+        numericProps.length
+      )
+
+      // Sort by numeric index
+      numericProps.sort((a, b) => parseInt(a.name) - parseInt(b.name))
+
+      numericProps.forEach((prop, index) => {
+        const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
+
+        typeDiscoveryLog(
+          'Raw tuple element %d from property: %s',
+          index,
+          typeChecker.typeToString(propType)
+        )
+
+        // Check if this element type should be treated as a named type reference
+        const elementSymbol = propType.getSymbol()
+        const elementAliasSymbol = propType.aliasSymbol
+        const elementTypeName =
+          elementAliasSymbol?.getName() || elementSymbol?.getName()
+
+        typeDiscoveryLog(
+          'Processing tuple element %d: %s, symbol: %s, aliasSymbol: %s',
+          index,
+          typeChecker.typeToString(propType),
+          elementSymbol?.getName(),
+          elementAliasSymbol?.getName()
+        )
+
+        // Only mark as visited if it's a proper named type (not anonymous)
+        if (
+          elementTypeName &&
+          elementTypeName !== '__type' &&
+          elementTypeName !== 'string' &&
+          elementTypeName !== 'number' &&
+          elementTypeName !== 'boolean' &&
+          elementTypeName !== 'null' &&
+          elementTypeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/) && // valid identifier
+          !metadata.visitedTypes?.has(elementTypeName)
+        ) {
+          metadata.visitedTypes?.add(elementTypeName)
+        }
+
+        elementTypes.push(
+          transformTypeToIntermediate(propType, typeChecker, rootNode, metadata)
+        )
+      })
+    } else {
+      // Fallback to type arguments approach
+      let tupleType: ts.TupleType
+      if ((type as ts.ObjectType).objectFlags & ts.ObjectFlags.Tuple) {
+        tupleType = type as ts.TupleType
+      } else {
+        tupleType = (type as ts.ObjectType as ts.TypeReference)
+          .target as ts.TupleType
+      }
+
+      // Get the type arguments which represent the tuple elements
+      if (tupleType.typeArguments) {
+        tupleType.typeArguments.forEach((elementType, index) => {
+          typeDiscoveryLog(
+            'Raw tuple element %d: %s',
+            index,
+            typeChecker.typeToString(elementType)
+          )
+
+          // Try different ways to get the actual type
+          let resolvedElementType = elementType
+
+          // If it's a type reference, try to resolve it
+          if (elementType.flags & ts.TypeFlags.TypeParameter) {
+            // This might be a type parameter, try to get the constraint
+            const typeParam = elementType as ts.TypeParameter
+            const constraint = typeParam.getConstraint()
+            if (constraint) {
+              resolvedElementType = constraint
+            }
+          }
+
+          // Try to get the symbol and type name
+          const elementSymbol =
+            resolvedElementType.getSymbol() || elementType.getSymbol()
+          const elementAliasSymbol =
+            resolvedElementType.aliasSymbol || elementType.aliasSymbol
+          const elementTypeName =
+            elementAliasSymbol?.getName() || elementSymbol?.getName()
+
+          typeDiscoveryLog(
+            'Processing tuple element %d: %s, symbol: %s, aliasSymbol: %s',
+            index,
+            typeChecker.typeToString(resolvedElementType),
+            elementSymbol?.getName(),
+            elementAliasSymbol?.getName()
+          )
+
+          // Only mark as visited if it's a proper named type (not anonymous)
+          if (
+            elementTypeName &&
+            elementTypeName !== '__type' &&
+            elementTypeName !== 'string' &&
+            elementTypeName !== 'number' &&
+            elementTypeName !== 'boolean' &&
+            elementTypeName !== 'null' &&
+            elementTypeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/) && // valid identifier
+            !metadata.visitedTypes?.has(elementTypeName)
+          ) {
+            metadata.visitedTypes?.add(elementTypeName)
+          }
+
+          elementTypes.push(
+            transformTypeToIntermediate(
+              resolvedElementType,
+              typeChecker,
+              rootNode,
+              metadata
+            )
+          )
+        })
+      } else if ((type as ts.ObjectType as ts.TypeReference).typeArguments) {
+        // Try to get type arguments from the reference
+        const typeArgs = (type as ts.ObjectType as ts.TypeReference)
+          .typeArguments
+        if (typeArgs) {
+          typeArgs.forEach((elementType, index) => {
+            typeDiscoveryLog(
+              'Raw tuple element %d: %s',
+              index,
+              typeChecker.typeToString(elementType)
+            )
+
+            // Try different ways to get the actual type
+            let resolvedElementType = elementType
+
+            // If it's a type reference, try to resolve it
+            if (elementType.flags & ts.TypeFlags.TypeParameter) {
+              // This might be a type parameter, try to get the constraint
+              const typeParam = elementType as ts.TypeParameter
+              const constraint = typeParam.getConstraint()
+              if (constraint) {
+                resolvedElementType = constraint
+              }
+            }
+
+            // Try to get the symbol and type name
+            const elementSymbol =
+              resolvedElementType.getSymbol() || elementType.getSymbol()
+            const elementAliasSymbol =
+              resolvedElementType.aliasSymbol || elementType.aliasSymbol
+            const elementTypeName =
+              elementAliasSymbol?.getName() || elementSymbol?.getName()
+
+            typeDiscoveryLog(
+              'Processing tuple element %d: %s, symbol: %s, aliasSymbol: %s',
+              index,
+              typeChecker.typeToString(resolvedElementType),
+              elementSymbol?.getName(),
+              elementAliasSymbol?.getName()
+            )
+
+            // Only mark as visited if it's a proper named type (not anonymous)
+            if (
+              elementTypeName &&
+              elementTypeName !== '__type' &&
+              elementTypeName !== 'string' &&
+              elementTypeName !== 'number' &&
+              elementTypeName !== 'boolean' &&
+              elementTypeName !== 'null' &&
+              elementTypeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/) && // valid identifier
+              !metadata.visitedTypes?.has(elementTypeName)
+            ) {
+              metadata.visitedTypes?.add(elementTypeName)
+            }
+
+            elementTypes.push(
+              transformTypeToIntermediate(
+                resolvedElementType,
+                typeChecker,
+                rootNode,
+                metadata
+              )
+            )
+          })
+        }
+      }
+    }
+
+    typeDiscoveryLog('Tuple elements: %d', elementTypes.length)
+    return {
+      kind: 'tuple',
+      elementTypes,
     }
   }
 
@@ -381,6 +654,85 @@ function transformTypeToIntermediate(
       return !(t.flags & ts.TypeFlags.Never) && typeName !== 'BRAND' // zod branded types should be ignored
     })
 
+    // Special handling for intersections that contain unions
+    // This handles cases like: { id: number } & ({ type: 'bundle', items: Item[] } | { type: 'single', items: [Item] })
+    const objectTypes = validTypes.filter(
+      (t) =>
+        t.isClassOrInterface() ||
+        (t.flags & ts.TypeFlags.Object && !t.isUnion())
+    )
+    const unionTypes = validTypes.filter((t) => t.isUnion())
+
+    if (objectTypes.length > 0 && unionTypes.length > 0) {
+      // We have an intersection of object types and union types
+      // We need to merge each object type with each union member
+      const baseProperties: Record<string, TypeDefinition> = {}
+      const baseRequired = new Set<string>()
+
+      // Collect properties from all object types
+      objectTypes.forEach((objType) => {
+        objType.getProperties().forEach((prop) => {
+          const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
+          baseProperties[prop.name] = transformTypeToIntermediate(
+            propType,
+            typeChecker,
+            rootNode,
+            metadata
+          )
+          if (!(prop.flags & ts.SymbolFlags.Optional)) {
+            baseRequired.add(prop.name)
+          }
+        })
+      })
+
+      // For each union type, merge with base properties
+      const resultUnionTypes: TypeDefinition[] = []
+
+      unionTypes.forEach((unionType) => {
+        unionType.types.forEach((unionMember) => {
+          const memberProperties: Record<string, TypeDefinition> = {
+            ...baseProperties,
+          }
+          const memberRequired = new Set(baseRequired)
+
+          // Add properties from the union member
+          if (
+            unionMember.isClassOrInterface() ||
+            unionMember.flags & ts.TypeFlags.Object
+          ) {
+            unionMember.getProperties().forEach((prop) => {
+              const propType = typeChecker.getTypeOfSymbolAtLocation(
+                prop,
+                rootNode
+              )
+              memberProperties[prop.name] = transformTypeToIntermediate(
+                propType,
+                typeChecker,
+                rootNode,
+                metadata
+              )
+              if (!(prop.flags & ts.SymbolFlags.Optional)) {
+                memberRequired.add(prop.name)
+              }
+            })
+          }
+
+          resultUnionTypes.push({
+            kind: 'object',
+            properties: memberProperties,
+            ...(memberRequired.size > 0
+              ? { required: Array.from(memberRequired) }
+              : {}),
+          })
+        })
+      })
+
+      return {
+        kind: 'union',
+        types: resultUnionTypes,
+      }
+    }
+
     // Get all properties from all object types in the intersection
     const properties: Record<string, TypeDefinition> = {}
     const required = new Set<string>()
@@ -388,9 +740,14 @@ function transformTypeToIntermediate(
 
     // we want to track named intersection types to not re-visit them again
     // important that we add this first before traversing the properties, because it could be a recursive type
-    typeName = type.aliasSymbol?.escapedName?.toString()
-    if (type.aliasSymbol && typeName) {
-      metadata.visitedTypes?.add(typeName)
+    const intersectionTypeName = type.aliasSymbol?.escapedName?.toString()
+    const shouldTrackIntersectionType =
+      intersectionTypeName &&
+      intersectionTypeName !== '__type' &&
+      intersectionTypeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
+
+    if (shouldTrackIntersectionType) {
+      metadata.visitedTypes?.add(intersectionTypeName)
     }
 
     validTypes.forEach((t) => {
@@ -418,7 +775,7 @@ function transformTypeToIntermediate(
         kind: 'object',
         properties,
         ...(required.size > 0 ? { required: Array.from(required) } : {}),
-        ...(typeName ? { name: typeName } : {}),
+        ...(shouldTrackIntersectionType ? { name: intersectionTypeName } : {}),
       }
     }
 
@@ -428,34 +785,6 @@ function transformTypeToIntermediate(
       types: validTypes.map((t) =>
         transformTypeToIntermediate(t, typeChecker, rootNode, metadata)
       ),
-    }
-  }
-
-  // Handle arrays
-  const typeAsString = typeChecker.typeToString(type)
-
-  if (
-    symbol?.name === 'Array' ||
-    typeAsString.endsWith('[]]') ||
-    typeAsString === '[]' ||
-    typeAsString.endsWith('[]')
-  ) {
-    const elementType = (type as ts.TypeReference).typeArguments?.at(0)
-
-    // Handle regular array
-    return {
-      kind: 'array',
-      ...(elementType
-        ? {
-            items: transformTypeToIntermediate(
-              elementType,
-              typeChecker,
-              rootNode,
-              metadata
-            ),
-          }
-        : {}),
-      ...(!elementType ? { maxItems: 0 } : {}),
     }
   }
 
@@ -513,15 +842,35 @@ function transformTypeToIntermediate(
     return buildInType
   }
 
-  if (type.isClassOrInterface()) {
+  // Check for object types (including interfaces and type aliases)
+  if (
+    type.isClassOrInterface() ||
+    (type.flags & ts.TypeFlags.Object && type.getProperties().length > 0)
+  ) {
     const buildInType = handleBuiltInTypes()
     if (buildInType) {
       return buildInType
     }
 
-    // we want to track named object types to not re-visit them again
-    const isFirstVisit = !metadata.visitedTypes?.has(typeName)
-    if (typeName) {
+    // Determine if this is a named type that should be tracked
+    // We want to track types that have proper names (not anonymous object types or basic types)
+    const shouldTrackType =
+      typeName &&
+      typeName !== 'string' &&
+      typeName !== 'number' &&
+      typeName !== 'boolean' &&
+      typeName !== 'null' &&
+      typeName !== '__type' && // Don't track anonymous types
+      !typeName.match(/^\{.*\}$/) && // not anonymous object types like "{ id: number }"
+      !typeName.match(/^\[.*\]$/) && // not tuple strings like "[SubscriptionItem]"
+      typeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/) // valid identifier names like "SubscriptionItem"
+
+    // Check if this is the first visit to this named type
+    const isFirstVisit = shouldTrackType
+      ? !metadata.visitedTypes?.has(typeName)
+      : true
+
+    if (shouldTrackType) {
       metadata.visitedTypes?.add(typeName)
     }
 
@@ -534,7 +883,7 @@ function transformTypeToIntermediate(
 
     return {
       ...objectSchema,
-      ...(isFirstVisit ? { name: typeName } : {}),
+      ...(shouldTrackType && isFirstVisit ? { name: typeName } : {}),
     }
   }
 
@@ -604,8 +953,14 @@ function transformObjectToIntermediate(
 
   const typeName = type.aliasSymbol?.escapedName?.toString()
 
+  // Only track and name proper named types, not anonymous ones
+  const shouldTrackType =
+    typeName &&
+    typeName !== '__type' &&
+    typeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/) // valid identifier names
+
   // we want to track named object types to not re-visit them again
-  if (typeName) {
+  if (shouldTrackType) {
     metadata.visitedTypes?.add(typeName)
   }
 
@@ -642,7 +997,7 @@ function transformObjectToIntermediate(
     kind: 'object',
     properties,
     ...(required.size > 0 ? { required: Array.from(required) } : {}),
-    ...(typeName ? { name: typeName } : {}),
+    ...(shouldTrackType ? { name: typeName } : {}),
   }
 }
 
