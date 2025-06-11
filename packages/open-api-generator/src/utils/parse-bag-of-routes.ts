@@ -1067,7 +1067,10 @@ function resolveTypeToOpenAPI3({
       return {
         type: 'array',
         items:
-          items instanceof Array && items.length === 1 && type.maxItems === 1
+          items instanceof Array &&
+          items.length === 1 &&
+          type.maxItems === 1 &&
+          '$ref' in items.at(0)
             ? items.at(0)
             : items,
         ...(type.minItems !== undefined ? { minItems: type.minItems } : {}),
@@ -1079,11 +1082,13 @@ function resolveTypeToOpenAPI3({
       }
     }
     case 'tuple': {
+      const items = type.elementTypes.map((t) =>
+        resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
+      )
       return {
         type: 'array',
-        items: type.elementTypes.map((t) =>
-          resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
-        ),
+        items:
+          items.length === 1 && '$ref' in items.at(0) ? items.at(0) : items,
         minItems: type.elementTypes.length,
         maxItems: type.elementTypes.length,
         ...(nullable ? { nullable: true } : {}),
