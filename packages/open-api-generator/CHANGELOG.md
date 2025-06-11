@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.40
+
+### Patch Changes
+
+- aee69fa: fix handling of union types consisting out of arrays
+
 ## 1.0.0-alpha.39
 
 ### Patch Changes
