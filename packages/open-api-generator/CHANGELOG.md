@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.39
+
+### Patch Changes
+
+- b48f6de: fix tuple detection in complex structure like mixtures of intersection and union types
+
 ## 1.0.0-alpha.38
 
 ### Patch Changes
