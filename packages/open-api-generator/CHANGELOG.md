@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.42
+
+### Patch Changes
+
+- d58c11b: fix open api schema generation ref handling in arrays and tuples
+
 ## 1.0.0-alpha.41
 
 ### Patch Changes
