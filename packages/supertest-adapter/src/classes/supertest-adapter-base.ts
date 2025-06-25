@@ -39,7 +39,9 @@ export abstract class SupertestAdapterBase<
     if (context.expect?.status !== undefined) {
       request = request
         .expect((res) =>
-          res.status !== context.expect?.status ? console.error(res.body) : 0
+          res.status !== context.expect?.status
+            ? console.error(this.stringifyBody(res.body))
+            : 0
         )
         .expect(context.expect.status)
     }
@@ -55,5 +57,17 @@ export abstract class SupertestAdapterBase<
     const response = await request
 
     return response as SupertestResponse<TResponseType>
+  }
+
+  private stringifyBody(body: any) {
+    if (typeof body === 'string') {
+      return body
+    }
+
+    try {
+      return JSON.stringify(body)
+    } catch (e) {
+      return String(body)
+    }
   }
 }
