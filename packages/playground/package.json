@@ -1,0 +1,29 @@
+{
+  "name": "@t-rest/playground",
+  "version": "0.0.0",
+  "description": "",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:esm": "tsc -p tsconfig.esm.json"
+  },
+  "keywords": [],
+  "author": "Yannick Stachelscheid",
+  "license": "MIT",
+  "dependencies": {
+    "@t-rest/client": "workspace:*",
+    "@t-rest/core": "workspace:*",
+    "axios": "^1.7.9",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@t-rest/testing-utilities": "workspace:*"
+  },
+  "private": true
+}

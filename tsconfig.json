@@ -6,6 +6,7 @@
     { "path": "./packages/client/tsconfig.ref.json" },
     { "path": "./packages/testing-utilities/tsconfig.ref.json" },
     { "path": "./packages/supertest-adapter/tsconfig.ref.json" },
-    { "path": "./packages/open-api-generator/tsconfig.ref.json" }
+    { "path": "./packages/open-api-generator/tsconfig.ref.json" },
+    { "path": "./packages/playground/tsconfig.ref.json" }
   ]
 }
