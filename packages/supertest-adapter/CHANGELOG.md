@@ -1,5 +1,13 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.31
+
+### Patch Changes
+
+- 659dda0: improve body stringification in case of unexpected http status code
+- Updated dependencies [239354e]
+  - @t-rest/client-utils@1.0.0-alpha.7
+
 ## 1.0.0-alpha.30
 
 ### Patch Changes

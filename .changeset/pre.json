@@ -8,7 +8,8 @@
     "@t-rest/testing-utilities": "1.0.0",
     "@t-rest/client-utils": "1.0.0-alpha.0",
     "@t-rest/supertest-adapter": "1.0.0-alpha.0",
-    "@t-rest/open-api-generator": "1.0.0-alpha.1"
+    "@t-rest/open-api-generator": "1.0.0-alpha.1",
+    "@t-rest/playground": "0.0.0"
   },
   "changesets": [
     "afraid-queens-ring",
@@ -30,6 +31,7 @@
     "empty-spies-hammer",
     "fair-pants-sin",
     "few-boxes-decide",
+    "few-roses-float",
     "fluffy-pots-whisper",
     "funny-owls-lay",
     "great-apes-leave",
@@ -39,6 +41,7 @@
     "kind-ducks-deliver",
     "large-ravens-wash",
     "large-teachers-study",
+    "late-terms-hide",
     "lemon-pigs-yawn",
     "light-taxis-heal",
     "long-ears-dream",

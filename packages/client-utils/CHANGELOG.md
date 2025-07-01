@@ -1,5 +1,11 @@
 # @t-rest/client-utils
 
+## 1.0.0-alpha.7
+
+### Patch Changes
+
+- 239354e: url builder omit undefined query params
+
 ## 1.0.0-alpha.6
 
 ### Patch Changes
