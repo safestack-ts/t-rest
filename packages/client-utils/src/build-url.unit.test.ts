@@ -58,3 +58,24 @@ test('query with object is appended correctly formatted', () => {
     '/account/123/persons/1337?filter={"key":"value"}&tags=["tag1","tag2"]&nestedFilter={"nested":{"key":"value"}}'
   )
 })
+
+test('query with undefined values are omitted from url', () => {
+  const request = {
+    params: {
+      accountId: '123',
+      personId: 1337,
+    },
+    query: {
+      search: 'test',
+      page: 1,
+      category: undefined,
+      populated: true,
+      filter: undefined,
+      offset: 42,
+    },
+  }
+
+  expect(buildUrl(url, request)).toBe(
+    '/account/123/persons/1337?search=test&page=1&populated=true&offset=42'
+  )
+})

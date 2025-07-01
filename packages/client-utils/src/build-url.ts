@@ -23,17 +23,19 @@ const stringifyQuery = (query: unknown | undefined) => {
   if (!query) return ''
 
   const stringifiedQueryValues = Object.fromEntries(
-    Object.entries(query).map(([key, value]) => {
-      if (typeof value === 'object') {
-        if (isObjectWithToJSON(value)) {
-          return [key, value.toJSON()]
+    Object.entries(query)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => {
+        if (typeof value === 'object') {
+          if (isObjectWithToJSON(value)) {
+            return [key, value.toJSON()]
+          } else {
+            return [key, JSON.stringify(value)]
+          }
         } else {
-          return [key, JSON.stringify(value)]
+          return [key, String(value)]
         }
-      } else {
-        return [key, String(value)]
-      }
-    })
+      })
   )
 
   const searchQuery = new URLSearchParams(stringifiedQueryValues)
