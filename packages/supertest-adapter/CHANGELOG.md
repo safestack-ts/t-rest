@@ -1,5 +1,12 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.32
+
+### Patch Changes
+
+- Updated dependencies [bad3683]
+  - @t-rest/express-server@1.0.0-alpha.29
+
 ## 1.0.0-alpha.31
 
 ### Patch Changes

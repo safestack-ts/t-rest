@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.29
+
+### Patch Changes
+
+- bad3683: support nested routing trees
+
 ## 1.0.0-alpha.28
 
 ### Patch Changes
