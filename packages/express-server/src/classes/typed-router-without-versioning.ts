@@ -63,8 +63,9 @@ export class TypedRouterWithoutVersioning<
     configurator: (
       router: TypedRouterWithoutVersioning<TRoutes, TRequest, TPath>
     ) => void
-  ): void {
+  ): TypedRouterWithoutVersioning<TRoutes, TRequest, TPath> {
     configurator(this)
+    return this
   }
 
   public branch<TPathBranch extends string>(

@@ -90,8 +90,9 @@ export class TypedRouterWithVersioning<
         TVersionHistory
       >
     ) => void
-  ): void {
+  ): TypedRouterWithVersioning<TRoutes, TRequest, TPath, TVersionHistory> {
     configurator(this)
+    return this
   }
 
   // @todo might be generalized
