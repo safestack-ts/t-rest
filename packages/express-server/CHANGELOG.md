@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.31
+
+### Patch Changes
+
+- f37d865: allow method chaining on new router() method
+
 ## 1.0.0-alpha.30
 
 ### Patch Changes
