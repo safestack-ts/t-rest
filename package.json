@@ -19,7 +19,7 @@
     "changeset:publish": "pnpm changeset publish",
     "changeset:snapshot:publish": "pnpm changeset publish --tag dev --no-git-tag",
     "changeset:snapshot:version": "pnpm changeset version --snapshot dev",
-    "pub:dev": "pnpm build && pnpm exec ./scripts/publish-dev-version.sh",
+    "pub:dev": "pnpm build && pnpm build:esm && pnpm exec ./scripts/publish-dev-version.sh",
     "prepublish": "pnpm clean && pnpm build && pnpm build:esm"
   },
   "keywords": [],

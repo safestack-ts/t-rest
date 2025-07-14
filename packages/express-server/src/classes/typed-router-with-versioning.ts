@@ -70,6 +70,19 @@ export class TypedRouterWithVersioning<
     >
   }
 
+  public router(
+    configurator: (
+      router: TypedRouterWithVersioning<
+        TRoutes,
+        TRequest,
+        TPath,
+        TVersionHistory
+      >
+    ) => void
+  ): void {
+    configurator(this)
+  }
+
   // @todo might be generalized
   public branch<TPathBranch extends string>(
     path: TPathBranch
