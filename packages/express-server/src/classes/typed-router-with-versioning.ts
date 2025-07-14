@@ -60,9 +60,20 @@ export class TypedRouterWithVersioning<
     TPath,
     TVersionHistory
   > {
-    this.expressRouter.use(handler as ExpressRequestHandler)
+    const newRouter = new TypedRouterWithVersioning(
+      this.routes,
+      Express.Router(),
+      this.path,
+      this.versioning,
+      this.versionHistory,
+      this.versionExtractor
+    )
 
-    return this as any as TypedRouterWithVersioning<
+    this.expressRouter.use('/', newRouter.expressRouter)
+
+    newRouter.expressRouter.use(handler as ExpressRequestHandler)
+
+    return newRouter as any as TypedRouterWithVersioning<
       TRoutes,
       TRequest & TRequestOut,
       TPath,

@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { defineMiddleware } from '../utils/define-middleware'
 import { ExpressRequest } from '../types/express-type-shortcuts'
 import { TypedExpressApplication } from '../classes/typed-express-application'
-import Express from 'express'
+import * as Express from 'express'
 import request from 'supertest'
 
 type Post = {
@@ -22,20 +22,19 @@ const bagOfRoutes = BagOfRoutes.withoutVersioning()
       .validate(z.object({ params: z.object({ userId: ze.parseInteger() }) }))
       .response<User>()
   )
+  .addRoute(
+    Route.post('/api/posts')
+      .validate(
+        z.object({ body: z.object({ title: z.string(), content: z.string() }) })
+      )
+      .response<Post>()
+  )
   // admin route with admin authentication
   .addRoute(
     Route.get('/api/admin/posts/:postId/comments')
       .validate(z.object({ params: z.object({ postId: ze.parseInteger() }) }))
       .response<{ id: number; text: string }>()
   )
-  // external route with custom jwt authentication
-  /*.addRoute(
-    Route.get('/api/external/users')
-      .validate(
-        z.object({ headers: z.object({ authorization: z.string().min(1) }) })
-      )
-      .response<User[]>()
-  )*/
   .build()
 
 type RequestWithClientId = ExpressRequest & {
@@ -85,7 +84,9 @@ const withAdminAuth = defineMiddleware<ExpressRequest, RequestWithAdminAuth>(
 )
 
 const getExpressApp = (matcher: (req: ExpressRequest) => void) => {
-  const expressApp = Express()
+  const expressApp = Express.default()
+  expressApp.use(Express.json())
+
   const rootRouter = Express.Router()
 
   expressApp.use('/', rootRouter)
@@ -106,6 +107,15 @@ const getExpressApp = (matcher: (req: ExpressRequest) => void) => {
           response
             .status(200)
             .json([{ id: 1, title: 'Post 1', content: 'Content 1' }])
+        })
+
+        // try to further extend the router with another middle to make sure we don't break the public endpoint
+        router.use(userAuthentication).router((router) => {
+          router.post('/').handle((req, { body }, response) => {
+            response
+              .status(200)
+              .json({ id: 1, title: body.title, content: body.content })
+          })
         })
       })
       router
@@ -151,6 +161,26 @@ test('public route', async () => {
     { id: 1, title: 'Post 1', content: 'Content 1' },
   ])
 })
+
+test('private route mounted on public router', async () => {
+  const expressApp = getExpressApp((req) => {
+    expect((req as any).admin).toBeUndefined()
+    expect((req as any).user).toEqual({ id: 42 })
+    expect((req as RequestWithClientId).context).toEqual({ clientId: 1 })
+  })
+
+  const response = await request(expressApp).post('/api/posts').send({
+    title: 'Post 1',
+    content: 'Content 1',
+  })
+
+  expect(response.status).toBe(200)
+  expect(response.body).toEqual({
+    id: 1,
+    title: 'Post 1',
+    content: 'Content 1',
+  })
+}, 5000)
 
 test('private route', async () => {
   const expressApp = getExpressApp((req) => {

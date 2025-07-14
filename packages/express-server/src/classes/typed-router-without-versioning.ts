@@ -42,9 +42,17 @@ export class TypedRouterWithoutVersioning<
   public use<TRequestIn extends TRequest, TRequestOut>(
     handler: TypedMiddleware<TRequestIn, TRequestOut>
   ): TypedRouterWithoutVersioning<TRoutes, TRequest & TRequestOut, TPath> {
-    this.expressRouter.use(handler as ExpressRequestHandler)
+    const newRouter = new TypedRouterWithoutVersioning(
+      this.routes,
+      Express.Router(),
+      this.path
+    )
 
-    return this as any as TypedRouterWithoutVersioning<
+    this.expressRouter.use('/', newRouter.expressRouter)
+
+    newRouter.expressRouter.use(handler as ExpressRequestHandler)
+
+    return newRouter as any as TypedRouterWithoutVersioning<
       TRoutes,
       TRequest & TRequestOut,
       TPath
