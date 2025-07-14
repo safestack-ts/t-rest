@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.30
+
+### Patch Changes
+
+- 4652b44: always return a new internal express router on use() call
+
 ## 1.0.0-alpha.29
 
 ### Patch Changes
