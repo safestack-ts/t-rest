@@ -1,5 +1,12 @@
 # @t-rest/client
 
+## 1.0.0-alpha.26
+
+### Patch Changes
+
+- Updated dependencies [3bcede0]
+  - @t-rest/core@1.0.0-alpha.19
+
 ## 1.0.0-alpha.25
 
 ### Patch Changes

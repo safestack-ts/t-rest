@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.19
+
+### Patch Changes
+
+- 3bcede0: core package export empty validation types
+
 ## 1.0.0-alpha.18
 
 ### Patch Changes
