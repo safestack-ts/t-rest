@@ -1,5 +1,13 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.33
+
+### Patch Changes
+
+- 9b574aa: increment version
+- Updated dependencies [9b574aa]
+  - @t-rest/express-server@1.0.0-alpha.30
+
 ## 1.0.0-alpha.32
 
 ### Patch Changes

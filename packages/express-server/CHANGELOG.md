@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.30
+
+### Patch Changes
+
+- 9b574aa: increment version
+
 ## 1.0.0-alpha.29
 
 ### Patch Changes
