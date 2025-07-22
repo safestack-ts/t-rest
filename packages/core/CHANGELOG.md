@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.20
+
+### Patch Changes
+
+- c319eb0: remove zod dependency from ValidationError
+
 ## 1.0.0-alpha.19
 
 ### Patch Changes
