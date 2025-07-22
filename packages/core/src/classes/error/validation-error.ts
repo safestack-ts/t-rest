@@ -1,5 +1,4 @@
 import { StandardSchemaV1 } from '@standard-schema/spec'
-import { util } from 'zod'
 
 export class ValidationError extends Error {
   public readonly issues: readonly StandardSchemaV1.Issue[]
@@ -14,7 +13,8 @@ export class ValidationError extends Error {
   override toString() {
     return this.message
   }
+
   override get message() {
-    return JSON.stringify(this.issues, util.jsonStringifyReplacer, 2)
+    return JSON.stringify(this.issues, null, 2)
   }
 }
