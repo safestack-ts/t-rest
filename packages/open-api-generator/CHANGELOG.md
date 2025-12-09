@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.45
+
+### Patch Changes
+
+- cf024c1: fix union of transformed objects
+
 ## 1.0.0-alpha.44
 
 ### Patch Changes
