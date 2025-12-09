@@ -296,6 +296,7 @@ function transformTypeToIntermediate(
     typeName !== 'boolean' &&
     typeName !== 'null' &&
     typeName !== '__type' && // Don't treat anonymous types as refs
+    typeName !== '__object' && // Don't treat Zod transform anonymous types as refs
     !typeName.match(/^\[.*\]$/) && // not tuple strings
     !typeName.match(/^\{.*\}$/) && // not anonymous object types like "{ id: number }"
     metadata.visitedTypes?.has(typeName)
@@ -861,6 +862,7 @@ function transformTypeToIntermediate(
       typeName !== 'boolean' &&
       typeName !== 'null' &&
       typeName !== '__type' && // Don't track anonymous types
+      typeName !== '__object' && // Don't track Zod transform anonymous types
       !typeName.match(/^\{.*\}$/) && // not anonymous object types like "{ id: number }"
       !typeName.match(/^\[.*\]$/) && // not tuple strings like "[SubscriptionItem]"
       typeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/) // valid identifier names like "SubscriptionItem"
@@ -957,6 +959,7 @@ function transformObjectToIntermediate(
   const shouldTrackType =
     typeName &&
     typeName !== '__type' &&
+    typeName !== '__object' && // Don't track Zod transform anonymous types
     typeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/) // valid identifier names
 
   // we want to track named object types to not re-visit them again
