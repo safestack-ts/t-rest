@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.34
+
+### Patch Changes
+
+- 7b4386d: fix versioned routing handler error handling and middleware error propagation
+
 ## 1.0.0-alpha.33
 
 ### Patch Changes
