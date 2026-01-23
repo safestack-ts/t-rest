@@ -322,7 +322,7 @@ test('query params and path params are kept separate', async () => {
   })
 })
 
-test.only('middleware in router should abort middleware chain if error is returned', async () => {
+test('middleware in router should abort middleware chain if error is returned', async () => {
   type RequestWithClientId = {
     auth: {
       clientId: number
@@ -384,3 +384,48 @@ test.only('middleware in router should abort middleware chain if error is return
 
   expect(response.body).toEqual({ error: 'ClientId is missing' })
 })
+
+test('custom middleware should not break error handler middleware if error is thrown in route handler', async () => {
+  const bagOfRoutes = BagOfRoutes.withVersioning(
+    Versioning.DATE,
+    versionHistory
+  )
+    .addRoute(
+      Route.version('2024-01-01')
+        .get('/users/:userId')
+        .response<ResponseWithVersion<User>>()
+    )
+    .build()
+
+  const expressApp = Express()
+
+  const typedExpressApplication = TypedExpressApplication.withVersioning(
+    expressApp,
+    bagOfRoutes,
+    versionHistory,
+    new APIVersionHeaderExtractor()
+  )
+
+  typedExpressApplication
+    .get('/users/:userId')
+    .version('2024-01-01')
+    .middleware((_req, _res, next) => {
+      next()
+    })
+    .handle(async (__, _, response) => {
+      throw new Error('Test error')
+    })
+
+  expressApp.use(
+    (err: Error, req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => { 
+      res.status(500).send({ error: err.message })
+    }
+  )
+
+  const response = await request(expressApp)
+    .get('/users/1337')
+    .set('X-API-Version', '2024-01-01')
+    .expect(StatusCodes.INTERNAL_SERVER_ERROR)
+
+  expect(response.body).toEqual({ error: 'Test error' })
+}, 5000)

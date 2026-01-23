@@ -84,51 +84,59 @@ export class VersionedRouting {
       response: ExpressResponse,
       next: ExpressNextFunction
     ) => {
-      const { routeToExecute, version } = this.getRouteToExecute(
-        method,
-        path,
-        this.versionExtractor.extractVersion(request) ??
-          this.versionHistory.at(-1)
-      )
+      try {
+        const { routeToExecute, version } = this.getRouteToExecute(
+          method,
+          path,
+          this.versionExtractor.extractVersion(request) ??
+            this.versionHistory.at(-1)
+        )
 
-      const { middlewares, handler, route, paramAliases } = routeToExecute
+        const { middlewares, handler, route, paramAliases } = routeToExecute
 
-      // emulate express behavior for executing middlewares
-      let i = 0
-      const nextMiddleware = async (error?: unknown) => {
-        if (error) {
-          // abort middleware chain and call original next middleware with error
-          return next(error)
-        }
-
-        const middleware = middlewares.at(i++)
-
-        if (middleware) {
-          await middleware(request, response, nextMiddleware)
-        } else {
-          const requestWithParamAliases = this.getRequestWithParamAliases(
-            request,
-            paramAliases
-          )
-
-          const validationOutput = await route.validator['~standard'].validate(
-            requestWithParamAliases
-          )
-
-          if (validationOutput.issues) {
-            throw new ValidationError(validationOutput.issues)
+        // emulate express behavior for executing middlewares
+        let i = 0
+        const nextMiddleware = async (error?: unknown) => {
+          if (error) {
+            // abort middleware chain and call original next middleware with error
+            return next(error)
           }
 
-          ;(requestWithParamAliases as any).version = version
+          try {
+            const middleware = middlewares.at(i++)
 
-          await handler(
-            requestWithParamAliases,
-            validationOutput.value,
-            response
-          )
+            if (middleware) {
+              await middleware(request, response, nextMiddleware)
+            } else {
+              const requestWithParamAliases = this.getRequestWithParamAliases(
+                request,
+                paramAliases
+              )
+
+              const validationOutput = await route.validator['~standard'].validate(
+                requestWithParamAliases
+              )
+
+              if (validationOutput.issues) {
+                throw new ValidationError(validationOutput.issues)
+              }
+
+              ;(requestWithParamAliases as any).version = version
+
+              await handler(
+                requestWithParamAliases,
+                validationOutput.value,
+                response
+              )
+            }
+          } catch (err) {
+            return next(err)
+          }
         }
+        await nextMiddleware()
+      } catch (err) {
+        return next(err)
       }
-      await nextMiddleware()
     }
   }
 
