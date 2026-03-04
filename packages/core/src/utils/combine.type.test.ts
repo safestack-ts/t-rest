@@ -1,11 +1,11 @@
 import { z } from 'zod'
-import { combine } from './combine'
+import { combine } from './combine.js'
 import { AssertFalse, AssertTrue, IsNever } from 'conditional-type-checks'
-import { BagOfRoutes } from '../classes/core/bag-of-routes'
-import { Route } from '../classes/core/route'
-import { ExtractRoutes } from '../types/extract-route'
-import { Versioning } from '../enums/versioning'
-import { versionHistory } from './dx/demo-bag-of-routes'
+import { BagOfRoutes } from '../classes/core/bag-of-routes.js'
+import { Route } from '../classes/core/route.js'
+import { ExtractRoutes } from '../types/extract-route.js'
+import { Versioning } from '../enums/versioning.js'
+import { versionHistory } from './dx/demo-bag-of-routes.js'
 
 type User = {
   id: string

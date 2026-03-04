@@ -1,6 +1,6 @@
-import { RouteDef } from '../classes/core/route-def'
-import { AnyRouteDef } from './any-route-def'
-import { StringStartsWith } from './string-starts-with'
+import { RouteDef } from '../classes/core/route-def.js'
+import { AnyRouteDef } from './any-route-def.js'
+import { StringStartsWith } from './string-starts-with.js'
 
 export type PrefixMatchingRoutes<
   TRoutes extends AnyRouteDef,

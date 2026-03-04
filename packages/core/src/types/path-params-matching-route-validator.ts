@@ -1,5 +1,5 @@
-import { ExtractPathParams } from './extract-path-params'
-import { AnyRouteValidator } from './any-route-validator'
+import { ExtractPathParams } from './extract-path-params.js'
+import { AnyRouteValidator } from './any-route-validator.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 export type PathParamsMatchingRouteValidator<TPath extends string> =

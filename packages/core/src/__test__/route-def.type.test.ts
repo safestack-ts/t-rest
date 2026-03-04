@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { Route } from '../classes/core/route'
-import { ze } from '../utils/zod-extensions'
+import { Route } from '../classes/core/route.js'
+import { ze } from '../utils/zod-extensions.js'
 
 const _routeWithSuperRefineValidator = Route.post('/')
   .validate(

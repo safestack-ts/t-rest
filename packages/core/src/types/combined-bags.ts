@@ -1,6 +1,6 @@
-import { BagOfRoutes } from '../classes/core/bag-of-routes'
-import { Versioning } from '../enums/versioning'
-import { AnyRouteDef } from './any-route-def'
+import { BagOfRoutes } from '../classes/core/bag-of-routes.js'
+import { Versioning } from '../enums/versioning.js'
+import { AnyRouteDef } from './any-route-def.js'
 
 export type CombinedBags<
   TRoutes extends AnyRouteDef,

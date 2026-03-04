@@ -1,9 +1,9 @@
-import { Versioning } from '../../enums/versioning'
-import { AnyRouteDef } from '../../types/any-route-def'
-import { RouteHashMap } from '../../types/route-hash-map'
-import { VersioningRequired } from '../../types/versioning-required'
-import { BagOfRoutesBuilderWithVersioning } from '../route-builder/bag-of-routes-builder-with-versioning'
-import { BagOfRoutesBuilderWithoutVersioning } from '../route-builder/bag-of-routes-builder-without-versioning'
+import { Versioning } from '../../enums/versioning.js'
+import { AnyRouteDef } from '../../types/any-route-def.js'
+import { RouteHashMap } from '../../types/route-hash-map.js'
+import { VersioningRequired } from '../../types/versioning-required.js'
+import { BagOfRoutesBuilderWithVersioning } from '../route-builder/bag-of-routes-builder-with-versioning.js'
+import { BagOfRoutesBuilderWithoutVersioning } from '../route-builder/bag-of-routes-builder-without-versioning.js'
 
 export class BagOfRoutes<
   _TRoutes extends AnyRouteDef,

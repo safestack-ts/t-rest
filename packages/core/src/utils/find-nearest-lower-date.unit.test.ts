@@ -1,4 +1,4 @@
-import { findNearestLowerDate } from './find-nearest-lower-date'
+import { findNearestLowerDate } from './find-nearest-lower-date.js'
 
 const dates = [
   new Date('2024-01-01'),

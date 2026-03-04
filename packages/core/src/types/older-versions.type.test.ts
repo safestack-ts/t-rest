@@ -1,6 +1,6 @@
 import { AssertTrue } from 'conditional-type-checks'
-import { VersionHistory } from '../utils/version-history'
-import { OlderVersions } from './older-versions'
+import { VersionHistory } from '../utils/version-history.js'
+import { OlderVersions } from './older-versions.js'
 
 const versionHistory = VersionHistory([
   '2024-01-01',

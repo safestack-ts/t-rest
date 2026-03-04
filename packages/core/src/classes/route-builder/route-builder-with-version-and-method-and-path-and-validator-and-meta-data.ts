@@ -1,5 +1,5 @@
-import { HTTPMethod } from '../../types/http-method'
-import { RouteDef } from '../core/route-def'
+import { HTTPMethod } from '../../types/http-method.js'
+import { RouteDef } from '../core/route-def.js'
 export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
   TVersion extends string,
   TMethod extends HTTPMethod,

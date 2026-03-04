@@ -1,7 +1,7 @@
 import { AssertTrue } from 'conditional-type-checks'
-import { Route } from '../classes/core/route'
-import { ExtractLatestMatchingRoutePerPath } from '../types/extract-version-matching-route'
-import { VersionHistory } from '../utils/version-history'
+import { Route } from '../classes/core/route.js'
+import { ExtractLatestMatchingRoutePerPath } from '../types/extract-version-matching-route.js'
+import { VersionHistory } from '../utils/version-history.js'
 
 const getBasketV1 = Route.version('2025-01-01')
   .get('/basket')

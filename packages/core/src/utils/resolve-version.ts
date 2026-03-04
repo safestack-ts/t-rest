@@ -1,4 +1,4 @@
-import { findNearestLowerDate } from './find-nearest-lower-date'
+import { findNearestLowerDate } from './find-nearest-lower-date.js'
 
 export const resolveVersion = (
   versionHistory: string[],

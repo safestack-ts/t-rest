@@ -1,10 +1,10 @@
 import { z } from 'zod'
-import { BagOfRoutes } from '../classes/core/bag-of-routes'
-import { Route } from '../classes/core/route'
-import { RouteInput, RouteOutput } from './route-input-output'
+import { BagOfRoutes } from '../classes/core/bag-of-routes.js'
+import { Route } from '../classes/core/route.js'
+import { RouteInput, RouteOutput } from './route-input-output.js'
 import { AssertTrue, IsExact } from 'conditional-type-checks'
-import { Versioning } from '../enums/versioning'
-import { versionHistory } from '../utils/dx/demo-bag-of-routes'
+import { Versioning } from '../enums/versioning.js'
+import { versionHistory } from '../utils/dx/demo-bag-of-routes.js'
 type User = {
   id: string
   email: string

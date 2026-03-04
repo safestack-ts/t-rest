@@ -1,5 +1,5 @@
-import { RouteDef } from '../classes/core/route-def'
-import { AnyRouteDef } from './any-route-def'
+import { RouteDef } from '../classes/core/route-def.js'
+import { AnyRouteDef } from './any-route-def.js'
 
 export type InferMetaData<T extends AnyRouteDef> = T extends RouteDef<
   any,
