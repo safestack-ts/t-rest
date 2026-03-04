@@ -5,8 +5,8 @@ import {
   UserWithTags,
 } from '@t-rest/testing-utilities'
 import { AssertTrue, IsExact } from 'conditional-type-checks'
-import { RESTClient } from '../classes/rest-client'
-import { VersionInjector } from '../classes/version-injector'
+import { RESTClient } from '../classes/rest-client.js'
+import { VersionInjector } from '../classes/version-injector.js'
 
 class TestVersionInjector extends VersionInjector {}
 

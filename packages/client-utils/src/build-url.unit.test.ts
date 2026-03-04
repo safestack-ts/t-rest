@@ -1,4 +1,4 @@
-import { buildUrl } from './build-url'
+import { buildUrl } from './build-url.js'
 
 const url = '/account/:accountId/persons/:personId'
 

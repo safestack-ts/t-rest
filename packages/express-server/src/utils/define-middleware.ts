@@ -2,9 +2,9 @@ import {
   ExpressNextFunction,
   ExpressRequest,
   ExpressResponse,
-} from '../types/express-type-shortcuts'
-import { TypedMiddleware } from '../types/typed-middleware'
-import { TypedRequestHandler } from '../types/typed-request-handler'
+} from '../types/express-type-shortcuts.js'
+import { TypedMiddleware } from '../types/typed-middleware.js'
+import { TypedRequestHandler } from '../types/typed-request-handler.js'
 
 export const defineMiddleware =
   <TRequestIn extends ExpressRequest, TRequestOut>(

@@ -1,4 +1,4 @@
-import { RequestConfig } from './request-config'
+import { RequestConfig } from './request-config.js'
 
 // @todo add type tests
 export type RequestArgs<

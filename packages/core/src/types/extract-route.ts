@@ -1,4 +1,4 @@
-import { AnyRouteDef, BagOfRoutes, HTTPMethod, Versioning } from '../index'
+import { AnyRouteDef, BagOfRoutes, HTTPMethod, Versioning } from '../index.js'
 
 export type ExtractRoutes<
   TBagOfRoutes extends BagOfRoutes<AnyRouteDef, any, any>

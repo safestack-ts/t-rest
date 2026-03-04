@@ -1,4 +1,4 @@
-import { parseBagOfRoutes } from '../../utils/parse-bag-of-routes'
+import { parseBagOfRoutes } from '../../utils/parse-bag-of-routes.js'
 import path from 'path'
 import fs from 'fs'
 import { isEqual } from 'lodash'

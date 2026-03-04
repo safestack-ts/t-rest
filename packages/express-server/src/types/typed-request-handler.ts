@@ -2,7 +2,7 @@ import {
   ExpressNextFunction,
   ExpressRequest,
   ExpressResponse,
-} from './express-type-shortcuts'
+} from './express-type-shortcuts.js'
 
 export type TypedRequestHandler<TRequest extends ExpressRequest> = (
   request: TRequest,

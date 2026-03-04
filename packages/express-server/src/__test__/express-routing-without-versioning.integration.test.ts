@@ -4,7 +4,7 @@ import { z } from 'zod'
 import request from 'supertest'
 import { StatusCodes } from 'http-status-codes'
 import { User, Basket, Person } from '@t-rest/testing-utilities'
-import { TypedExpressApplication } from '../classes/typed-express-application'
+import { TypedExpressApplication } from '../classes/typed-express-application.js'
 
 const baseBagOfRoutes = BagOfRoutes.withoutVersioning()
   .addRoute(Route.get('/users/me').response<User>())

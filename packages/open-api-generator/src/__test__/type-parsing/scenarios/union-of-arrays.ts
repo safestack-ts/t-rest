@@ -1,5 +1,5 @@
 import { BagOfRoutes, Route, versionHistory, Versioning } from '@t-rest/core'
-import { TypeDefinition } from '../../../schema/type-schema'
+import { TypeDefinition } from '../../../schema/type-schema.js'
 
 type Response = {
   values: string[] | number[]

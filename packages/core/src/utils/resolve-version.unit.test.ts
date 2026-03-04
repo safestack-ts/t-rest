@@ -1,4 +1,4 @@
-import { resolveDateVersion, resolveVersion } from './resolve-version'
+import { resolveDateVersion, resolveVersion } from './resolve-version.js'
 
 const dateVersionHistory = [
   '2024-01-01',

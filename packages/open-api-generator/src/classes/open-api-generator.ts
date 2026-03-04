@@ -1,9 +1,9 @@
-import { OpenAPIMetaData } from '../types/open-api-meta-data'
-import { OpenAPISchema } from '../types/open-api-schema'
+import { OpenAPIMetaData } from '../types/open-api-meta-data.js'
+import { OpenAPISchema } from '../types/open-api-schema.js'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import YAML from 'yaml'
-import { OpenAPISpecWithMetaData } from './open-api-spec-with-meta-data'
+import { OpenAPISpecWithMetaData } from './open-api-spec-with-meta-data.js'
 import {
   BagOfRoutes,
   HashMap,
@@ -17,9 +17,9 @@ import {
   parseBagOfRoutes,
   RouteTypeInfo,
   getOpenAPI3Spec,
-} from '../utils/parse-bag-of-routes'
+} from '../utils/parse-bag-of-routes.js'
 import { groupBy, merge, uniqBy } from 'lodash'
-import { validateRouteMeta } from '../schema/route-meta'
+import { validateRouteMeta } from '../schema/route-meta.js'
 
 type SpecFilterRoute = {
   method: HTTPMethod

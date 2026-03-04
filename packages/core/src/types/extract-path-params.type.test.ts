@@ -1,5 +1,5 @@
 import { AssertTrue, IsExact } from 'conditional-type-checks'
-import { ExtractPathParams } from './extract-path-params'
+import { ExtractPathParams } from './extract-path-params.js'
 
 type _single_param_is_extracted = AssertTrue<
   IsExact<ExtractPathParams<'/users/:userId'>, { userId: string | number }>

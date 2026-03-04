@@ -1,7 +1,7 @@
 import { BagOfRoutes, Route, versionHistory, Versioning } from '@t-rest/core'
-import { RESTClient } from '../classes/rest-client'
+import { RESTClient } from '../classes/rest-client.js'
 import { AssertTrue } from 'conditional-type-checks'
-import { VersionInjector } from '../classes/version-injector'
+import { VersionInjector } from '../classes/version-injector.js'
 
 class TestVersionInjector extends VersionInjector {}
 

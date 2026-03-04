@@ -1,6 +1,6 @@
 import { AssertTrue } from 'conditional-type-checks'
-import { Route } from '../classes/core/route'
-import { PrefixMatchingRoutes } from './prefix-matching-routes'
+import { Route } from '../classes/core/route.js'
+import { PrefixMatchingRoutes } from './prefix-matching-routes.js'
 
 const routeGetUsers =
   Route.get('/api/users/:userId').response<{ id: number; name: string }[]>()

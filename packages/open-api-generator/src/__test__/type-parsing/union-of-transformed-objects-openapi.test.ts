@@ -1,5 +1,5 @@
-import { parseBagOfRoutes } from '../../utils/parse-bag-of-routes'
-import { getOpenAPI3Spec } from '../../utils/parse-bag-of-routes'
+import { parseBagOfRoutes } from '../../utils/parse-bag-of-routes.js'
+import { getOpenAPI3Spec } from '../../utils/parse-bag-of-routes.js'
 import path from 'path'
 
 const tsConfigPath = path.join(__dirname, '../../../', 'tsconfig.json')

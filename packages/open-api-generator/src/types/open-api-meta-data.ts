@@ -1,4 +1,4 @@
-import { Header } from '../schema/header'
+import { Header } from '../schema/header.js'
 
 export type OpenAPIMetaData<TVersion extends string = string> = {
   title: string

@@ -11,7 +11,7 @@ import {
   UserWithTags,
 } from '@t-rest/testing-utilities'
 import { z } from 'zod'
-import { RouteMeta } from './schema/route-meta'
+import { RouteMeta } from './schema/route-meta.js'
 import dedent from 'dedent'
 
 export const versionHistory = VersionHistory([

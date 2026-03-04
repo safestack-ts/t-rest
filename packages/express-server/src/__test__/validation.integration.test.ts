@@ -1,7 +1,7 @@
 import { BagOfRoutes, Route, RouteInput, ze } from '@t-rest/core'
 import { User } from '@t-rest/testing-utilities'
 import Express from 'express'
-import { TypedExpressApplication } from '../classes/typed-express-application'
+import { TypedExpressApplication } from '../classes/typed-express-application.js'
 import request from 'supertest'
 import { z } from 'zod'
 import { StatusCodes } from 'http-status-codes'

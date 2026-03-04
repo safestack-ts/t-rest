@@ -9,18 +9,18 @@ import {
   ValidationError,
   normalizePathPattern,
 } from '@t-rest/core'
-import { AnyRouteHandlerFn } from '../types/any-route-handler-fn'
+import { AnyRouteHandlerFn } from '../types/any-route-handler-fn.js'
 import {
   ExpressNextFunction,
   ExpressRequest,
   ExpressResponse,
-} from '../types/express-type-shortcuts'
-import { ParamAlias, RouteBundle } from '../types/route-bundle'
-import { TypedMiddleware } from '../types/typed-middleware'
-import { VersionExtractor } from '../types/version-extractor'
-import { isDateVersionExtractor } from '../utils/is-date-version-extractor'
-import { removePrefixFromPath } from '../utils/remove-prefix-from-path'
-import { TypedRouterBase } from './typed-router-base'
+} from '../types/express-type-shortcuts.js'
+import { ParamAlias, RouteBundle } from '../types/route-bundle.js'
+import { TypedMiddleware } from '../types/typed-middleware.js'
+import { VersionExtractor } from '../types/version-extractor.js'
+import { isDateVersionExtractor } from '../utils/is-date-version-extractor.js'
+import { removePrefixFromPath } from '../utils/remove-prefix-from-path.js'
+import { TypedRouterBase } from './typed-router-base.js'
 
 export class VersionedRouting {
   // mapping http method and path to potential multiple route versions

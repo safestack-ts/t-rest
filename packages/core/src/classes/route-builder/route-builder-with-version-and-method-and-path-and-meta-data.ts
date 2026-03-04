@@ -1,7 +1,7 @@
-import { HTTPMethod } from '../../types/http-method'
-import { RouteDef } from '../core/route-def'
-import { RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData } from './route-builder-with-version-and-method-and-path-and-validator-and-meta-data'
-import { emptyValidation } from '../../utils/empty-validation'
+import { HTTPMethod } from '../../types/http-method.js'
+import { RouteDef } from '../core/route-def.js'
+import { RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData } from './route-builder-with-version-and-method-and-path-and-validator-and-meta-data.js'
+import { emptyValidation } from '../../utils/empty-validation.js'
 
 export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
   TVersion extends string,

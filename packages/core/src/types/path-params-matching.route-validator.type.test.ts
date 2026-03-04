@@ -1,7 +1,7 @@
 import { AssertTrue, IsExact } from 'conditional-type-checks'
-import { PathParamsMatchingRouteValidator } from './path-params-matching-route-validator'
+import { PathParamsMatchingRouteValidator } from './path-params-matching-route-validator.js'
 import { z } from 'zod'
-import { AnyRouteValidator } from './any-route-validator'
+import { AnyRouteValidator } from './any-route-validator.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 // single param

@@ -1,6 +1,6 @@
 import { BagOfRoutes, Versioning } from '@t-rest/core'
-import { OpenAPIMetaData } from '../types/open-api-meta-data'
-import { OpenAPISpecWithMetaData } from './open-api-spec-with-meta-data'
+import { OpenAPIMetaData } from '../types/open-api-meta-data.js'
+import { OpenAPISpecWithMetaData } from './open-api-spec-with-meta-data.js'
 
 type MetaDataArgs<TBagOfRoutes extends BagOfRoutes<any, any, any>> =
   TBagOfRoutes extends BagOfRoutes<any, infer TVersioning, any>

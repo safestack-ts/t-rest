@@ -1,7 +1,7 @@
 import { AxiosInstance, AxiosRequestConfig } from 'axios'
-import { HTTPAdapter } from '../types/http-adapter'
+import { HTTPAdapter } from '../types/http-adapter.js'
 import { HTTPMethod } from '@t-rest/core'
-import { RequestConfig } from '../types/request-config'
+import { RequestConfig } from '../types/request-config.js'
 
 export class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
   private readonly axiosInstance: AxiosInstance

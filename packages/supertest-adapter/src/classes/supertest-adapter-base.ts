@@ -1,10 +1,10 @@
 import { BaseRequestInput, buildUrl } from '@t-rest/client-utils'
-import { AnyTypedExpressApplication } from '../types/any-typed-express-application'
+import { AnyTypedExpressApplication } from '../types/any-typed-express-application.js'
 import { HTTPMethod, typedLowerCase } from '@t-rest/core'
-import { SupertestConfig } from '../types/supertest-config'
+import { SupertestConfig } from '../types/supertest-config.js'
 import supertest from 'supertest'
-import { SupertestResponse } from '../types/supertest-response'
-import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config'
+import { SupertestResponse } from '../types/supertest-response.js'
+import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config.js'
 
 export abstract class SupertestAdapterBase<
   TApp extends AnyTypedExpressApplication

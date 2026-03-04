@@ -1,10 +1,10 @@
-import { Versioning } from '../../enums/versioning'
-import { AnyRouteDef } from '../../types/any-route-def'
-import { HTTPMethod } from '../../types/http-method'
-import { RouteHashMap } from '../../types/route-hash-map'
-import { HashMap } from '../../utils/hash-map'
-import { BagOfRoutes } from '../core/bag-of-routes'
-import { RouteDef } from '../core/route-def'
+import { Versioning } from '../../enums/versioning.js'
+import { AnyRouteDef } from '../../types/any-route-def.js'
+import { HTTPMethod } from '../../types/http-method.js'
+import { RouteHashMap } from '../../types/route-hash-map.js'
+import { HashMap } from '../../utils/hash-map.js'
+import { BagOfRoutes } from '../core/bag-of-routes.js'
+import { RouteDef } from '../core/route-def.js'
 
 export class BagOfRoutesBuilderWithoutVersioning<TRoutes extends AnyRouteDef> {
   protected routes: RouteHashMap = new HashMap<

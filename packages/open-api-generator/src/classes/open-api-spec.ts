@@ -1,5 +1,5 @@
 import { BagOfRoutes, BagOfRoutesVersions } from '@t-rest/core'
-import { OpenAPISpecWithBagOfRoutes } from './open-api-spec-with-bag-of-routes'
+import { OpenAPISpecWithBagOfRoutes } from './open-api-spec-with-bag-of-routes.js'
 
 export abstract class OpenAPISpec {
   public static ofVersion<

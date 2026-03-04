@@ -1,4 +1,4 @@
-import { BagOfRoutes } from '../classes/core/bag-of-routes'
+import { BagOfRoutes } from '../classes/core/bag-of-routes.js'
 
 export type BagOfRoutesVersions<
   TBagOfRoutes extends BagOfRoutes<any, any, any>

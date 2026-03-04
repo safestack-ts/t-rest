@@ -1,10 +1,11 @@
 {
     "name": "@t-rest/client",
-    "version": "1.0.0-alpha.27",
+    "version": "1.0.0-alpha.28",
     "description": "",
     "main": "./dist/cjs/index.js",
     "module": "./dist/esm/index.js",
     "types": "./dist/cjs/index.d.ts",
+    "type": "module",
     "sideEffects": false,
     "exports": {
         ".": {

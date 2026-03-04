@@ -2,10 +2,10 @@ import {
   ApplicationRoutes,
   TypedExpressApplicationWithoutVersioning,
 } from '@t-rest/express-server'
-import { SupertestConfig } from '../types/supertest-config'
-import { RequestInput } from '../types/request-input'
+import { SupertestConfig } from '../types/supertest-config.js'
+import { RequestInput } from '../types/request-input.js'
 import { HTTPMethod } from '@t-rest/core'
-import { SupertestAdapterBase } from './supertest-adapter-base'
+import { SupertestAdapterBase } from './supertest-adapter-base.js'
 
 export class SupertestAdapterWithoutVersioning<
   TApp extends TypedExpressApplicationWithoutVersioning<any, any, any>

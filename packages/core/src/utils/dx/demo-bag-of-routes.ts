@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import { BagOfRoutes } from '../../classes/core/bag-of-routes'
-import { Route } from '../../classes/core/route'
-import { Versioning } from '../../enums/versioning'
-import { VersionHistory } from '../version-history'
+import { BagOfRoutes } from '../../classes/core/bag-of-routes.js'
+import { Route } from '../../classes/core/route.js'
+import { Versioning } from '../../enums/versioning.js'
+import { VersionHistory } from '../version-history.js'
 
 export const versionHistory = VersionHistory([
   '2024-01-01',

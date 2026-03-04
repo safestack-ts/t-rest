@@ -1,4 +1,4 @@
-import { RouteBuilderWithVersionAndMethodAndPath } from '../route-builder/route-builder-with-version-and-method-and-path'
+import { RouteBuilderWithVersionAndMethodAndPath } from '../route-builder/route-builder-with-version-and-method-and-path.js'
 
 export class RouteWithVersion<TVersion extends string> {
   constructor(private version: TVersion) {}

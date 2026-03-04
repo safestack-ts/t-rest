@@ -1,4 +1,4 @@
-import { WithoutTrailingSlash } from './without-slash'
+import { WithoutTrailingSlash } from './without-slash.js'
 
 export type JoinPath<
   TPath1 extends string,

@@ -1,4 +1,4 @@
-import { HTTPMethod } from '../../types/http-method'
+import { HTTPMethod } from '../../types/http-method.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 export class RouteDef<

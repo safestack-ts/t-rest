@@ -2,10 +2,10 @@ import {
   TypedExpressApplicationWithoutVersioning,
   TypedExpressApplicationWithVersioning,
 } from '@t-rest/express-server'
-import { SupertestAdapterWithoutVersioning } from './supertest-adapter-without-versioning'
-import { VersionInjector } from './version-injector'
-import { SupertestAdapterWithVersioning } from './supertest-adapter-with-versioning'
-import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config'
+import { SupertestAdapterWithoutVersioning } from './supertest-adapter-without-versioning.js'
+import { VersionInjector } from './version-injector.js'
+import { SupertestAdapterWithVersioning } from './supertest-adapter-with-versioning.js'
+import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config.js'
 
 export abstract class SupertestAdapter {
   public static withoutVersioning<

@@ -1,5 +1,5 @@
-import { BagOfRoutes } from '../classes/core/bag-of-routes'
-import { HTTPMethod } from './http-method'
+import { BagOfRoutes } from '../classes/core/bag-of-routes.js'
+import { HTTPMethod } from './http-method.js'
 
 export type RouteInput<
   TBagOfRoutes extends BagOfRoutes<any, any, any>,

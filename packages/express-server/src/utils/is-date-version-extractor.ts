@@ -1,5 +1,5 @@
-import { DateVersionExtractor } from '../types/date-version-extractor'
-import { VersionExtractor } from '../types/version-extractor'
+import { DateVersionExtractor } from '../types/date-version-extractor.js'
+import { VersionExtractor } from '../types/version-extractor.js'
 
 export const isDateVersionExtractor = (
   versionExtrator: VersionExtractor

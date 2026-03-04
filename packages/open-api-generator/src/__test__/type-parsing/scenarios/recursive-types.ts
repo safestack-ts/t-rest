@@ -1,7 +1,7 @@
 import { BagOfRoutes, Route, versionHistory, Versioning } from '@t-rest/core'
 import { User } from '@t-rest/testing-utilities'
 import { z } from 'zod'
-import { TypeDefinition } from '../../../schema/type-schema'
+import { TypeDefinition } from '../../../schema/type-schema.js'
 
 interface CreateBasketChildEntryPayload {
   productDefinitionId: number

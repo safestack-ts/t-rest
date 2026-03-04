@@ -3,7 +3,7 @@ import { TypedExpressApplication } from '@t-rest/express-server'
 import { User, Basket, Person } from '@t-rest/testing-utilities'
 import { z } from 'zod'
 import Express from 'express'
-import { SupertestAdapter } from '../classes/supertest-adapter'
+import { SupertestAdapter } from '../classes/supertest-adapter.js'
 import { AssertTrue } from 'conditional-type-checks'
 
 const bagOfRoutes = BagOfRoutes.withoutVersioning()

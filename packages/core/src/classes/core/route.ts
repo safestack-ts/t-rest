@@ -1,5 +1,5 @@
-import { RouteBuilderWithVersionAndMethodAndPath } from '../route-builder/route-builder-with-version-and-method-and-path'
-import { RouteWithVersion } from './route-with-version'
+import { RouteBuilderWithVersionAndMethodAndPath } from '../route-builder/route-builder-with-version-and-method-and-path.js'
+import { RouteWithVersion } from './route-with-version.js'
 
 export abstract class Route {
   public static version<TVersion extends string>(version: TVersion) {

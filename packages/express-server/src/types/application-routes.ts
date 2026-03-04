@@ -1,5 +1,5 @@
-import { TypedExpressApplicationWithVersioning } from '../classes/typed-express-application-with-versioning'
-import { TypedExpressApplicationWithoutVersioning } from '../classes/typed-express-application-without-versioning'
+import { TypedExpressApplicationWithVersioning } from '../classes/typed-express-application-with-versioning.js'
+import { TypedExpressApplicationWithoutVersioning } from '../classes/typed-express-application-without-versioning.js'
 
 export type ApplicationRoutes<
   TApp extends

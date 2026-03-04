@@ -1,10 +1,11 @@
 {
     "name": "@t-rest/open-api-generator",
-    "version": "1.0.0-alpha.45",
+    "version": "1.0.0-alpha.46",
     "description": "",
     "main": "./dist/cjs/index.js",
     "module": "./dist/esm/index.js",
     "types": "./dist/cjs/index.d.ts",
+    "type": "module",
     "sideEffects": false,
     "exports": {
         ".": {

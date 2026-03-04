@@ -1,6 +1,6 @@
 import { BagOfRoutes, Route, versionHistory, Versioning } from '@t-rest/core'
 import { z } from 'zod'
-import { TypeDefinition } from '../../../schema/type-schema'
+import { TypeDefinition } from '../../../schema/type-schema.js'
 
 const keycardValidationSchema = z.object({
   query: z.object({

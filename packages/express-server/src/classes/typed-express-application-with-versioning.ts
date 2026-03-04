@@ -8,9 +8,9 @@ import {
   ExpressRequest,
   ExpressApp,
   ExpressRouter,
-} from '../types/express-type-shortcuts'
-import { VersionExtractor } from '../types/version-extractor'
-import { TypedRouterWithVersioning } from './typed-router-with-versioning'
+} from '../types/express-type-shortcuts.js'
+import { VersionExtractor } from '../types/version-extractor.js'
+import { TypedRouterWithVersioning } from './typed-router-with-versioning.js'
 
 export class TypedExpressApplicationWithVersioning<
   TRoutes extends AnyRouteDef,

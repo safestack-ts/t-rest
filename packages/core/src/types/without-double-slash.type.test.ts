@@ -1,4 +1,4 @@
-import { WithoutDoubleSlash } from './without-double-slash'
+import { WithoutDoubleSlash } from './without-double-slash.js'
 import { AssertTrue, IsExact } from 'conditional-type-checks'
 
 type DoubleSlashAtBeginning = '//users'

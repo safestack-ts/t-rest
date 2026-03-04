@@ -1,5 +1,5 @@
 import { AssertTrue, IsExact } from 'conditional-type-checks'
-import { JoinPath } from './join-path'
+import { JoinPath } from './join-path.js'
 
 type _test =
   | AssertTrue<IsExact<JoinPath<'/', '/a'>, '/a'>>

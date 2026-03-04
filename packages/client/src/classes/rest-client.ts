@@ -4,11 +4,11 @@ import {
   Versioning,
   VersioningRequired,
 } from '@t-rest/core'
-import { RESTClientBase } from './rest-client-base'
-import { HTTPAdapter } from '../types/http-adapter'
-import { RESTClientWithVersioning } from './rest-client-with-versioning'
-import { RESTClientWithoutVersioning } from './rest-client-without-versioning'
-import { VersionInjectorConstructor } from './version-injector'
+import { RESTClientBase } from './rest-client-base.js'
+import { HTTPAdapter } from '../types/http-adapter.js'
+import { RESTClientWithVersioning } from './rest-client-with-versioning.js'
+import { RESTClientWithoutVersioning } from './rest-client-without-versioning.js'
+import { VersionInjectorConstructor } from './version-injector.js'
 
 export abstract class RESTClient<
   TRoutes extends AnyRouteDef,

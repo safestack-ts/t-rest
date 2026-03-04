@@ -1,4 +1,4 @@
-import { AnyRouteDef } from './any-route-def'
+import { AnyRouteDef } from './any-route-def.js'
 
 // resolves last version of route according to the version history, given the client version
 type SearchRoute<

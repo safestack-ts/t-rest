@@ -1,6 +1,6 @@
 import { HTTPMethod } from '@t-rest/core'
-import { RequestConfig } from './request-config'
-import { HTTPResponse } from './http-response'
+import { RequestConfig } from './request-config.js'
+import { HTTPResponse } from './http-response.js'
 
 export interface HTTPAdapter<TRequestContext = {}> {
   request<TResponse>(

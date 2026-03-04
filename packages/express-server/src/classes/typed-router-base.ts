@@ -1,6 +1,6 @@
 import { AnyRouteDef, RouteHashMap } from '@t-rest/core'
-import { ExpressRequest, ExpressRouter } from '../types/express-type-shortcuts'
-import { VersionedRouting } from './versioned-routing'
+import { ExpressRequest, ExpressRouter } from '../types/express-type-shortcuts.js'
+import { VersionedRouting } from './versioned-routing.js'
 
 export abstract class TypedRouterBase<
   _TRoutes extends AnyRouteDef,

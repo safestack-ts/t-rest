@@ -1,7 +1,7 @@
-import { OpenAPISpec } from './classes/open-api-spec'
-import { OpenAPIGenerator } from './classes/open-api-generator'
-import { NumberType, StringType, UnionType } from './schema/type-schema'
-import bagOfRoutes from './bag'
+import { OpenAPISpec } from './classes/open-api-spec.js'
+import { OpenAPIGenerator } from './classes/open-api-generator.js'
+import { NumberType, StringType, UnionType } from './schema/type-schema.js'
+import bagOfRoutes from './bag.js'
 import path from 'path'
 
 const main = async () => {

@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.21
+
+### Minor Changes
+
+- 989aac9: correct NodeJS ESM support
+
 ## 1.0.0-alpha.20
 
 ### Patch Changes

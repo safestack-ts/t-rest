@@ -7,17 +7,17 @@ import {
 import Express from 'express'
 import request from 'supertest'
 import { StatusCodes } from 'http-status-codes'
-import { DateVersionExtractor } from '../types/date-version-extractor'
-import { TypedExpressApplication } from '../classes/typed-express-application'
+import { DateVersionExtractor } from '../types/date-version-extractor.js'
+import { TypedExpressApplication } from '../classes/typed-express-application.js'
 import {
   ExpressApp,
   ExpressNextFunction,
   ExpressRequest,
   ExpressResponse,
-} from '../types/express-type-shortcuts'
+} from '../types/express-type-shortcuts.js'
 import { BagOfRoutes, Route, Versioning, ze } from '@t-rest/core'
 import { z } from 'zod'
-import { defineMiddleware } from '../utils/define-middleware'
+import { defineMiddleware } from '../utils/define-middleware.js'
 import 'express-async-errors'
 
 const { bagOfRoutes: baseBagOfRoutes, versionHistory } =

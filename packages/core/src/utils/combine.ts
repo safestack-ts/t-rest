@@ -1,8 +1,8 @@
-import { BagOfRoutes } from '../classes/core/bag-of-routes'
-import { AnyRouteDef } from '../types/any-route-def'
-import { CombinedBags } from '../types/combined-bags'
-import { NonEmptyArray, first } from '../types/non-empty-array'
-import { HashMap } from './hash-map'
+import { BagOfRoutes } from '../classes/core/bag-of-routes.js'
+import { AnyRouteDef } from '../types/any-route-def.js'
+import { CombinedBags } from '../types/combined-bags.js'
+import { NonEmptyArray, first } from '../types/non-empty-array.js'
+import { HashMap } from './hash-map.js'
 
 type EnsureSameVersioning<T extends BagOfRoutes<any, any, any>[]> = T extends []
   ? never

@@ -1,8 +1,8 @@
 import { AnyRouteDef, BagOfRoutes, Versioning, HTTPMethod } from '@t-rest/core'
-import { HTTPAdapter } from '../types/http-adapter'
-import { RequestConfig } from '../types/request-config'
+import { HTTPAdapter } from '../types/http-adapter.js'
+import { RequestConfig } from '../types/request-config.js'
 import { BaseRequestInput, buildUrl } from '@t-rest/client-utils'
-import { VersionInjector } from './version-injector'
+import { VersionInjector } from './version-injector.js'
 
 export abstract class RESTClientBase<
   TRoutes extends AnyRouteDef,
