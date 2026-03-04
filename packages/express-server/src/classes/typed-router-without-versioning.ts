@@ -12,14 +12,14 @@ import {
   ExpressRequest,
   ExpressRequestHandler,
   ExpressRouter,
-} from '../types/express-type-shortcuts'
-import { TypedRouterBase } from './typed-router-base'
-import { PossiblePathsFromPrefix } from '../types/possible-paths-from-prefix'
-import { TypedMiddleware } from '../types/typed-middleware'
+} from '../types/express-type-shortcuts.js'
+import { TypedRouterBase } from './typed-router-base.js'
+import { PossiblePathsFromPrefix } from '../types/possible-paths-from-prefix.js'
+import { TypedMiddleware } from '../types/typed-middleware.js'
 import * as Express from 'express'
-import { VersionedRouting } from './versioned-routing'
-import { NoVersionExtractor } from './no-version-extractor'
-import { TypedRouteHandler } from './typed-route-handler'
+import { VersionedRouting } from './versioned-routing.js'
+import { NoVersionExtractor } from './no-version-extractor.js'
+import { TypedRouteHandler } from './typed-route-handler.js'
 
 export class TypedRouterWithoutVersioning<
   TRoutes extends AnyRouteDef,

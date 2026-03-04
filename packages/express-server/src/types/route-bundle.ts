@@ -1,6 +1,6 @@
 import { AnyRouteDef } from '@t-rest/core'
-import { AnyRouteHandlerFn } from './any-route-handler-fn'
-import { TypedMiddleware } from './typed-middleware'
+import { AnyRouteHandlerFn } from './any-route-handler-fn.js'
+import { TypedMiddleware } from './typed-middleware.js'
 
 export type ParamAlias = {
   oldName: string

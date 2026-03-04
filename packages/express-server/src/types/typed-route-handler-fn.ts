@@ -1,6 +1,6 @@
 import { AnyRouteDef } from '@t-rest/core'
-import { ExpressRequest, ExpressResponse } from './express-type-shortcuts'
-import { HandlerReturnType } from './handler-return-type'
+import { ExpressRequest, ExpressResponse } from './express-type-shortcuts.js'
+import { HandlerReturnType } from './handler-return-type.js'
 
 export type TypedRouteHandlerFn<
   TRoute extends AnyRouteDef,

@@ -1,5 +1,5 @@
 import { BagOfRoutes } from '@t-rest/core'
-import { OpenAPIMetaData } from '../types/open-api-meta-data'
+import { OpenAPIMetaData } from '../types/open-api-meta-data.js'
 
 type ConstructorArgs<TBagOfRoutes extends BagOfRoutes<any, any, any>> = {
   bagOfRoutes: TBagOfRoutes

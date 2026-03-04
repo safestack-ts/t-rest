@@ -3,8 +3,8 @@ import {
   ExpressApp,
   ExpressRequest,
   ExpressRouter,
-} from '../types/express-type-shortcuts'
-import { TypedRouterWithoutVersioning } from './typed-router-without-versioning'
+} from '../types/express-type-shortcuts.js'
+import { TypedRouterWithoutVersioning } from './typed-router-without-versioning.js'
 
 export class TypedExpressApplicationWithoutVersioning<
   TRoutes extends AnyRouteDef,

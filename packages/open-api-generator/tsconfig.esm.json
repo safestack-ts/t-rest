@@ -3,7 +3,8 @@
     "include": ["src/**/*"],
     "compilerOptions": {
       "outDir": "./dist/esm",
-      "module": "esnext"
+      "module": "NodeNext",
+      "moduleResolution": "NodeNext"
     }
   }
   

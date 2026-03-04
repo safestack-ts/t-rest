@@ -1,4 +1,4 @@
-import { VersionExtractor } from '../types/version-extractor'
+import { VersionExtractor } from '../types/version-extractor.js'
 
 export class NoVersionExtractor implements VersionExtractor {
   extractVersion() {

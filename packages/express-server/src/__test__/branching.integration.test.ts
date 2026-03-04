@@ -7,12 +7,12 @@ import {
 } from '@t-rest/core'
 import { User } from '@t-rest/testing-utilities'
 import { z } from 'zod'
-import { TypedExpressApplication } from '../classes/typed-express-application'
+import { TypedExpressApplication } from '../classes/typed-express-application.js'
 import Express from 'express'
 import request from 'supertest'
 import { StatusCodes } from 'http-status-codes'
-import { DateVersionExtractor } from '../types/date-version-extractor'
-import { ExpressRequest } from '../types/express-type-shortcuts'
+import { DateVersionExtractor } from '../types/date-version-extractor.js'
+import { ExpressRequest } from '../types/express-type-shortcuts.js'
 
 describe('without versioning', () => {
   const bagOfRoutes = BagOfRoutes.withoutVersioning()

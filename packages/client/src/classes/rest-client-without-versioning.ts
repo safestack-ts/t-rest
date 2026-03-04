@@ -1,9 +1,9 @@
 import { AnyRouteDef, BagOfRoutes, HTTPMethod, Versioning } from '@t-rest/core'
-import { RESTClientBase } from './rest-client-base'
-import { RequestArgs } from '../types/request-args'
-import { RequestInput } from '../types/request-input'
-import { HTTPAdapter } from '../types/http-adapter'
-import { NoVersionInjector } from './version-injector'
+import { RESTClientBase } from './rest-client-base.js'
+import { RequestArgs } from '../types/request-args.js'
+import { RequestInput } from '../types/request-input.js'
+import { HTTPAdapter } from '../types/http-adapter.js'
+import { NoVersionInjector } from './version-injector.js'
 
 export class RESTClientWithoutVersioning<
   TRoutes extends AnyRouteDef,

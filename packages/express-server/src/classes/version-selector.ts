@@ -8,11 +8,11 @@ import {
   WithoutTrailingSlash,
   joinPath,
 } from '@t-rest/core'
-import { ExpressRequest } from '../types/express-type-shortcuts'
-import { RequestVersion } from '../types/request-version'
-import { RouteVersions } from '../types/route-versions'
-import { TypedRouterBase } from './typed-router-base'
-import { TypedRouteHandler } from './typed-route-handler'
+import { ExpressRequest } from '../types/express-type-shortcuts.js'
+import { RequestVersion } from '../types/request-version.js'
+import { RouteVersions } from '../types/route-versions.js'
+import { TypedRouterBase } from './typed-router-base.js'
+import { TypedRouteHandler } from './typed-route-handler.js'
 
 export class VersionSelector<
   TRoutes extends AnyRouteDef,

@@ -9,11 +9,11 @@ import {
 import { User } from '@t-rest/testing-utilities'
 import { z } from 'zod'
 import Express from 'express'
-import { TypedExpressApplication } from '../classes/typed-express-application'
-import { BranchedRouter } from './branched-router'
-import { defineMiddleware } from '../utils/define-middleware'
-import { ExpressRequest } from './express-type-shortcuts'
-import { DateVersionExtractor } from './date-version-extractor'
+import { TypedExpressApplication } from '../classes/typed-express-application.js'
+import { BranchedRouter } from './branched-router.js'
+import { defineMiddleware } from '../utils/define-middleware.js'
+import { ExpressRequest } from './express-type-shortcuts.js'
+import { DateVersionExtractor } from './date-version-extractor.js'
 
 namespace _WithoutVersioning {
   const bagOfRoutes = BagOfRoutes.withoutVersioning()

@@ -1,6 +1,6 @@
 import { TypedIdentity } from '@t-rest/core'
 import { z } from 'zod'
-import { validateTypeDefinition } from './type-schema'
+import { validateTypeDefinition } from './type-schema.js'
 
 export const validateHeader = z.object({
   name: z.string(),

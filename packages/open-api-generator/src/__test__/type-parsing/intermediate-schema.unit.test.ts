@@ -1,5 +1,5 @@
 import 'jest-extended'
-import { parseBagOfRoutes } from '../../utils/parse-bag-of-routes'
+import { parseBagOfRoutes } from '../../utils/parse-bag-of-routes.js'
 import * as path from 'path'
 
 describe('input types', () => {

@@ -1,6 +1,6 @@
 import { HashMap, normalizePathPattern } from '@t-rest/core'
 import ts from 'typescript'
-import { ObjectType, TypeDefinition } from '../schema/type-schema'
+import { ObjectType, TypeDefinition } from '../schema/type-schema.js'
 import debug from 'debug'
 import path from 'path'
 

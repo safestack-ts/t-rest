@@ -3,11 +3,11 @@ import {
   TypedExpressApplicationWithVersioning,
 } from '@t-rest/express-server'
 import { HTTPMethod } from '@t-rest/core'
-import { SupertestConfig } from '../types/supertest-config'
-import { RequestInput } from '../types/request-input'
-import { VersionInjector } from './version-injector'
-import { SupertestAdapterBase } from './supertest-adapter-base'
-import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config'
+import { SupertestConfig } from '../types/supertest-config.js'
+import { RequestInput } from '../types/request-input.js'
+import { VersionInjector } from './version-injector.js'
+import { SupertestAdapterBase } from './supertest-adapter-base.js'
+import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config.js'
 export class SupertestAdapterWithVersioning<
   TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>
 > extends SupertestAdapterBase<TApp> {

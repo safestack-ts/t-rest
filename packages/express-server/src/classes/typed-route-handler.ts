@@ -1,8 +1,8 @@
 import { AnyRouteDef, RouteValidationOutput } from '@t-rest/core'
-import { ExpressRequest } from '../types/express-type-shortcuts'
-import { TypedMiddleware } from '../types/typed-middleware'
-import { TypedRouterBase } from './typed-router-base'
-import { TypedRouteHandlerFn } from '../types/typed-route-handler-fn'
+import { ExpressRequest } from '../types/express-type-shortcuts.js'
+import { TypedMiddleware } from '../types/typed-middleware.js'
+import { TypedRouterBase } from './typed-router-base.js'
+import { TypedRouteHandlerFn } from '../types/typed-route-handler-fn.js'
 
 export class TypedRouteHandler<
   TVersion extends string,

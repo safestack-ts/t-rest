@@ -1,1 +1,1 @@
-export * from './build-url'
+export * from './build-url.js'

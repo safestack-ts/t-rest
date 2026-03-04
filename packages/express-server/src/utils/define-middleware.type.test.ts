@@ -6,11 +6,11 @@ import {
   ze,
 } from '@t-rest/core'
 import Express from 'express'
-import { TypedExpressApplication } from '../classes/typed-express-application'
+import { TypedExpressApplication } from '../classes/typed-express-application.js'
 import { z } from 'zod'
 import { User } from '@t-rest/testing-utilities'
-import { ExpressRequest } from '../types/express-type-shortcuts'
-import { defineMiddleware } from './define-middleware'
+import { ExpressRequest } from '../types/express-type-shortcuts.js'
+import { defineMiddleware } from './define-middleware.js'
 import { AssertTrue } from 'conditional-type-checks'
 
 type RequestWithClientId = ExpressRequest & { clientId: string }

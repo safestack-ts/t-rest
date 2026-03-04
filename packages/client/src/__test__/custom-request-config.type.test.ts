@@ -1,9 +1,9 @@
 import { demoBagOfRoutes, HTTPMethod } from '@t-rest/core'
-import { HTTPAdapter } from '../types/http-adapter'
-import { RequestConfig } from '../types/request-config'
-import { HTTPResponse } from '../types/http-response'
-import { VersionInjector } from '../classes/version-injector'
-import { RESTClient } from '../classes/rest-client'
+import { HTTPAdapter } from '../types/http-adapter.js'
+import { RequestConfig } from '../types/request-config.js'
+import { HTTPResponse } from '../types/http-response.js'
+import { VersionInjector } from '../classes/version-injector.js'
+import { RESTClient } from '../classes/rest-client.js'
 
 class TestVersionInjector extends VersionInjector {
   modifyHeaders(headers: Record<string, string | number | boolean>) {

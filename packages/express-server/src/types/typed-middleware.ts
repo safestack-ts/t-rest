@@ -1,5 +1,5 @@
-import { ExpressRequest } from './express-type-shortcuts'
-import { TypedRequestHandler } from './typed-request-handler'
+import { ExpressRequest } from './express-type-shortcuts.js'
+import { TypedRequestHandler } from './typed-request-handler.js'
 
 export type TypedMiddleware<
   TRequestIn extends ExpressRequest,

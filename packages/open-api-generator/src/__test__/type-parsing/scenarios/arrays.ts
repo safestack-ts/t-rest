@@ -1,6 +1,6 @@
 import { BagOfRoutes, Route, versionHistory, Versioning } from '@t-rest/core'
 import { z } from 'zod'
-import { TypeDefinition } from '../../../schema/type-schema'
+import { TypeDefinition } from '../../../schema/type-schema.js'
 
 export default BagOfRoutes.withVersioning(Versioning.DATE, versionHistory)
   .addRoute(

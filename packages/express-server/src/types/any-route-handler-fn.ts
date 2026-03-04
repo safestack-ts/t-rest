@@ -1,6 +1,6 @@
 import { AnyRouteDef } from '@t-rest/core'
-import { ExpressRequest } from './express-type-shortcuts'
-import { TypedRouteHandlerFn } from './typed-route-handler-fn'
+import { ExpressRequest } from './express-type-shortcuts.js'
+import { TypedRouteHandlerFn } from './typed-route-handler-fn.js'
 
 export type AnyRouteHandlerFn = TypedRouteHandlerFn<
   AnyRouteDef,

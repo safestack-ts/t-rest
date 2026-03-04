@@ -8,10 +8,10 @@ import {
   ExpressRequest,
   ExpressApp,
   ExpressRouter,
-} from '../types/express-type-shortcuts'
-import { VersionExtractor } from '../types/version-extractor'
-import { TypedExpressApplicationWithoutVersioning } from './typed-express-application-without-versioning'
-import { TypedExpressApplicationWithVersioning } from './typed-express-application-with-versioning'
+} from '../types/express-type-shortcuts.js'
+import { VersionExtractor } from '../types/version-extractor.js'
+import { TypedExpressApplicationWithoutVersioning } from './typed-express-application-without-versioning.js'
+import { TypedExpressApplicationWithVersioning } from './typed-express-application-with-versioning.js'
 
 export abstract class TypedExpressApplication {
   public static withoutVersioning<

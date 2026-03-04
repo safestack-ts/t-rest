@@ -1,9 +1,9 @@
 import axios from 'axios'
 import nock from 'nock'
-import { RESTClient } from '../classes/rest-client'
+import { RESTClient } from '../classes/rest-client.js'
 import { demoBagOfRoutes } from '@t-rest/core'
-import { AxiosHTTPAdapter } from '../classes/axios-http-adapter'
-import { VersionInjector } from '../classes/version-injector'
+import { AxiosHTTPAdapter } from '../classes/axios-http-adapter.js'
+import { VersionInjector } from '../classes/version-injector.js'
 
 class TestVersionInjector extends VersionInjector {
   modifyHeaders(headers: Record<string, string | number | boolean>) {

@@ -1,6 +1,6 @@
 import { TypedIdentity } from '@t-rest/core'
 import { z } from 'zod'
-import { validateHeader } from './header'
+import { validateHeader } from './header.js'
 
 export const validateRouteMeta = z.object({
   summary: z.string().optional(),
