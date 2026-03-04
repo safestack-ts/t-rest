@@ -1,5 +1,17 @@
 # @t-rest/client
 
+## 1.0.0-alpha.28
+
+### Minor Changes
+
+- 989aac9: correct NodeJS ESM support
+
+### Patch Changes
+
+- Updated dependencies [989aac9]
+  - @t-rest/client-utils@1.0.0-alpha.8
+  - @t-rest/core@1.0.0-alpha.21
+
 ## 1.0.0-alpha.27
 
 ### Patch Changes
