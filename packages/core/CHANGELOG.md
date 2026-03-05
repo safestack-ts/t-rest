@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.23
+
+### Patch Changes
+
+- 8814937: attempt to fix type checking errors in CJS projects after latest node ESM adjustments
+
 ## 1.0.0-alpha.22
 
 ### Patch Changes

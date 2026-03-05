@@ -1,5 +1,13 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.37
+
+### Patch Changes
+
+- 8814937: attempt to fix type checking errors in CJS projects after latest node ESM adjustments
+- Updated dependencies [8814937]
+  - @t-rest/core@1.0.0-alpha.23
+
 ## 1.0.0-alpha.36
 
 ### Patch Changes
