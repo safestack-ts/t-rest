@@ -1,5 +1,13 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.49
+
+### Patch Changes
+
+- 517f35f: improve collision handling of enums, oneOf, anyOf and allOf
+- Updated dependencies [517f35f]
+  - @t-rest/core@1.0.0-alpha.22
+
 ## 1.0.0-alpha.48
 
 ### Patch Changes

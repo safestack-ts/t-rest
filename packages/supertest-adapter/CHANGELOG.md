@@ -1,5 +1,15 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.39
+
+### Patch Changes
+
+- 517f35f: bump version
+- Updated dependencies [517f35f]
+  - @t-rest/client-utils@1.0.0-alpha.9
+  - @t-rest/core@1.0.0-alpha.22
+  - @t-rest/express-server@1.0.0-alpha.36
+
 ## 1.0.0-alpha.38
 
 ### Minor Changes

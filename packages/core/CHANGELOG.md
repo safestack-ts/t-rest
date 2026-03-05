@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.22
+
+### Patch Changes
+
+- 517f35f: bump version
+
 ## 1.0.0-alpha.21
 
 ### Minor Changes

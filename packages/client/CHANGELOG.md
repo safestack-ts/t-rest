@@ -1,5 +1,14 @@
 # @t-rest/client
 
+## 1.0.0-alpha.29
+
+### Patch Changes
+
+- 517f35f: bump version
+- Updated dependencies [517f35f]
+  - @t-rest/client-utils@1.0.0-alpha.9
+  - @t-rest/core@1.0.0-alpha.22
+
 ## 1.0.0-alpha.28
 
 ### Minor Changes

@@ -1,5 +1,13 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.36
+
+### Patch Changes
+
+- 517f35f: bump version
+- Updated dependencies [517f35f]
+  - @t-rest/core@1.0.0-alpha.22
+
 ## 1.0.0-alpha.35
 
 ### Minor Changes

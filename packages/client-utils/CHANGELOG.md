@@ -1,5 +1,11 @@
 # @t-rest/client-utils
 
+## 1.0.0-alpha.9
+
+### Patch Changes
+
+- 517f35f: bump version
+
 ## 1.0.0-alpha.8
 
 ### Minor Changes
