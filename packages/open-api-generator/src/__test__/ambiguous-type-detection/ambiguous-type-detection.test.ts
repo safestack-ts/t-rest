@@ -28,6 +28,16 @@ const getSchemaFromBag = (bagOfRoutes: typeof sameShapeBagOfRoutes, entry: strin
     }
   ).bagOfRoutesToSchema(bagOfRoutes, entry, tsConfigPath, metaData, filter)
 
+const getComponentKeys = (
+  bagOfRoutes: typeof sameShapeBagOfRoutes,
+  entry: string
+) => {
+  const schema = getSchemaFromBag(bagOfRoutes, entry) as {
+    components: Record<string, unknown>
+  }
+  return Object.keys(schema.components)
+}
+
 describe('ambiguous type detection', () => {
   test('does not throw when same type name has equal schema shape', () => {
     const entryPath = path.join(
@@ -37,20 +47,29 @@ describe('ambiguous type detection', () => {
     )
 
     expect(() => getSchemaFromBag(sameShapeBagOfRoutes, entryPath)).not.toThrow()
+    expect(getComponentKeys(sameShapeBagOfRoutes, entryPath)).toEqual(
+      expect.arrayContaining([
+        'CatalogAlpha_ProductCategory',
+        'CatalogBeta_ProductCategory',
+      ])
+    )
   })
 
-  test('throws when same type name has different schema shape', () => {
+  test('does not throw when same short type name has different namespace', () => {
     const entryPath = path.join(
       __dirname,
       'scenarios',
       'ambiguous-type-different-shape.ts'
     )
 
-    expect(() => getSchemaFromBag(differentShapeBagOfRoutes, entryPath)).toThrow(
-      'Ambiguous type(s): ProductCategory'
-    )
-    expect(() => getSchemaFromBag(differentShapeBagOfRoutes, entryPath)).toThrow(
-      'Consider renaming one of the TypeScript types'
+    expect(() =>
+      getSchemaFromBag(differentShapeBagOfRoutes, entryPath)
+    ).not.toThrow()
+    expect(getComponentKeys(differentShapeBagOfRoutes, entryPath)).toEqual(
+      expect.arrayContaining([
+        'CatalogAlpha_ProductCategory',
+        'CatalogBeta_ProductCategory',
+      ])
     )
   })
 })

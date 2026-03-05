@@ -85,6 +85,92 @@ type TraverseMeta = {
   visitedTypes?: Set<string>
 }
 
+type TypeIdentityMeta = {
+  name?: string
+  namespaceName?: string
+  qualifiedName?: string
+  schemaName?: string
+}
+
+const isTrackableNamedType = (value?: string) =>
+  Boolean(
+    value &&
+      value !== 'string' &&
+      value !== 'number' &&
+      value !== 'boolean' &&
+      value !== 'null' &&
+      value !== '__type' &&
+      value !== '__object' &&
+      !value.match(/^\[.*\]$/) &&
+      !value.match(/^\{.*\}$/) &&
+      value.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
+  )
+
+const toOpenAPIComponentName = (value: string) =>
+  value
+    .replace(/\./g, '_')
+    .replace(/[^a-zA-Z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+
+const extractNamespaceName = (declaration: ts.Declaration | undefined) => {
+  if (!declaration) {
+    return undefined
+  }
+
+  const namespaceParts: string[] = []
+  let parent: ts.Node | undefined = declaration.parent
+
+  while (parent) {
+    if (ts.isModuleDeclaration(parent)) {
+      namespaceParts.unshift(parent.name.getText())
+    }
+    parent = parent.parent
+  }
+
+  return namespaceParts.length > 0 ? namespaceParts.join('.') : undefined
+}
+
+const resolveTypeIdentityMeta = (
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  fallbackName?: string
+): TypeIdentityMeta => {
+  const symbol = type.aliasSymbol ?? type.getSymbol()
+  const declaration = symbol?.declarations?.at(0)
+  const name =
+    type.aliasSymbol?.escapedName?.toString() ??
+    symbol?.getName() ??
+    fallbackName ??
+    typeChecker.typeToString(type)
+
+  const namespaceName = extractNamespaceName(declaration)
+  const qualifiedName = namespaceName ? `${namespaceName}.${name}` : undefined
+  const schemaName =
+    qualifiedName !== undefined
+      ? toOpenAPIComponentName(qualifiedName) || undefined
+      : undefined
+
+  return {
+    name,
+    namespaceName,
+    qualifiedName,
+    schemaName,
+  }
+}
+
+const identityFields = (typeIdentity: TypeIdentityMeta) => ({
+  ...(typeIdentity.namespaceName !== undefined
+    ? { namespaceName: typeIdentity.namespaceName }
+    : {}),
+  ...(typeIdentity.qualifiedName !== undefined
+    ? { qualifiedName: typeIdentity.qualifiedName }
+    : {}),
+  ...(typeIdentity.schemaName !== undefined
+    ? { schemaName: typeIdentity.schemaName }
+    : {}),
+})
+
 function transformTypeToIntermediate(
   type: ts.Type,
   typeChecker: ts.TypeChecker,
@@ -279,6 +365,8 @@ function transformTypeToIntermediate(
   if (!typeName) {
     typeName = typeChecker.typeToString(type)
   }
+  const typeIdentity = resolveTypeIdentityMeta(type, typeChecker, typeName)
+  const visitKey = typeIdentity.qualifiedName ?? typeName
 
   typeDiscoveryLog('typeName %s', typeName)
   typeDiscoveryLog('symbol name: %s', symbol?.name)
@@ -299,11 +387,12 @@ function transformTypeToIntermediate(
     typeName !== '__object' && // Don't treat Zod transform anonymous types as refs
     !typeName.match(/^\[.*\]$/) && // not tuple strings
     !typeName.match(/^\{.*\}$/) && // not anonymous object types like "{ id: number }"
-    metadata.visitedTypes?.has(typeName)
+    metadata.visitedTypes?.has(visitKey)
   ) {
     return {
       kind: 'ref',
-      name: typeName,
+      name: typeIdentity.name ?? typeName,
+      ...identityFields(typeIdentity),
     }
   }
 
@@ -368,10 +457,10 @@ function transformTypeToIntermediate(
 
     // we want to track named union types to not re-visit them again
     if (
-      typeName &&
+      isTrackableNamedType(visitKey) &&
       type.types.some((t) => t.flags & ts.TypeFlags.NonPrimitive)
     ) {
-      metadata.visitedTypes?.add(typeName)
+      metadata.visitedTypes?.add(visitKey)
     }
 
     return {
@@ -742,13 +831,19 @@ function transformTypeToIntermediate(
     // we want to track named intersection types to not re-visit them again
     // important that we add this first before traversing the properties, because it could be a recursive type
     const intersectionTypeName = type.aliasSymbol?.escapedName?.toString()
-    const shouldTrackIntersectionType =
-      intersectionTypeName &&
-      intersectionTypeName !== '__type' &&
-      intersectionTypeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
+    const intersectionTypeIdentity = resolveTypeIdentityMeta(
+      type,
+      typeChecker,
+      intersectionTypeName
+    )
+    const intersectionVisitKey =
+      intersectionTypeIdentity.qualifiedName ?? intersectionTypeName
+    const shouldTrackIntersectionType = isTrackableNamedType(
+      intersectionTypeIdentity.name
+    )
 
     if (shouldTrackIntersectionType) {
-      metadata.visitedTypes?.add(intersectionTypeName)
+      metadata.visitedTypes?.add(intersectionVisitKey)
     }
 
     validTypes.forEach((t) => {
@@ -776,7 +871,12 @@ function transformTypeToIntermediate(
         kind: 'object',
         properties,
         ...(required.size > 0 ? { required: Array.from(required) } : {}),
-        ...(shouldTrackIntersectionType ? { name: intersectionTypeName } : {}),
+        ...(shouldTrackIntersectionType
+          ? {
+              name: intersectionTypeIdentity.name ?? intersectionTypeName,
+              ...identityFields(intersectionTypeIdentity),
+            }
+          : {}),
       }
     }
 
@@ -855,25 +955,15 @@ function transformTypeToIntermediate(
 
     // Determine if this is a named type that should be tracked
     // We want to track types that have proper names (not anonymous object types or basic types)
-    const shouldTrackType =
-      typeName &&
-      typeName !== 'string' &&
-      typeName !== 'number' &&
-      typeName !== 'boolean' &&
-      typeName !== 'null' &&
-      typeName !== '__type' && // Don't track anonymous types
-      typeName !== '__object' && // Don't track Zod transform anonymous types
-      !typeName.match(/^\{.*\}$/) && // not anonymous object types like "{ id: number }"
-      !typeName.match(/^\[.*\]$/) && // not tuple strings like "[SubscriptionItem]"
-      typeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/) // valid identifier names like "SubscriptionItem"
+    const shouldTrackType = isTrackableNamedType(typeIdentity.name)
 
     // Check if this is the first visit to this named type
     const isFirstVisit = shouldTrackType
-      ? !metadata.visitedTypes?.has(typeName)
+      ? !metadata.visitedTypes?.has(visitKey)
       : true
 
     if (shouldTrackType) {
-      metadata.visitedTypes?.add(typeName)
+      metadata.visitedTypes?.add(visitKey)
     }
 
     const objectSchema = transformObjectToIntermediate(
@@ -885,7 +975,12 @@ function transformTypeToIntermediate(
 
     return {
       ...objectSchema,
-      ...(shouldTrackType && isFirstVisit ? { name: typeName } : {}),
+      ...(shouldTrackType && isFirstVisit
+        ? {
+            name: typeIdentity.name ?? typeName,
+            ...identityFields(typeIdentity),
+          }
+        : {}),
     }
   }
 
@@ -954,17 +1049,15 @@ function transformObjectToIntermediate(
   const required = new Set<string>()
 
   const typeName = type.aliasSymbol?.escapedName?.toString()
+  const typeIdentity = resolveTypeIdentityMeta(type, typeChecker, typeName)
+  const visitKey = typeIdentity.qualifiedName ?? typeName
 
   // Only track and name proper named types, not anonymous ones
-  const shouldTrackType =
-    typeName &&
-    typeName !== '__type' &&
-    typeName !== '__object' && // Don't track Zod transform anonymous types
-    typeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/) // valid identifier names
+  const shouldTrackType = isTrackableNamedType(typeIdentity.name)
 
   // we want to track named object types to not re-visit them again
   if (shouldTrackType) {
-    metadata.visitedTypes?.add(typeName)
+    metadata.visitedTypes?.add(visitKey)
   }
 
   type.getProperties().forEach((prop) => {
@@ -1000,7 +1093,12 @@ function transformObjectToIntermediate(
     kind: 'object',
     properties,
     ...(required.size > 0 ? { required: Array.from(required) } : {}),
-    ...(shouldTrackType ? { name: typeName } : {}),
+    ...(shouldTrackType
+      ? {
+          name: typeIdentity.name ?? typeName,
+          ...identityFields(typeIdentity),
+        }
+      : {}),
   }
 }
 
@@ -1111,11 +1209,12 @@ function resolveTypeToOpenAPI3({
       }
 
       if (type.name) {
-        components[type.name] = objectSpec
+        const componentKey = type.schemaName ?? type.name
+        components[componentKey] = objectSpec
 
         if (replaceRefs) {
           return {
-            $ref: `#/components/schemas/${type.name}`,
+            $ref: `#/components/schemas/${componentKey}`,
             ...(nullable ? { nullable: true } : {}),
           }
         }
@@ -1222,11 +1321,13 @@ function resolveTypeToOpenAPI3({
         }),
         ...(nullable ? { nullable: true } : {}),
       }
-    case 'ref':
+    case 'ref': {
+      const componentKey = type.schemaName ?? type.name
       return {
-        $ref: `#/components/schemas/${type.name}`,
+        $ref: `#/components/schemas/${componentKey}`,
         ...(nullable ? { nullable: true } : {}),
       }
+    }
     case 'any':
     case 'unknown':
       return {

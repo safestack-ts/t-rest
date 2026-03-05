@@ -384,6 +384,9 @@ export const TupleType = (args: Omit<TupleType, 'kind'>): TupleType => ({
 export const validateTypeDefinition: z.ZodType<TypeDefinition> = z
   .object({
     originalName: z.string().optional(),
+    namespaceName: z.string().optional(),
+    qualifiedName: z.string().optional(),
+    schemaName: z.string().optional(),
     typeParameters: z.record(z.lazy(() => validateTypeDefinition)).optional(),
   })
   .and(
@@ -413,6 +416,9 @@ export const validateTypeDefinition: z.ZodType<TypeDefinition> = z
 
 export type TypeDefinition = {
   name?: string
+  namespaceName?: string
+  qualifiedName?: string
+  schemaName?: string
   typeParameters?: Record<string, TypeDefinition>
   nullable?: boolean
 } & (
@@ -441,7 +447,13 @@ export type TypeDefinition = {
       name: string
       structure: TypeDefinition
     }
-  | { kind: 'ref'; name: string }
+  | {
+      kind: 'ref'
+      name: string
+      namespaceName?: string
+      qualifiedName?: string
+      schemaName?: string
+    }
   | { kind: 'any' }
   | { kind: 'unknown' }
 )

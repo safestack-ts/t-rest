@@ -322,7 +322,7 @@ export abstract class OpenAPIGenerator {
     if (ambiguousTypes.size > 0) {
       const typeNames = [...ambiguousTypes].sort().join(', ')
       throw new Error(
-        `Ambiguous type(s): ${typeNames}. The same type name is used with different shapes across routes. Consider renaming one of the TypeScript types or ensure all usages share a single type definition.`
+        `Ambiguous type(s): ${typeNames}. The same resolved component schema name is used with different shapes across routes. Consider renaming one of the TypeScript types or ensure all usages share a single type definition.`
       )
     }
 
