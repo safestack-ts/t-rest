@@ -4,4 +4,7 @@ const baseConfig = require('../../jest.base.config')
 module.exports = {
   ...baseConfig,
   rootDir: './src',
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
 }

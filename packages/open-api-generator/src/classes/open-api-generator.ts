@@ -18,6 +18,7 @@ import {
   RouteTypeInfo,
   getOpenAPI3Spec,
 } from '../utils/parse-bag-of-routes.js'
+import { hashOpenAPISchema } from '../utils/openapi-schema-normalize.js'
 import { groupBy, merge, uniqBy } from 'lodash'
 import { validateRouteMeta } from '../schema/route-meta.js'
 
@@ -168,6 +169,8 @@ export abstract class OpenAPIGenerator {
     const routesByPath = groupBy(finalRoutes, (route) => route.path)
 
     const allComponents: Record<string, any> = {}
+    const componentHashes: Record<string, string> = {}
+    const ambiguousTypes = new Set<string>()
 
     const paths = Object.entries(routesByPath).map(([path, routes]) => {
       const sortedRoutes = routes.sort(
@@ -231,6 +234,17 @@ export abstract class OpenAPIGenerator {
             }
 
             Object.entries(components).forEach(([key, value]) => {
+              const schemaHash = hashOpenAPISchema(value)
+              const previousSchemaHash = componentHashes[key]
+
+              if (
+                previousSchemaHash !== undefined &&
+                previousSchemaHash !== schemaHash
+              ) {
+                ambiguousTypes.add(key)
+              }
+
+              componentHashes[key] = schemaHash
               allComponents[key] = value
             })
 
@@ -304,6 +318,13 @@ export abstract class OpenAPIGenerator {
         ),
       }
     })
+
+    if (ambiguousTypes.size > 0) {
+      const typeNames = [...ambiguousTypes].sort().join(', ')
+      throw new Error(
+        `Ambiguous type(s): ${typeNames}. The same type name is used with different shapes across routes. Consider renaming one of the TypeScript types or ensure all usages share a single type definition.`
+      )
+    }
 
     return {
       paths: merge({}, ...paths),
