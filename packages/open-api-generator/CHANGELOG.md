@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.47
+
+### Patch Changes
+
+- 72a68e0: add ambigious type detection
+
 ## 1.0.0-alpha.46
 
 ### Minor Changes
