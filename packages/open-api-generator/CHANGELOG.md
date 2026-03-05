@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.48
+
+### Patch Changes
+
+- 8856c77: use typescript namespace as prefix for types exported from namespaces
+
 ## 1.0.0-alpha.47
 
 ### Patch Changes
