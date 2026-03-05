@@ -121,6 +121,92 @@ describe('openapi schema normalize', () => {
     expect(hashOpenAPISchema(left)).toEqual(hashOpenAPISchema(right))
   })
 
+  test('creates equal hash when oneOf item order differs', () => {
+    const left = {
+      oneOf: [
+        {
+          type: 'object',
+          properties: {
+            source: { type: 'string', enum: ['alpha', 'beta'] },
+          },
+          required: ['source'],
+        },
+        {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+          },
+          required: ['id'],
+        },
+      ],
+    }
+
+    const right = {
+      oneOf: [
+        {
+          required: ['id'],
+          properties: {
+            id: { type: 'number' },
+          },
+          type: 'object',
+        },
+        {
+          required: ['source'],
+          properties: {
+            source: { enum: ['beta', 'alpha'], type: 'string' },
+          },
+          type: 'object',
+        },
+      ],
+    }
+
+    expect(hashOpenAPISchema(left)).toEqual(hashOpenAPISchema(right))
+    expect(openAPISchemaShapeEqual(left, right)).toBeTrue()
+  })
+
+  test('creates equal hash when allOf item order differs', () => {
+    const left = {
+      allOf: [
+        {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+          },
+          required: ['id'],
+        },
+        {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      ],
+    }
+
+    const right = {
+      allOf: [
+        {
+          required: ['name'],
+          properties: {
+            name: { type: 'string' },
+          },
+          type: 'object',
+        },
+        {
+          required: ['id'],
+          properties: {
+            id: { type: 'number' },
+          },
+          type: 'object',
+        },
+      ],
+    }
+
+    expect(hashOpenAPISchema(left)).toEqual(hashOpenAPISchema(right))
+    expect(openAPISchemaShapeEqual(left, right)).toBeTrue()
+  })
+
   test('removes undefined keys while normalizing', () => {
     const schema = {
       type: 'string',
