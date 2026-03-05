@@ -5,43 +5,48 @@ import bagOfRoutes from './bag.js'
 import path from 'path'
 
 const main = async () => {
-  const spec = OpenAPISpec.ofVersion(bagOfRoutes, '2024-01-01').withMetaData({
-    title: 'My API',
-    description: 'My API description',
-    contact: {
-      name: 'John Doe',
-      url: 'https://example.com',
-      email: 'john.doe@example.com',
+  const spec = OpenAPISpec.ofVersion(bagOfRoutes, '2024-01-01').withMetaData(
+    {
+      title: 'My API',
+      description: 'My API description',
+      contact: {
+        name: 'John Doe',
+        url: 'https://example.com',
+        email: 'john.doe@example.com',
+      },
+      servers: [
+        {
+          url: 'https://api.example.com',
+          description: 'Production server',
+        },
+      ],
+      tags: [
+        {
+          name: 'users',
+          description: 'Users related operations',
+        },
+      ],
+      headers: [
+        {
+          name: 'pratiq-client-id',
+          description: 'Global Webshop Client Id',
+          required: true,
+          type: UnionType({
+            types: [StringType(), NumberType()],
+          }),
+        },
+        {
+          name: 'pratiq-channel-uuid',
+          description: 'UUID of the sales channel',
+          required: false,
+          type: StringType(),
+        },
+      ],
     },
-    servers: [
-      {
-        url: 'https://api.example.com',
-        description: 'Production server',
-      },
-    ],
-    tags: [
-      {
-        name: 'users',
-        description: 'Users related operations',
-      },
-    ],
-    headers: [
-      {
-        name: 'pratiq-client-id',
-        description: 'Global Webshop Client Id',
-        required: true,
-        type: UnionType({
-          types: [StringType(), NumberType()],
-        }),
-      },
-      {
-        name: 'pratiq-channel-uuid',
-        description: 'UUID of the sales channel',
-        required: false,
-        type: StringType(),
-      },
-    ],
-  })
+    {
+      includeTypesNamespaceInName: true,
+    }
+  )
 
   await OpenAPIGenerator.generate([
     {

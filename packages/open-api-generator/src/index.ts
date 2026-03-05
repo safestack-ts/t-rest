@@ -9,3 +9,4 @@ export * from './schema/header.js'
 
 // types
 export { OpenAPIMetaData } from './types/open-api-meta-data.js'
+export { OpenAPIGeneratorOptions } from './types/open-api-generator-options.js'

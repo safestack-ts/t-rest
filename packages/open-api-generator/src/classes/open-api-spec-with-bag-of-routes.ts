@@ -1,5 +1,6 @@
 import { BagOfRoutes, Versioning } from '@t-rest/core'
 import { OpenAPIMetaData } from '../types/open-api-meta-data.js'
+import { OpenAPIGeneratorOptions } from '../types/open-api-generator-options.js'
 import { OpenAPISpecWithMetaData } from './open-api-spec-with-meta-data.js'
 
 type MetaDataArgs<TBagOfRoutes extends BagOfRoutes<any, any, any>> =
@@ -20,7 +21,10 @@ export class OpenAPISpecWithBagOfRoutes<
     this.bagOfRoutes = bagOfRoutes
   }
 
-  public withMetaData(metaData: MetaDataArgs<TBagOfRoutes>) {
+  public withMetaData(
+    metaData: MetaDataArgs<TBagOfRoutes>,
+    options?: OpenAPIGeneratorOptions
+  ) {
     return new OpenAPISpecWithMetaData({
       bagOfRoutes: this.bagOfRoutes,
       version: this.version,
@@ -28,6 +32,7 @@ export class OpenAPISpecWithBagOfRoutes<
         ...metaData,
         version: (metaData as OpenAPIMetaData).version ?? this.version,
       },
+      options,
     })
   }
 }

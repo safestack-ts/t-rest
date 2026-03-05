@@ -3,6 +3,10 @@ import ts from 'typescript'
 import { ObjectType, TypeDefinition } from '../schema/type-schema.js'
 import debug from 'debug'
 import path from 'path'
+import {
+  OpenAPIGeneratorOptions,
+  resolveOpenAPIGeneratorOptions,
+} from '../types/open-api-generator-options.js'
 
 const parserLog = debug('t-rest:open-api-generator:parser')
 const typeDiscoveryLog = debug('t-rest:open-api-generator:type-discovery')
@@ -15,8 +19,13 @@ export type RouteTypeInfo = {
   }
 }
 
-export const parseBagOfRoutes = (modulePath: string, tsConfigPath: string) => {
+export const parseBagOfRoutes = (
+  modulePath: string,
+  tsConfigPath: string,
+  options?: OpenAPIGeneratorOptions
+) => {
   parserLog('Parsing routes from module: %s', modulePath)
+  const resolvedOptions = resolveOpenAPIGeneratorOptions(options)
 
   const { sourceFile, typeChecker } = initializeProgram(
     modulePath,
@@ -58,11 +67,13 @@ export const parseBagOfRoutes = (modulePath: string, tsConfigPath: string) => {
       input: validatorType
         ? transformTypeToIntermediate(validatorType, typeChecker, rootNode, {
             visitedTypes: new Set(),
+          options: resolvedOptions,
           })
         : undefined,
       output: responseType
         ? transformTypeToIntermediate(responseType, typeChecker, rootNode, {
             visitedTypes: new Set(),
+          options: resolvedOptions,
           })
         : undefined,
       routeMeta: {
@@ -83,6 +94,7 @@ export const parseBagOfRoutes = (modulePath: string, tsConfigPath: string) => {
 
 type TraverseMeta = {
   visitedTypes?: Set<string>
+  options: ReturnType<typeof resolveOpenAPIGeneratorOptions>
 }
 
 type TypeIdentityMeta = {
@@ -134,6 +146,7 @@ const extractNamespaceName = (declaration: ts.Declaration | undefined) => {
 const resolveTypeIdentityMeta = (
   type: ts.Type,
   typeChecker: ts.TypeChecker,
+  options: ReturnType<typeof resolveOpenAPIGeneratorOptions>,
   fallbackName?: string
 ): TypeIdentityMeta => {
   const symbol = type.aliasSymbol ?? type.getSymbol()
@@ -146,9 +159,13 @@ const resolveTypeIdentityMeta = (
 
   const namespaceName = extractNamespaceName(declaration)
   const qualifiedName = namespaceName ? `${namespaceName}.${name}` : undefined
-  const schemaName =
-    qualifiedName !== undefined
+  const plainSchemaName = toOpenAPIComponentName(name) || undefined
+  const schemaName = options.includeTypesNamespaceInName
+    ? qualifiedName !== undefined
       ? toOpenAPIComponentName(qualifiedName) || undefined
+      : undefined
+    : plainSchemaName !== undefined && plainSchemaName !== name
+      ? plainSchemaName
       : undefined
 
   return {
@@ -365,7 +382,12 @@ function transformTypeToIntermediate(
   if (!typeName) {
     typeName = typeChecker.typeToString(type)
   }
-  const typeIdentity = resolveTypeIdentityMeta(type, typeChecker, typeName)
+  const typeIdentity = resolveTypeIdentityMeta(
+    type,
+    typeChecker,
+    metadata.options,
+    typeName
+  )
   const visitKey = typeIdentity.qualifiedName ?? typeName
 
   typeDiscoveryLog('typeName %s', typeName)
@@ -834,6 +856,7 @@ function transformTypeToIntermediate(
     const intersectionTypeIdentity = resolveTypeIdentityMeta(
       type,
       typeChecker,
+      metadata.options,
       intersectionTypeName
     )
     const intersectionVisitKey =
@@ -842,7 +865,7 @@ function transformTypeToIntermediate(
       intersectionTypeIdentity.name
     )
 
-    if (shouldTrackIntersectionType) {
+    if (shouldTrackIntersectionType && intersectionVisitKey !== undefined) {
       metadata.visitedTypes?.add(intersectionVisitKey)
     }
 
@@ -1049,14 +1072,19 @@ function transformObjectToIntermediate(
   const required = new Set<string>()
 
   const typeName = type.aliasSymbol?.escapedName?.toString()
-  const typeIdentity = resolveTypeIdentityMeta(type, typeChecker, typeName)
+  const typeIdentity = resolveTypeIdentityMeta(
+    type,
+    typeChecker,
+    metadata.options,
+    typeName
+  )
   const visitKey = typeIdentity.qualifiedName ?? typeName
 
   // Only track and name proper named types, not anonymous ones
   const shouldTrackType = isTrackableNamedType(typeIdentity.name)
 
   // we want to track named object types to not re-visit them again
-  if (shouldTrackType) {
+  if (shouldTrackType && visitKey !== undefined) {
     metadata.visitedTypes?.add(visitKey)
   }
 
@@ -1196,7 +1224,7 @@ function resolveTypeToOpenAPI3({
       }
     }
     case 'object': {
-      const objectSpec = {
+      const baseObjectSpec = {
         type: 'object',
         properties: Object.fromEntries(
           Object.entries(type.properties).map(([key, value]) => [
@@ -1205,12 +1233,11 @@ function resolveTypeToOpenAPI3({
           ])
         ),
         ...(type.required ? { required: type.required } : {}),
-        ...(nullable ? { nullable: true } : {}),
       }
 
       if (type.name) {
         const componentKey = type.schemaName ?? type.name
-        components[componentKey] = objectSpec
+        components[componentKey] = baseObjectSpec
 
         if (replaceRefs) {
           return {
@@ -1220,7 +1247,10 @@ function resolveTypeToOpenAPI3({
         }
       }
 
-      return objectSpec
+      return {
+        ...baseObjectSpec,
+        ...(nullable ? { nullable: true } : {}),
+      }
     }
     case 'record': {
       return {

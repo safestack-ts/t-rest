@@ -21,6 +21,10 @@ import {
 import { hashOpenAPISchema } from '../utils/openapi-schema-normalize.js'
 import { groupBy, merge, uniqBy } from 'lodash'
 import { validateRouteMeta } from '../schema/route-meta.js'
+import {
+  OpenAPIGeneratorOptions,
+  resolveOpenAPIGeneratorOptions,
+} from '../types/open-api-generator-options.js'
 
 type SpecFilterRoute = {
   method: HTTPMethod
@@ -38,6 +42,7 @@ type GenerateSpec = {
   entry: string
   tsConfigPath: string
   filter?: SpecFilter
+  options?: OpenAPIGeneratorOptions
 }
 
 export abstract class OpenAPIGenerator {
@@ -54,9 +59,15 @@ export abstract class OpenAPIGenerator {
     entry,
     tsConfigPath,
     filter = () => true,
+    options,
   }: GenerateSpec) {
     this.validateOutputFile(outputFile)
     await this.ensureOutputDir(outputDir)
+
+    const resolvedOptions = resolveOpenAPIGeneratorOptions({
+      ...spec.options,
+      ...options,
+    })
 
     const schema = this.metaDataToSchema(spec.metaData)
     const { paths, components } = this.bagOfRoutesToSchema(
@@ -64,7 +75,8 @@ export abstract class OpenAPIGenerator {
       entry,
       tsConfigPath,
       spec.metaData,
-      filter
+      filter,
+      resolvedOptions
     )
     await this.writeFile(
       path.join(outputDir, outputFile),
@@ -91,9 +103,10 @@ export abstract class OpenAPIGenerator {
     entryPath: string,
     tsConfigPath: string,
     metaData: OpenAPIMetaData,
-    filter: SpecFilter
+    filter: SpecFilter,
+    options: OpenAPIGeneratorOptions
   ) {
-    const routes = parseBagOfRoutes(entryPath, tsConfigPath)
+    const routes = parseBagOfRoutes(entryPath, tsConfigPath, options)
     const routesUnfolded = Array.from(routes.entries()).reduce(
       (acc, [[method, path, version], typeInfo]) => {
         const routeDef = bagOfRoutes.routes.get([
@@ -234,7 +247,9 @@ export abstract class OpenAPIGenerator {
             }
 
             Object.entries(components).forEach(([key, value]) => {
-              const schemaHash = hashOpenAPISchema(value)
+              const schemaHash = hashOpenAPISchema(
+                normalizeComponentForAmbiguityComparison(value)
+              )
               const previousSchemaHash = componentHashes[key]
 
               if (
@@ -366,4 +381,16 @@ const httpMethodOrder: Record<HTTPMethod, number> = {
   PUT: 2,
   PATCH: 3,
   DELETE: 4,
+}
+
+const normalizeComponentForAmbiguityComparison = (value: unknown) => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const schema = value as Record<string, unknown>
+    if (schema.type === 'object' && schema.nullable === true) {
+      const { nullable: _nullable, ...rest } = schema
+      return rest
+    }
+  }
+
+  return value
 }
