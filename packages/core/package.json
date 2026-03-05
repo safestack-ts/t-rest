@@ -18,7 +18,7 @@
     "dist/**/*"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node ../../scripts/strip-js-specifiers-in-cjs-dts.mjs ./dist/cjs",
     "build:esm": "tsc -p tsconfig.esm.json"
   },
   "keywords": [],

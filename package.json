@@ -5,8 +5,9 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && pnpm run postbuild:fix-cjs-dts",
     "build:esm": "pnpm recursive run build:esm",
+    "postbuild:fix-cjs-dts": "node ./scripts/strip-js-specifiers-in-cjs-dts.mjs ./packages",
     "build:watch": "tsc --build --watch",
     "clean": "rm -rf **/dist && rm -rf **/*.tsbuildinfo",
     "test": "pnpm recursive run test",
