@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.50
+
+### Patch Changes
+
+- 36e2ac5: add `includeTypesNamespaceInName` option to make namespace-prefixed schema component names configurable
+
 ## 1.0.0-alpha.49
 
 ### Patch Changes
