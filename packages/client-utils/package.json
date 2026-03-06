@@ -2,24 +2,22 @@
     "name": "@t-rest/client-utils",
     "version": "1.0.0-alpha.9",
     "description": "",
-    "main": "./dist/cjs/index.js",
-    "module": "./dist/esm/index.js",
-    "types": "./dist/cjs/index.d.ts",
+    "main": "./dist/index.cjs",
+    "types": "./dist/index.d.ts",
     "type": "module",
     "sideEffects": false,
     "exports": {
         ".": {
-            "import": "./dist/esm/index.js",
-            "require": "./dist/cjs/index.js",
-            "types": "./dist/cjs/index.d.ts"
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs"
         }
     },
     "files": [
         "dist/**/*"
     ],
     "scripts": {
-        "build": "tsc -p tsconfig.json",
-        "build:esm": "tsc -p tsconfig.esm.json",
+        "build": "tsup",
         "test": "TZ=UTC ../../node_modules/.bin/jest --config jest.config.js --colors --passWithNoTests",
         "test:watch": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.js --colors --passWithNoTests",
         "test:unit": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.js --colors --passWithNoTests unit",

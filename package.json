@@ -5,9 +5,7 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "build": "tsc --build && pnpm run postbuild:fix-cjs-dts",
-    "build:esm": "pnpm recursive run build:esm",
-    "postbuild:fix-cjs-dts": "node ./scripts/strip-js-specifiers-in-cjs-dts.mjs ./packages",
+    "build": "pnpm recursive run build",
     "build:watch": "tsc --build --watch",
     "clean": "rm -rf **/dist && rm -rf **/*.tsbuildinfo",
     "test": "pnpm recursive run test",
@@ -21,7 +19,7 @@
     "changeset:snapshot:publish": "pnpm changeset publish --tag dev --no-git-tag",
     "changeset:snapshot:version": "pnpm changeset version --snapshot dev",
     "pub:dev": "pnpm build && pnpm exec ./scripts/publish-dev-version.sh",
-    "prepublish": "pnpm clean && pnpm build && pnpm build:esm"
+    "prepublish": "pnpm clean && pnpm build"
   },
   "keywords": [],
   "author": "",
@@ -41,6 +39,7 @@
     "jest-extended": "^4.0.2",
     "supertest": "^6.3.4",
     "ts-jest": "^29.2.5",
+    "tsup": "^8.5.1",
     "typescript": "^5.7.3"
   },
   "dependencies": {
