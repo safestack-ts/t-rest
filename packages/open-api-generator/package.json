@@ -1,48 +1,48 @@
 {
-    "name": "@t-rest/open-api-generator",
-    "version": "1.0.0-alpha.53",
-    "description": "",
-    "main": "./dist/index.cjs",
-    "types": "./dist/index.d.ts",
-    "type": "module",
-    "sideEffects": false,
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.js",
-            "require": "./dist/index.cjs"
-        }
-    },
-    "files": [
-        "dist/**/*"
-    ],
-    "scripts": {
-        "build": "tsup",
-        "test": "TZ=UTC ../../node_modules/.bin/jest --config jest.config.cjs --colors --passWithNoTests",
-        "test:watch": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.cjs --colors --passWithNoTests",
-        "test:unit": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.cjs --colors --passWithNoTests unit",
-        "test:integration": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.cjs --colors --passWithNoTests integration"
-    },
-    "keywords": [],
-    "author": "Yannick Stachelscheid",
-    "license": "MIT",
-    "dependencies": {
-        "@t-rest/core": "workspace:*",
-        "debug": "^4.4.0",
-        "lodash": "^4.17.21",
-        "stable-hash": "^0.0.5",
-        "typescript": "^5.7.3",
-        "yaml": "^2.7.0"
-    },
-    "devDependencies": {
-        "@t-rest/testing-utilities": "workspace:*",
-        "@types/debug": "^4.1.12",
-        "@types/dedent": "^0.7.2",
-        "@types/lodash": "^4.17.15",
-        "@types/node": "^22.13.1",
-        "dedent": "^1.5.3"
-    },
-    "publishConfig": {
-        "access": "public"
+  "name": "@t-rest/open-api-generator",
+  "version": "1.0.0-alpha.53",
+  "description": "",
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     }
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "TZ=UTC ../../node_modules/.bin/jest --config jest.config.cjs --colors --passWithNoTests",
+    "test:watch": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.cjs --colors --passWithNoTests",
+    "test:unit": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.cjs --colors --passWithNoTests unit",
+    "test:integration": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.cjs --colors --passWithNoTests integration"
+  },
+  "keywords": [],
+  "author": "Yannick Stachelscheid",
+  "license": "MIT",
+  "dependencies": {
+    "@t-rest/core": "workspace:*",
+    "debug": "^4.4.0",
+    "lodash": "^4.17.21",
+    "stable-hash": "0.0.5",
+    "typescript": "^5.7.3",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@t-rest/testing-utilities": "workspace:*",
+    "@types/debug": "^4.1.12",
+    "@types/dedent": "^0.7.2",
+    "@types/lodash": "^4.17.15",
+    "@types/node": "^22.13.1",
+    "dedent": "^1.5.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
