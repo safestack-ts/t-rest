@@ -21,7 +21,7 @@
     "@t-rest/client": "workspace:*",
     "@t-rest/core": "workspace:*",
     "axios": "^1.7.9",
-    "zod": "^3.25.67"
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@t-rest/testing-utilities": "workspace:*"

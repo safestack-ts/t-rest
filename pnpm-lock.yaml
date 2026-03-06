@@ -15,8 +15,8 @@ importers:
         specifier: ^2.3.0
         version: 2.3.0
       zod:
-        specifier: ^3.24.1
-        version: 3.24.1
+        specifier: ^4.0.0
+        version: 4.3.6
     devDependencies:
       '@safestack/eslint-config':
         specifier: ^1.0.0
@@ -100,6 +100,9 @@ importers:
       '@types/node':
         specifier: ^22.13.1
         version: 22.13.1
+      zod:
+        specifier: ^3.25.0 || ^4.0.0
+        version: 4.3.6
 
   packages/express-server:
     dependencies:
@@ -183,6 +186,9 @@ importers:
       dedent:
         specifier: ^1.5.3
         version: 1.5.3
+      zod:
+        specifier: ^3.25.0 || ^4.0.0
+        version: 4.3.6
 
   packages/playground:
     dependencies:
@@ -196,8 +202,8 @@ importers:
         specifier: ^1.7.9
         version: 1.7.9
       zod:
-        specifier: ^3.25.67
-        version: 3.25.67
+        specifier: ^4.0.0
+        version: 4.3.6
     devDependencies:
       '@t-rest/testing-utilities':
         specifier: workspace:*
@@ -2909,11 +2915,8 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod@3.24.1:
-    resolution: {integrity: sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==}
-
-  zod@3.25.67:
-    resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
 snapshots:
 
@@ -5885,6 +5888,4 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod@3.24.1: {}
-
-  zod@3.25.67: {}
+  zod@4.3.6: {}

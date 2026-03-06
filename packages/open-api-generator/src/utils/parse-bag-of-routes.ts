@@ -118,6 +118,9 @@ const isTrackableNamedType = (value?: string) =>
       value.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
   )
 
+const isIgnoredSyntheticPropertyName = (value: string) =>
+  value.match(/^__@\$brand@\d+$/) !== null
+
 const toOpenAPIComponentName = (value: string) =>
   value
     .replace(/\./g, '_')
@@ -206,11 +209,26 @@ function transformTypeToIntermediate(
       typeName || symbol?.getName() || typeChecker.typeToString(type)
 
     if (baseTypeName === 'Record') {
+      const recordKeyType = typeRef.aliasTypeArguments?.at(0)
+      if (recordKeyType && (recordKeyType.flags & ts.TypeFlags.Never) !== 0) {
+        return {
+          kind: 'object',
+          properties: {},
+        }
+      }
+
       const stringIndexType = typeChecker.getIndexInfoOfType(
         type,
         ts.IndexKind.String
       )
       if (stringIndexType && stringIndexType.type) {
+        if (typeChecker.typeToString(stringIndexType.type) === 'never') {
+          return {
+            kind: 'object',
+            properties: {},
+          }
+        }
+
         return {
           kind: 'record',
           value: transformTypeToIntermediate(
@@ -274,6 +292,10 @@ function transformTypeToIntermediate(
               const required = new Set<string>()
 
               properties.forEach((prop) => {
+                if (isIgnoredSyntheticPropertyName(prop.name)) {
+                  return
+                }
+
                 const shouldInclude =
                   baseTypeName === 'Pick'
                     ? keys.has(prop.name)
@@ -314,6 +336,10 @@ function transformTypeToIntermediate(
       const required = new Set<string>()
 
       properties.forEach((prop) => {
+        if (isIgnoredSyntheticPropertyName(prop.name)) {
+          return
+        }
+
         const shouldInclude =
           baseTypeName === 'Pick' ? keys.has(prop.name) : !keys.has(prop.name)
 
@@ -344,6 +370,10 @@ function transformTypeToIntermediate(
     const required = new Set<string>()
 
     type.getApparentProperties().forEach((prop) => {
+      if (isIgnoredSyntheticPropertyName(prop.name)) {
+        return
+      }
+
       const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
       properties[prop.name] = transformTypeToIntermediate(
         propType,
@@ -784,6 +814,10 @@ function transformTypeToIntermediate(
       // Collect properties from all object types
       objectTypes.forEach((objType) => {
         objType.getProperties().forEach((prop) => {
+          if (isIgnoredSyntheticPropertyName(prop.name)) {
+            return
+          }
+
           const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
           baseProperties[prop.name] = transformTypeToIntermediate(
             propType,
@@ -813,6 +847,10 @@ function transformTypeToIntermediate(
             unionMember.flags & ts.TypeFlags.Object
           ) {
             unionMember.getProperties().forEach((prop) => {
+              if (isIgnoredSyntheticPropertyName(prop.name)) {
+                return
+              }
+
               const propType = typeChecker.getTypeOfSymbolAtLocation(
                 prop,
                 rootNode
@@ -872,6 +910,10 @@ function transformTypeToIntermediate(
     validTypes.forEach((t) => {
       if (t.isClassOrInterface() || t.flags & ts.TypeFlags.Object) {
         t.getProperties().forEach((prop) => {
+          if (isIgnoredSyntheticPropertyName(prop.name)) {
+            return
+          }
+
           const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
           properties[prop.name] = transformTypeToIntermediate(
             propType,
@@ -1089,6 +1131,10 @@ function transformObjectToIntermediate(
   }
 
   type.getProperties().forEach((prop) => {
+    if (isIgnoredSyntheticPropertyName(prop.name)) {
+      return
+    }
+
     const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
 
     // Check if the property type is a union that includes null

@@ -141,7 +141,7 @@ export const validateObjectType: z.ZodType<ObjectType> = validateBaseType.and(
   z.object({
     kind: z.literal('object'),
     originalName: z.string().optional(),
-    properties: z.record(z.lazy(() => validateTypeDefinition)),
+    properties: z.record(z.string(), z.lazy(() => validateTypeDefinition)),
     required: z.array(z.string()).optional(),
     additionalProperties: z
       .union([z.boolean(), z.lazy(() => validateTypeDefinition)])
@@ -387,7 +387,9 @@ export const validateTypeDefinition: z.ZodType<TypeDefinition> = z
     namespaceName: z.string().optional(),
     qualifiedName: z.string().optional(),
     schemaName: z.string().optional(),
-    typeParameters: z.record(z.lazy(() => validateTypeDefinition)).optional(),
+    typeParameters: z
+      .record(z.string(), z.lazy(() => validateTypeDefinition))
+      .optional(),
   })
   .and(
     z.union([

@@ -1,4 +1,4 @@
-import { ZodError, ZodType, z } from 'zod'
+import { z } from 'zod'
 
 export namespace ze {
   // Refinements
@@ -87,7 +87,7 @@ export namespace ze {
     )
 
   export const jsonObject = <TOutputValue>(
-    objectValidator: ZodType<TOutputValue, z.ZodTypeDef, unknown>
+    objectValidator: z.ZodType<TOutputValue, unknown>
   ) =>
     z
       .string()
@@ -96,59 +96,43 @@ export namespace ze {
 
   export const databaseId = () => z.number().int().positive()
 
-  export const parseInteger = (): z.ZodType<
-    number,
-    z.ZodTypeDef,
-    number | string
-  > =>
+  export const parseInteger = (): z.ZodType<number, number | string> =>
     z.union([
       z.number().int(),
       integerString().transform((value, ctx) => {
         const parsedValue = parseInt(value, 10)
 
         if (isNaN(parsedValue)) {
-          throw new ZodError([
-            {
-              code: z.ZodIssueCode.custom,
-              message: 'Expected parseable integer string',
-              path: ctx.path,
-            },
-          ])
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Expected parseable integer string',
+          })
+          return z.NEVER
         }
 
         return parsedValue
       }),
     ])
 
-  export const parseFloating = (): z.ZodType<
-    number,
-    z.ZodTypeDef,
-    number | string
-  > =>
+  export const parseFloating = (): z.ZodType<number, number | string> =>
     z.union([
       z.number(),
       z.string().transform((value, ctx) => {
         const parsedValue = parseFloat(value)
 
         if (isNaN(parsedValue)) {
-          throw new ZodError([
-            {
-              code: z.ZodIssueCode.custom,
-              message: 'Expected parseable floating number string',
-              path: ctx.path,
-            },
-          ])
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Expected parseable floating number string',
+          })
+          return z.NEVER
         }
 
         return parsedValue
       }),
     ])
 
-  export const parseBoolean = (): z.ZodType<
-    boolean,
-    z.ZodTypeDef,
-    boolean | string
-  > =>
+  export const parseBoolean = (): z.ZodType<boolean, boolean | string> =>
     z.union([
       z.boolean(),
       booleanString().transform((value) => value === 'true'),
@@ -185,11 +169,8 @@ export namespace ze {
 
   export const file = () =>
     z.object({
-      buffer: z.custom<Buffer>((value) => {
-        if (Buffer.isBuffer(value)) return value
-        throw new z.ZodError([
-          { message: 'Expected a Buffer', code: 'custom', path: [] },
-        ])
+      buffer: z.custom<Buffer>((value) => Buffer.isBuffer(value), {
+        error: 'Expected a Buffer',
       }),
       encoding: z.string(),
       fieldname: z.string(),

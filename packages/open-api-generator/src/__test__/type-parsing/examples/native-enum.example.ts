@@ -13,7 +13,7 @@ export default BagOfRoutes.withoutVersioning()
       .validate(
         z.object({
           query: z.object({
-            orderStatus: z.nativeEnum(OrderStatus),
+            orderStatus: z.enum(OrderStatus),
           }),
         })
       )
@@ -23,7 +23,7 @@ export default BagOfRoutes.withoutVersioning()
 
 const a = z.object({
   query: z.object({
-    orderStatus: z.nativeEnum(OrderStatus),
+    orderStatus: z.enum(OrderStatus),
   }),
 })
 type A = z.output<typeof a>

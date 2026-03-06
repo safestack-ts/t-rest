@@ -21,6 +21,7 @@ export const validateRouteMeta = z.object({
         description: z.string().optional(),
         variables: z
           .record(
+            z.string(),
             z.object({
               default: z.string(),
               description: z.string().optional(),
