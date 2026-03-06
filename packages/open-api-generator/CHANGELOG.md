@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.55
+
+### Patch Changes
+
+- 657c4a2: transform default import to named import of stable-hash
+
 ## 1.0.0-alpha.54
 
 ### Patch Changes
