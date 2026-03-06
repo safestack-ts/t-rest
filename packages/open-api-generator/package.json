@@ -1,6 +1,6 @@
 {
   "name": "@t-rest/open-api-generator",
-  "version": "1.0.0-alpha.53",
+  "version": "1.0.0-alpha.54",
   "description": "",
   "main": "./dist/index.cjs",
   "types": "./dist/index.d.ts",

@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.54
+
+### Patch Changes
+
+- 1a19d70: fix version of stable-hash to 0.0.5
+
 ## 1.0.0-alpha.53
 
 ### Patch Changes
