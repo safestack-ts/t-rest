@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.53
+
+### Patch Changes
+
+- 722302a: downgrade stable-hash to 0.0.5 for CJS support
+
 ## 1.0.0-alpha.52
 
 ### Patch Changes
