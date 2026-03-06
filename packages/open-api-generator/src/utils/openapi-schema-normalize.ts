@@ -1,4 +1,4 @@
-import hash from 'stable-hash'
+import { stableHash } from 'stable-hash'
 
 const orderInsensitiveArrayKeys = new Set([
   'required',
@@ -14,7 +14,7 @@ const isObjectRecord = (
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const toStableSortKey = (value: unknown) =>
-  `${hash(value)}:${JSON.stringify(value)}`
+  `${stableHash(value)}:${JSON.stringify(value)}`
 
 const normalizeArray = (key: string, value: unknown[]) => {
   const normalized = value.map((item) => normalizeOpenAPISchema(item))
@@ -64,7 +64,7 @@ export const normalizeOpenAPISchema = (value: unknown): unknown => {
 }
 
 export const hashOpenAPISchema = (value: unknown) =>
-  hash(normalizeOpenAPISchema(value))
+  stableHash(normalizeOpenAPISchema(value))
 
 export const openAPISchemaShapeEqual = (left: unknown, right: unknown) =>
   hashOpenAPISchema(left) === hashOpenAPISchema(right)
