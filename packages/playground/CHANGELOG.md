@@ -1,5 +1,14 @@
 # @t-rest/playground
 
+## 0.1.0-alpha.7
+
+### Patch Changes
+
+- 1ddc45c: support zod v4
+- Updated dependencies [1ddc45c]
+  - @t-rest/core@1.0.0-alpha.25
+  - @t-rest/client@1.0.0-alpha.32
+
 ## 0.1.0-alpha.6
 
 ### Patch Changes

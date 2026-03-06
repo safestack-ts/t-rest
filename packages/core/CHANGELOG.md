@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.25
+
+### Patch Changes
+
+- 1ddc45c: support zod v4
+
 ## 1.0.0-alpha.24
 
 ### Patch Changes

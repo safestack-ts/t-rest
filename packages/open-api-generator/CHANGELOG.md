@@ -1,5 +1,13 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.56
+
+### Patch Changes
+
+- 1ddc45c: support zod v4
+- Updated dependencies [1ddc45c]
+  - @t-rest/core@1.0.0-alpha.25
+
 ## 1.0.0-alpha.55
 
 ### Patch Changes
