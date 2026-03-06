@@ -1,5 +1,14 @@
 # @t-rest/client
 
+## 1.0.0-alpha.31
+
+### Patch Changes
+
+- 5008804: tsup setup
+- Updated dependencies [5008804]
+  - @t-rest/client-utils@1.0.0-alpha.10
+  - @t-rest/core@1.0.0-alpha.24
+
 ## 1.0.0-alpha.30
 
 ### Patch Changes

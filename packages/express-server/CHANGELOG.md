@@ -1,5 +1,13 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.38
+
+### Patch Changes
+
+- 5008804: tsup setup
+- Updated dependencies [5008804]
+  - @t-rest/core@1.0.0-alpha.24
+
 ## 1.0.0-alpha.37
 
 ### Patch Changes

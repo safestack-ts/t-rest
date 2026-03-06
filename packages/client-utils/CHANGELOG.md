@@ -1,5 +1,11 @@
 # @t-rest/client-utils
 
+## 1.0.0-alpha.10
+
+### Patch Changes
+
+- 5008804: tsup setup
+
 ## 1.0.0-alpha.9
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
     "name": "@t-rest/express-server",
-    "version": "1.0.0-alpha.37",
+    "version": "1.0.0-alpha.38",
     "description": "",
     "main": "./dist/index.cjs",
     "types": "./dist/index.d.ts",

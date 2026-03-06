@@ -1,6 +1,6 @@
 {
     "name": "@t-rest/client-utils",
-    "version": "1.0.0-alpha.9",
+    "version": "1.0.0-alpha.10",
     "description": "",
     "main": "./dist/index.cjs",
     "types": "./dist/index.d.ts",
