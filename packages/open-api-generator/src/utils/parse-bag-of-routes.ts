@@ -111,6 +111,9 @@ const isTrackableNamedType = (value?: string) =>
       value !== 'number' &&
       value !== 'boolean' &&
       value !== 'null' &&
+      value !== 'undefined' &&
+      value !== 'unknown' &&
+      value !== 'any' &&
       value !== '__type' &&
       value !== '__object' &&
       !value.match(/^\[.*\]$/) &&
