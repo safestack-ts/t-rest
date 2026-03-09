@@ -20,7 +20,7 @@
   "dependencies": {
     "@t-rest/client": "workspace:*",
     "@t-rest/core": "workspace:*",
-    "axios": "^1.7.9",
+    "axios": "^1.13.6",
     "zod": "^4.0.0"
   },
   "devDependencies": {
