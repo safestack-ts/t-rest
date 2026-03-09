@@ -1,5 +1,15 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.43
+
+### Patch Changes
+
+- bcd3965: fix esm/cjs type declaration export configuration in package.json
+- Updated dependencies [bcd3965]
+  - @t-rest/express-server@1.0.0-alpha.40
+  - @t-rest/client-utils@1.0.0-alpha.11
+  - @t-rest/core@1.0.0-alpha.26
+
 ## 1.0.0-alpha.42
 
 ### Patch Changes

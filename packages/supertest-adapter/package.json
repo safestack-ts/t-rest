@@ -1,6 +1,6 @@
 {
     "name": "@t-rest/supertest-adapter",
-    "version": "1.0.0-alpha.42",
+    "version": "1.0.0-alpha.43",
     "description": "",
     "main": "./dist/index.cjs",
     "types": "./dist/index.d.ts",

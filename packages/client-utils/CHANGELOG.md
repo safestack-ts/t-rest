@@ -1,5 +1,11 @@
 # @t-rest/client-utils
 
+## 1.0.0-alpha.11
+
+### Patch Changes
+
+- bcd3965: fix esm/cjs type declaration export configuration in package.json
+
 ## 1.0.0-alpha.10
 
 ### Patch Changes

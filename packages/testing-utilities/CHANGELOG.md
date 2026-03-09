@@ -1,5 +1,12 @@
 # @t-rest/testing-utilities
 
+## 1.0.1-alpha.27
+
+### Patch Changes
+
+- Updated dependencies [bcd3965]
+  - @t-rest/core@1.0.0-alpha.26
+
 ## 1.0.1-alpha.26
 
 ### Patch Changes

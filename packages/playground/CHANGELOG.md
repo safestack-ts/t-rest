@@ -1,5 +1,13 @@
 # @t-rest/playground
 
+## 0.1.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies [bcd3965]
+  - @t-rest/client@1.0.0-alpha.34
+  - @t-rest/core@1.0.0-alpha.26
+
 ## 0.1.0-alpha.8
 
 ### Patch Changes

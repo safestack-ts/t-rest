@@ -1,5 +1,11 @@
 # @t-rest/core
 
+## 1.0.0-alpha.26
+
+### Patch Changes
+
+- bcd3965: fix esm/cjs type declaration export configuration in package.json
+
 ## 1.0.0-alpha.25
 
 ### Patch Changes

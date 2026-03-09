@@ -1,5 +1,13 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.58
+
+### Patch Changes
+
+- bcd3965: fix esm/cjs type declaration export configuration in package.json
+- Updated dependencies [bcd3965]
+  - @t-rest/core@1.0.0-alpha.26
+
 ## 1.0.0-alpha.57
 
 ### Patch Changes
