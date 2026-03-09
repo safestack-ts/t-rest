@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.57
+
+### Patch Changes
+
+- 12cdc8a: fix handling of any, unknown and undefined type
+
 ## 1.0.0-alpha.56
 
 ### Patch Changes
