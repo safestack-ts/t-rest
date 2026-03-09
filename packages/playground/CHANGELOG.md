@@ -1,5 +1,13 @@
 # @t-rest/playground
 
+## 0.1.0-alpha.8
+
+### Patch Changes
+
+- d857608: update axios to 1.13.6
+- Updated dependencies [d857608]
+  - @t-rest/client@1.0.0-alpha.33
+
 ## 0.1.0-alpha.7
 
 ### Patch Changes

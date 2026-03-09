@@ -1,5 +1,11 @@
 # @t-rest/client
 
+## 1.0.0-alpha.33
+
+### Patch Changes
+
+- d857608: update axios to 1.13.6
+
 ## 1.0.0-alpha.32
 
 ### Patch Changes
