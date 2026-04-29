@@ -1,5 +1,13 @@
 # @t-rest/supertest-adapter
 
+## 1.0.0-alpha.44
+
+### Patch Changes
+
+- a7fb1eb: attempt to make express-server package ready for pnpm workspaces
+- Updated dependencies [a7fb1eb]
+  - @t-rest/express-server@1.0.0-alpha.41
+
 ## 1.0.0-alpha.43
 
 ### Patch Changes

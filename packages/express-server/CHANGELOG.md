@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.41
+
+### Patch Changes
+
+- a7fb1eb: attempt to make express-server package ready for pnpm workspaces
+
 ## 1.0.0-alpha.40
 
 ### Patch Changes
