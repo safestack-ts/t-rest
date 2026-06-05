@@ -104,6 +104,19 @@ type TypeIdentityMeta = {
   schemaName?: string
 }
 
+const isBuiltInTypeName = (value?: string) =>
+  Boolean(
+    value &&
+      (value === 'Date' ||
+        value.endsWith('Buffer') ||
+        value === 'BigInt' ||
+        value === 'Symbol' ||
+        value === 'Map' ||
+        value === 'Set' ||
+        value === 'RegExp' ||
+        value === 'Stream')
+  )
+
 const isTrackableNamedType = (value?: string) =>
   Boolean(
     value &&
@@ -116,6 +129,7 @@ const isTrackableNamedType = (value?: string) =>
       value !== 'any' &&
       value !== '__type' &&
       value !== '__object' &&
+      !isBuiltInTypeName(value) &&
       !value.match(/^\[.*\]$/) &&
       !value.match(/^\{.*\}$/) &&
       value.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
@@ -193,6 +207,55 @@ const identityFields = (typeIdentity: TypeIdentityMeta) => ({
     ? { schemaName: typeIdentity.schemaName }
     : {}),
 })
+
+const getBuiltInType = (
+  symbol: ts.Symbol | undefined,
+  typeAsString: string
+): TypeDefinition | null => {
+  const builtInTypeName = symbol?.name ?? symbol?.escapedName?.toString()
+  if (builtInTypeName === 'Date') {
+    return {
+      kind: 'date' as const,
+    }
+  }
+  if (builtInTypeName?.endsWith('Buffer') || typeAsString.endsWith('Buffer')) {
+    return {
+      kind: 'buffer' as const,
+    }
+  }
+  if (builtInTypeName === 'BigInt') {
+    return {
+      kind: 'bigint' as const,
+    }
+  }
+  if (builtInTypeName === 'Symbol') {
+    return {
+      kind: 'symbol' as const,
+    }
+  }
+  if (builtInTypeName === 'Map') {
+    return {
+      kind: 'map' as const,
+    }
+  }
+  if (builtInTypeName === 'Set') {
+    return {
+      kind: 'set' as const,
+    }
+  }
+  if (builtInTypeName === 'RegExp') {
+    return {
+      kind: 'regexp' as const,
+    }
+  }
+  if (builtInTypeName === 'Stream') {
+    return {
+      kind: 'stream' as const,
+    }
+  }
+
+  return null
+}
 
 function transformTypeToIntermediate(
   type: ts.Type,
@@ -422,26 +485,24 @@ function transformTypeToIntermediate(
     typeName
   )
   const visitKey = typeIdentity.qualifiedName ?? typeName
+  const typeAsString = typeChecker.typeToString(type)
 
   typeDiscoveryLog('typeName %s', typeName)
   typeDiscoveryLog('symbol name: %s', symbol?.name)
   typeDiscoveryLog('symbol escapedName: %s', symbol?.escapedName)
   typeDiscoveryLog('aliasSymbol name: %s', type.aliasSymbol?.name)
   typeDiscoveryLog('aliasSymbol escapedName: %s', type.aliasSymbol?.escapedName)
-  typeDiscoveryLog('typeToString: %s', typeChecker.typeToString(type))
+  typeDiscoveryLog('typeToString: %s', typeAsString)
   typeDiscoveryLog('visitedTypes %s', metadata.visitedTypes)
+
+  const builtInType = getBuiltInType(symbol, typeAsString)
+  if (builtInType) {
+    return builtInType
+  }
 
   // Check for recursion - but only for named types that aren't basic types
   if (
-    typeName &&
-    typeName !== 'string' &&
-    typeName !== 'number' &&
-    typeName !== 'boolean' &&
-    typeName !== 'null' &&
-    typeName !== '__type' && // Don't treat anonymous types as refs
-    typeName !== '__object' && // Don't treat Zod transform anonymous types as refs
-    !typeName.match(/^\[.*\]$/) && // not tuple strings
-    !typeName.match(/^\{.*\}$/) && // not anonymous object types like "{ id: number }"
+    isTrackableNamedType(typeIdentity.name ?? typeName) &&
     metadata.visitedTypes?.has(visitKey)
   ) {
     return {
@@ -527,8 +588,6 @@ function transformTypeToIntermediate(
   }
 
   // Handle arrays after union detection
-  const typeAsString = typeChecker.typeToString(type)
-
   if (
     symbol?.name === 'Array' ||
     typeAsString.endsWith('[]]') ||
@@ -608,13 +667,7 @@ function transformTypeToIntermediate(
 
         // Only mark as visited if it's a proper named type (not anonymous)
         if (
-          elementTypeName &&
-          elementTypeName !== '__type' &&
-          elementTypeName !== 'string' &&
-          elementTypeName !== 'number' &&
-          elementTypeName !== 'boolean' &&
-          elementTypeName !== 'null' &&
-          elementTypeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/) && // valid identifier
+          isTrackableNamedType(elementTypeName) &&
           !metadata.visitedTypes?.has(elementTypeName)
         ) {
           metadata.visitedTypes?.add(elementTypeName)
@@ -674,13 +727,7 @@ function transformTypeToIntermediate(
 
           // Only mark as visited if it's a proper named type (not anonymous)
           if (
-            elementTypeName &&
-            elementTypeName !== '__type' &&
-            elementTypeName !== 'string' &&
-            elementTypeName !== 'number' &&
-            elementTypeName !== 'boolean' &&
-            elementTypeName !== 'null' &&
-            elementTypeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/) && // valid identifier
+            isTrackableNamedType(elementTypeName) &&
             !metadata.visitedTypes?.has(elementTypeName)
           ) {
             metadata.visitedTypes?.add(elementTypeName)
@@ -738,13 +785,7 @@ function transformTypeToIntermediate(
 
             // Only mark as visited if it's a proper named type (not anonymous)
             if (
-              elementTypeName &&
-              elementTypeName !== '__type' &&
-              elementTypeName !== 'string' &&
-              elementTypeName !== 'number' &&
-              elementTypeName !== 'boolean' &&
-              elementTypeName !== 'null' &&
-              elementTypeName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/) && // valid identifier
+              isTrackableNamedType(elementTypeName) &&
               !metadata.visitedTypes?.has(elementTypeName)
             ) {
               metadata.visitedTypes?.add(elementTypeName)
@@ -957,70 +998,11 @@ function transformTypeToIntermediate(
     }
   }
 
-  const handleBuiltInTypes = () => {
-    const buildInTypeName = symbol?.name ?? symbol?.escapedName?.toString()
-    if (buildInTypeName === 'Date') {
-      return {
-        kind: 'date' as const,
-      }
-    }
-    if (
-      buildInTypeName?.endsWith('Buffer') ||
-      typeAsString.endsWith('Buffer')
-    ) {
-      return {
-        kind: 'buffer' as const,
-      }
-    }
-    if (buildInTypeName === 'BigInt') {
-      return {
-        kind: 'bigint' as const,
-      }
-    }
-    if (buildInTypeName === 'Symbol') {
-      return {
-        kind: 'symbol' as const,
-      }
-    }
-    if (buildInTypeName === 'Map') {
-      return {
-        kind: 'map' as const,
-      }
-    }
-    if (buildInTypeName === 'Set') {
-      return {
-        kind: 'set' as const,
-      }
-    }
-    if (buildInTypeName === 'RegExp') {
-      return {
-        kind: 'regexp' as const,
-      }
-    }
-    if (buildInTypeName === 'Stream') {
-      return {
-        kind: 'stream' as const,
-      }
-    }
-
-    return null
-  }
-
-  const buildInType = handleBuiltInTypes()
-  if (buildInType) {
-    return buildInType
-  }
-
   // Check for object types (including interfaces and type aliases)
   if (
     type.isClassOrInterface() ||
     (type.flags & ts.TypeFlags.Object && type.getProperties().length > 0)
   ) {
-    const buildInType = handleBuiltInTypes()
-    if (buildInType) {
-      return buildInType
-    }
-
     // Determine if this is a named type that should be tracked
     // We want to track types that have proper names (not anonymous object types or basic types)
     const shouldTrackType = isTrackableNamedType(typeIdentity.name)
@@ -1054,11 +1036,6 @@ function transformTypeToIntermediate(
 
   // Handle objects
   if (type.isClassOrInterface()) {
-    const buildInType = handleBuiltInTypes()
-    if (buildInType) {
-      return buildInType
-    }
-
     const result = transformObjectToIntermediate(
       type,
       typeChecker,
