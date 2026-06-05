@@ -7,6 +7,7 @@ import sameShapeBagOfRoutes from './scenarios/ambiguous-type-same-shape'
 import differentShapeBagOfRoutes from './scenarios/ambiguous-type-different-shape'
 import nullableRefBagOfRoutes from './scenarios/ambiguous-type-nullable-ref'
 import esmBarrelQualifiedTypeBagOfRoutes from './scenarios/esm-barrel-qualified-type'
+import esmBarrelAggregateEntryBagOfRoutes from './scenarios/esm-barrel-aggregate-entry'
 
 const tsConfigPath = path.join(__dirname, '../../../', 'tsconfig.json')
 
@@ -243,5 +244,24 @@ describe('ambiguous type detection', () => {
         includeTypesNamespaceInName: false,
       })
     ).toEqual(expect.arrayContaining(['Keycard']))
+  })
+
+  test('uses ESM barrel export path when parsed through an aggregate entry', () => {
+    const entryPath = path.join(
+      __dirname,
+      'scenarios',
+      'esm-barrel-aggregate-entry.ts'
+    )
+
+    expect(
+      getComponentKeys(esmBarrelAggregateEntryBagOfRoutes, entryPath, {
+        includeTypesNamespaceInName: true,
+      })
+    ).toEqual(
+      expect.arrayContaining([
+        'V2026_06_09_Admin_Keycard_Keycard',
+        'V2026_06_09_Customer_Keycard_Keycard',
+      ])
+    )
   })
 })

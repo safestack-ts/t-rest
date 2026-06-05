@@ -27,12 +27,16 @@ export const parseBagOfRoutes = (
   parserLog('Parsing routes from module: %s', modulePath)
   const resolvedOptions = resolveOpenAPIGeneratorOptions(options)
 
-  const { sourceFile, typeChecker } = initializeProgram(
+  const { program, sourceFile, typeChecker } = initializeProgram(
     modulePath,
     tsConfigPath
   )
   const rootNode = findDefaultExport(sourceFile)
   const routeTypes = extractRouteTypes(rootNode, typeChecker)
+  const exportedModuleNamespacePaths = buildExportedModuleNamespacePathIndex(
+    program,
+    typeChecker
+  )
 
   const results = new HashMap<[string, string, string], RouteTypeInfo>((key) =>
     key.join('-')
@@ -67,13 +71,15 @@ export const parseBagOfRoutes = (
       input: validatorType
         ? transformTypeToIntermediate(validatorType, typeChecker, rootNode, {
             visitedTypes: new Set(),
-          options: resolvedOptions,
+            options: resolvedOptions,
+            exportedModuleNamespacePaths,
           })
         : undefined,
       output: responseType
         ? transformTypeToIntermediate(responseType, typeChecker, rootNode, {
             visitedTypes: new Set(),
-          options: resolvedOptions,
+            options: resolvedOptions,
+            exportedModuleNamespacePaths,
           })
         : undefined,
       routeMeta: {
@@ -95,6 +101,7 @@ export const parseBagOfRoutes = (
 type TraverseMeta = {
   visitedTypes?: Set<string>
   options: ReturnType<typeof resolveOpenAPIGeneratorOptions>
+  exportedModuleNamespacePaths: Map<string, string[]>
 }
 
 type TypeIdentityMeta = {
@@ -166,6 +173,200 @@ const extractNamespaceName = (declaration: ts.Declaration | undefined) => {
 const cleanDottedIdentifierPathRegex =
   /^[a-zA-Z_$][a-zA-Z0-9_$]*(\.[a-zA-Z_$][a-zA-Z0-9_$]*)+$/
 
+type ModuleNamespaceExportEdge = {
+  fromFileName: string
+  targetFileName: string
+  exportedName: string
+}
+
+const getSourceFileFromSymbol = (symbol: ts.Symbol | undefined) =>
+  symbol?.declarations?.find((declaration): declaration is ts.SourceFile =>
+    ts.isSourceFile(declaration)
+  )
+
+const getAliasedSourceFile = (
+  symbol: ts.Symbol | undefined,
+  typeChecker: ts.TypeChecker
+) => {
+  if (!symbol) {
+    return undefined
+  }
+
+  const aliasedSymbol =
+    symbol.flags & ts.SymbolFlags.Alias
+      ? typeChecker.getAliasedSymbol(symbol)
+      : symbol
+
+  return getSourceFileFromSymbol(aliasedSymbol)
+}
+
+const addNamespaceExportEdge = (
+  edges: ModuleNamespaceExportEdge[],
+  fromFileName: string,
+  exportedName: string,
+  targetSourceFile: ts.SourceFile | undefined
+) => {
+  if (!targetSourceFile) {
+    return
+  }
+
+  edges.push({
+    fromFileName,
+    targetFileName: targetSourceFile.fileName,
+    exportedName,
+  })
+}
+
+const collectModuleNamespaceExportEdges = (
+  program: ts.Program,
+  typeChecker: ts.TypeChecker
+) => {
+  const edges: ModuleNamespaceExportEdge[] = []
+
+  program.getSourceFiles().forEach((sourceFile) => {
+    if (sourceFile.isDeclarationFile) {
+      return
+    }
+
+    sourceFile.statements.forEach((statement) => {
+      if (!ts.isExportDeclaration(statement) || !statement.exportClause) {
+        return
+      }
+
+      if (ts.isNamespaceExport(statement.exportClause)) {
+        const moduleSymbol =
+          statement.moduleSpecifier &&
+          typeChecker.getSymbolAtLocation(statement.moduleSpecifier)
+        addNamespaceExportEdge(
+          edges,
+          sourceFile.fileName,
+          statement.exportClause.name.text,
+          getSourceFileFromSymbol(moduleSymbol)
+        )
+        return
+      }
+
+      statement.exportClause.elements.forEach((exportSpecifier) => {
+        const exportSymbol = typeChecker.getSymbolAtLocation(exportSpecifier.name)
+        addNamespaceExportEdge(
+          edges,
+          sourceFile.fileName,
+          exportSpecifier.name.text,
+          getAliasedSourceFile(exportSymbol, typeChecker)
+        )
+      })
+    })
+  })
+
+  return edges
+}
+
+const addNamespacePath = (
+  namespacePathsByFileName: Map<string, Set<string>>,
+  fileName: string,
+  namespacePath: string,
+  maxPathSegments: number
+) => {
+  if (namespacePath.split('.').length > maxPathSegments) {
+    return false
+  }
+
+  if (!cleanDottedIdentifierPathRegex.test(`${namespacePath}.Leaf`)) {
+    return false
+  }
+
+  const namespacePaths = namespacePathsByFileName.get(fileName) ?? new Set()
+  const previousSize = namespacePaths.size
+  namespacePaths.add(namespacePath)
+  namespacePathsByFileName.set(fileName, namespacePaths)
+
+  return namespacePaths.size > previousSize
+}
+
+const buildExportedModuleNamespacePathIndex = (
+  program: ts.Program,
+  typeChecker: ts.TypeChecker
+) => {
+  const edges = collectModuleNamespaceExportEdges(program, typeChecker)
+  const namespacePathsByFileName = new Map<string, Set<string>>()
+
+  edges.forEach((edge) => {
+    addNamespacePath(
+      namespacePathsByFileName,
+      edge.targetFileName,
+      edge.exportedName,
+      edges.length + 1
+    )
+  })
+
+  let changed = true
+  while (changed) {
+    changed = false
+
+    edges.forEach((edge) => {
+      const parentNamespacePaths = namespacePathsByFileName.get(
+        edge.fromFileName
+      )
+      if (!parentNamespacePaths) {
+        return
+      }
+
+      parentNamespacePaths.forEach((parentNamespacePath) => {
+        changed =
+          addNamespacePath(
+            namespacePathsByFileName,
+            edge.targetFileName,
+            `${parentNamespacePath}.${edge.exportedName}`,
+            edges.length + 1
+          ) || changed
+      })
+    })
+  }
+
+  return new Map(
+    [...namespacePathsByFileName.entries()].map(([fileName, namespacePaths]) => [
+      fileName,
+      [...namespacePaths].sort((a, b) => {
+        const segmentDifference = b.split('.').length - a.split('.').length
+        return segmentDifference !== 0 ? segmentDifference : a.localeCompare(b)
+      }),
+    ])
+  )
+}
+
+const isExportedFromSourceFile = (
+  sourceFile: ts.SourceFile,
+  typeName: string,
+  typeChecker: ts.TypeChecker
+) => {
+  const sourceFileSymbol = typeChecker.getSymbolAtLocation(sourceFile)
+  return (
+    sourceFileSymbol !== undefined &&
+    typeChecker
+      .getExportsOfModule(sourceFileSymbol)
+      .some((exportSymbol) => exportSymbol.name === typeName)
+  )
+}
+
+const resolveExportedModuleNamespaceTypeName = (
+  declaration: ts.Declaration | undefined,
+  typeName: string | undefined,
+  typeChecker: ts.TypeChecker,
+  exportedModuleNamespacePaths: Map<string, string[]>
+) => {
+  if (!declaration || !typeName) {
+    return undefined
+  }
+
+  const sourceFile = declaration.getSourceFile()
+  if (!isExportedFromSourceFile(sourceFile, typeName, typeChecker)) {
+    return undefined
+  }
+
+  const namespacePath = exportedModuleNamespacePaths.get(sourceFile.fileName)?.[0]
+  return namespacePath ? `${namespacePath}.${typeName}` : undefined
+}
+
 const resolveQualifiedTypeName = (
   type: ts.Type,
   typeChecker: ts.TypeChecker,
@@ -195,6 +396,7 @@ const resolveTypeIdentityMeta = (
   typeChecker: ts.TypeChecker,
   rootNode: ts.Node,
   options: ReturnType<typeof resolveOpenAPIGeneratorOptions>,
+  exportedModuleNamespacePaths: Map<string, string[]>,
   fallbackName?: string
 ): TypeIdentityMeta => {
   const symbol = type.aliasSymbol ?? type.getSymbol()
@@ -212,12 +414,22 @@ const resolveTypeIdentityMeta = (
     name
   )
   const declarationNamespaceName = extractNamespaceName(declaration)
+  const exportedModuleNamespaceTypeName = resolveExportedModuleNamespaceTypeName(
+    declaration,
+    name,
+    typeChecker,
+    exportedModuleNamespacePaths
+  )
   const namespaceName =
     typeAccessPath !== undefined
       ? typeAccessPath.split('.').slice(0, -1).join('.')
-      : declarationNamespaceName
+      : exportedModuleNamespaceTypeName !== undefined
+        ? exportedModuleNamespaceTypeName.split('.').slice(0, -1).join('.')
+        : declarationNamespaceName
   const qualifiedName =
-    typeAccessPath ?? (namespaceName ? `${namespaceName}.${name}` : undefined)
+    typeAccessPath ??
+    exportedModuleNamespaceTypeName ??
+    (namespaceName ? `${namespaceName}.${name}` : undefined)
   const plainSchemaName = toOpenAPIComponentName(name) || undefined
   const schemaName = options.includeTypesNamespaceInName
     ? qualifiedName !== undefined
@@ -522,6 +734,7 @@ function transformTypeToIntermediate(
     typeChecker,
     rootNode,
     metadata.options,
+    metadata.exportedModuleNamespacePaths,
     typeName
   )
   const visitKey = typeIdentity.qualifiedName ?? typeName
@@ -980,6 +1193,7 @@ function transformTypeToIntermediate(
       typeChecker,
       rootNode,
       metadata.options,
+      metadata.exportedModuleNamespacePaths,
       intersectionTypeName
     )
     const intersectionVisitKey =
@@ -1140,6 +1354,7 @@ function transformObjectToIntermediate(
     typeChecker,
     rootNode,
     metadata.options,
+    metadata.exportedModuleNamespacePaths,
     typeName
   )
   const visitKey = typeIdentity.qualifiedName ?? typeName
