@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.60
+
+### Patch Changes
+
+- 4576ed9: support longest discovered namespace path for exported leaf types
+
 ## 1.0.0-alpha.59
 
 ### Patch Changes
