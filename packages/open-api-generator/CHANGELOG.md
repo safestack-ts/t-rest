@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.59
+
+### Patch Changes
+
+- c585e72: support build-in type tuples + esm barrel export type name inferrence
+
 ## 1.0.0-alpha.58
 
 ### Patch Changes
