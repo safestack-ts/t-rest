@@ -6,6 +6,7 @@ import type { OpenAPIGeneratorOptions } from '../../types/open-api-generator-opt
 import sameShapeBagOfRoutes from './scenarios/ambiguous-type-same-shape'
 import differentShapeBagOfRoutes from './scenarios/ambiguous-type-different-shape'
 import nullableRefBagOfRoutes from './scenarios/ambiguous-type-nullable-ref'
+import esmBarrelQualifiedTypeBagOfRoutes from './scenarios/esm-barrel-qualified-type'
 
 const tsConfigPath = path.join(__dirname, '../../../', 'tsconfig.json')
 
@@ -176,5 +177,71 @@ describe('ambiguous type detection', () => {
       })
     ).toEqual(expect.arrayContaining(['Address']))
     expect(schema.components.Address.nullable).toBeUndefined()
+  })
+
+  test('uses ESM barrel export path as schema name when namespace is enabled', () => {
+    const entryPath = path.join(
+      __dirname,
+      'scenarios',
+      'esm-barrel-qualified-type.ts'
+    )
+
+    const schema = getSchemaFromBag(
+      esmBarrelQualifiedTypeBagOfRoutes,
+      entryPath,
+      {
+        includeTypesNamespaceInName: true,
+      }
+    ) as {
+      components: Record<string, unknown>
+      paths: Record<
+        string,
+        {
+          get: {
+            responses: {
+              '200': {
+                content: {
+                  'application/json': {
+                    schema: {
+                      properties: {
+                        data: {
+                          $ref: string
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      >
+    }
+
+    expect(Object.keys(schema.components)).toEqual(
+      expect.arrayContaining([
+        'V2026_06_09_Admin_Keycard_Keycard',
+        'V2026_06_09_Customer_Keycard_Keycard',
+      ])
+    )
+    expect(
+      schema.paths['/admin/keycards/{keycardId}'].get.responses['200'].content[
+        'application/json'
+      ].schema.properties.data.$ref
+    ).toBe('#/components/schemas/V2026_06_09_Admin_Keycard_Keycard')
+  })
+
+  test('uses short ESM barrel component name when namespace is disabled', () => {
+    const entryPath = path.join(
+      __dirname,
+      'scenarios',
+      'esm-barrel-qualified-type.ts'
+    )
+
+    expect(
+      getComponentKeys(esmBarrelQualifiedTypeBagOfRoutes, entryPath, {
+        includeTypesNamespaceInName: false,
+      })
+    ).toEqual(expect.arrayContaining(['Keycard']))
   })
 })

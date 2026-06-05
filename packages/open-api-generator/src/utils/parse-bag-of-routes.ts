@@ -163,9 +163,37 @@ const extractNamespaceName = (declaration: ts.Declaration | undefined) => {
   return namespaceParts.length > 0 ? namespaceParts.join('.') : undefined
 }
 
+const cleanDottedIdentifierPathRegex =
+  /^[a-zA-Z_$][a-zA-Z0-9_$]*(\.[a-zA-Z_$][a-zA-Z0-9_$]*)+$/
+
+const resolveQualifiedTypeName = (
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node,
+  typeName: string | undefined
+) => {
+  if (!typeName) {
+    return undefined
+  }
+
+  const qualifiedName = typeChecker.typeToString(
+    type,
+    rootNode,
+    ts.TypeFormatFlags.UseFullyQualifiedType
+  )
+
+  if (!cleanDottedIdentifierPathRegex.test(qualifiedName)) {
+    return undefined
+  }
+
+  const qualifiedNameLeaf = qualifiedName.split('.').at(-1)
+  return qualifiedNameLeaf === typeName ? qualifiedName : undefined
+}
+
 const resolveTypeIdentityMeta = (
   type: ts.Type,
   typeChecker: ts.TypeChecker,
+  rootNode: ts.Node,
   options: ReturnType<typeof resolveOpenAPIGeneratorOptions>,
   fallbackName?: string
 ): TypeIdentityMeta => {
@@ -177,8 +205,19 @@ const resolveTypeIdentityMeta = (
     fallbackName ??
     typeChecker.typeToString(type)
 
-  const namespaceName = extractNamespaceName(declaration)
-  const qualifiedName = namespaceName ? `${namespaceName}.${name}` : undefined
+  const typeAccessPath = resolveQualifiedTypeName(
+    type,
+    typeChecker,
+    rootNode,
+    name
+  )
+  const declarationNamespaceName = extractNamespaceName(declaration)
+  const namespaceName =
+    typeAccessPath !== undefined
+      ? typeAccessPath.split('.').slice(0, -1).join('.')
+      : declarationNamespaceName
+  const qualifiedName =
+    typeAccessPath ?? (namespaceName ? `${namespaceName}.${name}` : undefined)
   const plainSchemaName = toOpenAPIComponentName(name) || undefined
   const schemaName = options.includeTypesNamespaceInName
     ? qualifiedName !== undefined
@@ -481,6 +520,7 @@ function transformTypeToIntermediate(
   const typeIdentity = resolveTypeIdentityMeta(
     type,
     typeChecker,
+    rootNode,
     metadata.options,
     typeName
   )
@@ -938,6 +978,7 @@ function transformTypeToIntermediate(
     const intersectionTypeIdentity = resolveTypeIdentityMeta(
       type,
       typeChecker,
+      rootNode,
       metadata.options,
       intersectionTypeName
     )
@@ -1097,6 +1138,7 @@ function transformObjectToIntermediate(
   const typeIdentity = resolveTypeIdentityMeta(
     type,
     typeChecker,
+    rootNode,
     metadata.options,
     typeName
   )
