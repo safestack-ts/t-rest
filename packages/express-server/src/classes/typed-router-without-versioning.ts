@@ -20,6 +20,7 @@ import * as Express from 'express'
 import { VersionedRouting } from './versioned-routing.js'
 import { NoVersionExtractor } from './no-version-extractor.js'
 import { TypedRouteHandler } from './typed-route-handler.js'
+import type { TypedRouterModuleWithoutVersioning } from '../types/typed-router-module.js'
 
 export class TypedRouterWithoutVersioning<
   TRoutes extends AnyRouteDef,
@@ -71,6 +72,19 @@ export class TypedRouterWithoutVersioning<
     this.expressRouter.use(path, newRouter.expressRouter)
 
     return newRouter
+  }
+
+  public mount<
+    TModuleRoutes extends TRoutes,
+    TModuleContext extends ExpressRequest
+  >(
+    routerModule: TRequest extends TModuleContext
+      ? TypedRouterModuleWithoutVersioning<TModuleRoutes, TPath, TModuleContext>
+      : never
+  ): this {
+    routerModule.configure(this as any)
+
+    return this
   }
 
   private getRouteHandler<

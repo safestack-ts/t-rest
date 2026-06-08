@@ -19,6 +19,7 @@ import { VersionExtractor } from '../types/version-extractor.js'
 import * as Express from 'express'
 import { VersionSelector } from './version-selector.js'
 import { VersionedRouting } from './versioned-routing.js'
+import type { TypedRouterModuleWithVersioning } from '../types/typed-router-module.js'
 
 export class TypedRouterWithVersioning<
   TRoutes extends AnyRouteDef,
@@ -96,6 +97,24 @@ export class TypedRouterWithVersioning<
     this.expressRouter.use(path, newRouter.expressRouter)
 
     return newRouter
+  }
+
+  public mount<
+    TModuleRoutes extends TRoutes,
+    TModuleContext extends ExpressRequest
+  >(
+    routerModule: TRequest extends TModuleContext
+      ? TypedRouterModuleWithVersioning<
+          TModuleRoutes,
+          TPath,
+          TModuleContext,
+          TVersionHistory
+        >
+      : never
+  ): this {
+    routerModule.configure(this as any)
+
+    return this
   }
 
   public get<
