@@ -124,7 +124,7 @@ const isBuiltInTypeName = (value?: string) =>
         value === 'Stream')
   )
 
-const isTrackableNamedType = (value?: string) =>
+const isTrackableNamedType = (value?: string): value is string =>
   Boolean(
     value &&
       value !== 'string' &&

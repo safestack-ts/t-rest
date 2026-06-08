@@ -72,17 +72,23 @@ _validatorFuncMultiple('/users/:userId/comments/:commentId')(
 type _path_with_extra_fields_in_param_validator_is_still_compatible =
   AssertTrue<
     IsExact<
-      z.ZodObject<{
-        params: z.ZodObject<{
-          userId: z.ZodType<string | number>
-          extraField: z.ZodType<boolean>
-        }>
+      StandardSchemaV1<{
+        params: {
+          userId: string | number
+          extraField: boolean
+        }
       }> extends PathParamsMatchingRouteValidator<'/users/:userId'>
         ? true
         : false,
       true
     >
   >
+
+_validatorFuncSingle('/users/:userId')(
+  z.object({
+    params: z.object({ userId: z.string(), extraField: z.boolean() }),
+  })
+)
 
 // missing param validator is not compatible
 type _path_with_missing_param_validator_is_not_compatible = AssertTrue<
