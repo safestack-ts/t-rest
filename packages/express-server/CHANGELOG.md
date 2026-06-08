@@ -1,5 +1,11 @@
 # @t-rest/express-server
 
+## 1.0.0-alpha.42
+
+### Minor Changes
+
+- 80b4dfc: support declarative router modules
+
 ## 1.0.0-alpha.41
 
 ### Patch Changes
