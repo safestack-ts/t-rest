@@ -1,5 +1,11 @@
 # @t-rest/open-api-generator
 
+## 1.0.0-alpha.61
+
+### Minor Changes
+
+- 768fb92: improve esm module barrel export type alias handling
+
 ## 1.0.0-alpha.60
 
 ### Patch Changes
