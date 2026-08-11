@@ -7,6 +7,16 @@ import {
   OpenAPIGeneratorOptions,
   resolveOpenAPIGeneratorOptions,
 } from '../types/open-api-generator-options.js'
+import {
+  buildPublicTypeReExportIndex,
+  resolveUltimateTypeTargetId,
+  selectReExportForContext,
+  type PublicTypeReExport,
+} from './public-type-reexports.js'
+import {
+  buildRouteNamingContextKey,
+  extractRouteNamingContextsFromProgram,
+} from './route-naming-context.js'
 
 const parserLog = debug('t-rest:open-api-generator:parser')
 const typeDiscoveryLog = debug('t-rest:open-api-generator:type-discovery')
@@ -37,10 +47,41 @@ export const parseBagOfRoutes = (
     program,
     typeChecker
   )
+  const publicTypeReExportsByTarget = buildPublicTypeReExportIndex(
+    program,
+    typeChecker,
+    exportedModuleNamespacePaths
+  )
+  const routeNamingContexts = extractRouteNamingContextsFromProgram(program)
 
   const results = new HashMap<[string, string, string], RouteTypeInfo>((key) =>
     key.join('-')
   )
+
+  const createTraverseMeta = (
+    rootType: ts.Type | undefined,
+    routeKey?: string
+  ): TraverseMeta => {
+    const namingContext =
+      (routeKey ? routeNamingContexts.get(routeKey) : undefined) ??
+      (rootType
+        ? deriveNamingContext(
+            rootType,
+            typeChecker,
+            rootNode,
+            resolvedOptions,
+            exportedModuleNamespacePaths
+          )
+        : undefined)
+
+    return {
+      visitedTypes: new Set(),
+      options: resolvedOptions,
+      exportedModuleNamespacePaths,
+      publicTypeReExportsByTarget,
+      namingContext,
+    }
+  }
 
   for (const routeType of routeTypes) {
     const { method, path, version } = extractRouteMetadata(
@@ -48,6 +89,7 @@ export const parseBagOfRoutes = (
       typeChecker,
       rootNode
     )
+    const routeKey = buildRouteNamingContextKey(method, path, version)
 
     parserLog('Processing route: %s %s (v%s)', method, path, version)
 
@@ -69,18 +111,20 @@ export const parseBagOfRoutes = (
 
     const inputOutputIntermediate = {
       input: validatorType
-        ? transformTypeToIntermediate(validatorType, typeChecker, rootNode, {
-            visitedTypes: new Set(),
-            options: resolvedOptions,
-            exportedModuleNamespacePaths,
-          })
+        ? transformTypeToIntermediate(
+            validatorType,
+            typeChecker,
+            rootNode,
+            createTraverseMeta(validatorType, routeKey)
+          )
         : undefined,
       output: responseType
-        ? transformTypeToIntermediate(responseType, typeChecker, rootNode, {
-            visitedTypes: new Set(),
-            options: resolvedOptions,
-            exportedModuleNamespacePaths,
-          })
+        ? transformTypeToIntermediate(
+            responseType,
+            typeChecker,
+            rootNode,
+            createTraverseMeta(responseType, routeKey)
+          )
         : undefined,
       routeMeta: {
         originalPath: path,
@@ -102,6 +146,8 @@ type TraverseMeta = {
   visitedTypes?: Set<string>
   options: ReturnType<typeof resolveOpenAPIGeneratorOptions>
   exportedModuleNamespacePaths: Map<string, string[]>
+  publicTypeReExportsByTarget: Map<string, PublicTypeReExport[]>
+  namingContext?: string
 }
 
 type TypeIdentityMeta = {
@@ -397,7 +443,12 @@ const resolveTypeIdentityMeta = (
   rootNode: ts.Node,
   options: ReturnType<typeof resolveOpenAPIGeneratorOptions>,
   exportedModuleNamespacePaths: Map<string, string[]>,
-  fallbackName?: string
+  fallbackName?: string,
+  identityOptions?: {
+    publicTypeReExportsByTarget?: Map<string, PublicTypeReExport[]>
+    namingContext?: string
+    usePublicReExports?: boolean
+  }
 ): TypeIdentityMeta => {
   const symbol = type.aliasSymbol ?? type.getSymbol()
   const declaration = symbol?.declarations?.at(0)
@@ -420,15 +471,40 @@ const resolveTypeIdentityMeta = (
     typeChecker,
     exportedModuleNamespacePaths
   )
+
+  const shouldUsePublicReExports =
+    identityOptions?.usePublicReExports !== false &&
+    options.includeTypesNamespaceInName &&
+    identityOptions?.publicTypeReExportsByTarget !== undefined
+
+  const contextualReExport =
+    shouldUsePublicReExports &&
+    typeAccessPath === undefined &&
+    exportedModuleNamespaceTypeName === undefined
+      ? (() => {
+          const targetId = resolveUltimateTypeTargetId(type, typeChecker)
+          if (!targetId || !identityOptions.publicTypeReExportsByTarget) {
+            return undefined
+          }
+          return selectReExportForContext(
+            identityOptions.publicTypeReExportsByTarget.get(targetId) ?? [],
+            identityOptions.namingContext
+          )
+        })()
+      : undefined
+
   const namespaceName =
     typeAccessPath !== undefined
       ? typeAccessPath.split('.').slice(0, -1).join('.')
       : exportedModuleNamespaceTypeName !== undefined
         ? exportedModuleNamespaceTypeName.split('.').slice(0, -1).join('.')
-        : declarationNamespaceName
+        : contextualReExport !== undefined
+          ? contextualReExport.namespacePath
+          : declarationNamespaceName
   const qualifiedName =
     typeAccessPath ??
     exportedModuleNamespaceTypeName ??
+    contextualReExport?.qualifiedName ??
     (namespaceName ? `${namespaceName}.${name}` : undefined)
   const plainSchemaName = toOpenAPIComponentName(name) || undefined
   const schemaName = options.includeTypesNamespaceInName
@@ -446,6 +522,73 @@ const resolveTypeIdentityMeta = (
     schemaName,
   }
 }
+
+const deriveNamingContext = (
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node,
+  options: ReturnType<typeof resolveOpenAPIGeneratorOptions>,
+  exportedModuleNamespacePaths: Map<string, string[]>
+): string | undefined => {
+  const tryDerive = (candidate: ts.Type): string | undefined => {
+    const identity = resolveTypeIdentityMeta(
+      candidate,
+      typeChecker,
+      rootNode,
+      options,
+      exportedModuleNamespacePaths,
+      undefined,
+      { usePublicReExports: false }
+    )
+    if (identity.namespaceName) {
+      return identity.namespaceName
+    }
+
+    if (candidate.aliasTypeArguments?.length) {
+      for (const typeArgument of candidate.aliasTypeArguments) {
+        const nestedContext = tryDerive(typeArgument)
+        if (nestedContext) {
+          return nestedContext
+        }
+      }
+    }
+
+    const typeReference = candidate as ts.TypeReference
+    if (typeReference.typeArguments?.length) {
+      for (const typeArgument of typeReference.typeArguments) {
+        const nestedContext = tryDerive(typeArgument)
+        if (nestedContext) {
+          return nestedContext
+        }
+      }
+    }
+
+    return undefined
+  }
+
+  return tryDerive(type)
+}
+
+const resolveTypeIdentityMetaFromTraverse = (
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node,
+  metadata: TraverseMeta,
+  fallbackName?: string
+) =>
+  resolveTypeIdentityMeta(
+    type,
+    typeChecker,
+    rootNode,
+    metadata.options,
+    metadata.exportedModuleNamespacePaths,
+    fallbackName,
+    {
+      publicTypeReExportsByTarget: metadata.publicTypeReExportsByTarget,
+      namingContext: metadata.namingContext,
+      usePublicReExports: true,
+    }
+  )
 
 const identityFields = (typeIdentity: TypeIdentityMeta) => ({
   ...(typeIdentity.namespaceName !== undefined
@@ -729,12 +872,11 @@ function transformTypeToIntermediate(
   if (!typeName) {
     typeName = typeChecker.typeToString(type)
   }
-  const typeIdentity = resolveTypeIdentityMeta(
+  const typeIdentity = resolveTypeIdentityMetaFromTraverse(
     type,
     typeChecker,
     rootNode,
-    metadata.options,
-    metadata.exportedModuleNamespacePaths,
+    metadata,
     typeName
   )
   const visitKey = typeIdentity.qualifiedName ?? typeName
@@ -747,6 +889,7 @@ function transformTypeToIntermediate(
   typeDiscoveryLog('aliasSymbol escapedName: %s', type.aliasSymbol?.escapedName)
   typeDiscoveryLog('typeToString: %s', typeAsString)
   typeDiscoveryLog('visitedTypes %s', metadata.visitedTypes)
+  typeDiscoveryLog('namingContext %s', metadata.namingContext)
 
   const builtInType = getBuiltInType(symbol, typeAsString)
   if (builtInType) {
@@ -1188,12 +1331,11 @@ function transformTypeToIntermediate(
     // we want to track named intersection types to not re-visit them again
     // important that we add this first before traversing the properties, because it could be a recursive type
     const intersectionTypeName = type.aliasSymbol?.escapedName?.toString()
-    const intersectionTypeIdentity = resolveTypeIdentityMeta(
+    const intersectionTypeIdentity = resolveTypeIdentityMetaFromTraverse(
       type,
       typeChecker,
       rootNode,
-      metadata.options,
-      metadata.exportedModuleNamespacePaths,
+      metadata,
       intersectionTypeName
     )
     const intersectionVisitKey =
@@ -1349,12 +1491,11 @@ function transformObjectToIntermediate(
   const required = new Set<string>()
 
   const typeName = type.aliasSymbol?.escapedName?.toString()
-  const typeIdentity = resolveTypeIdentityMeta(
+  const typeIdentity = resolveTypeIdentityMetaFromTraverse(
     type,
     typeChecker,
     rootNode,
-    metadata.options,
-    metadata.exportedModuleNamespacePaths,
+    metadata,
     typeName
   )
   const visitKey = typeIdentity.qualifiedName ?? typeName

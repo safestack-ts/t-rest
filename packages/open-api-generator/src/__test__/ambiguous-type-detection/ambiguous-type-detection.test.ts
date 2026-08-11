@@ -8,6 +8,10 @@ import differentShapeBagOfRoutes from './scenarios/ambiguous-type-different-shap
 import nullableRefBagOfRoutes from './scenarios/ambiguous-type-nullable-ref'
 import esmBarrelQualifiedTypeBagOfRoutes from './scenarios/esm-barrel-qualified-type'
 import esmBarrelAggregateEntryBagOfRoutes from './scenarios/esm-barrel-aggregate-entry'
+import esmBarrelReexportSharedTypeBagOfRoutes from './scenarios/esm-barrel-reexport-shared-type'
+import esmBarrelReexportSharedTypeAdminFirstBagOfRoutes from './scenarios/esm-barrel-reexport-shared-type-admin-first'
+import esmBarrelReexportCustomerOnlyBagOfRoutes from './scenarios/esm-barrel-reexport-customer-only'
+import esmBarrelReexportTransformedAliasBagOfRoutes from './scenarios/esm-barrel-reexport-transformed-alias'
 
 const tsConfigPath = path.join(__dirname, '../../../', 'tsconfig.json')
 
@@ -262,6 +266,123 @@ describe('ambiguous type detection', () => {
         'V2026_06_09_Admin_Keycard_Keycard',
         'V2026_06_09_Customer_Keycard_Keycard',
       ])
+    )
+  })
+
+  test('names shared types from audience re-exports using route context', () => {
+    const entryPath = path.join(
+      __dirname,
+      'scenarios',
+      'esm-barrel-reexport-shared-type.ts'
+    )
+
+    const componentKeys = getComponentKeys(
+      esmBarrelReexportSharedTypeBagOfRoutes,
+      entryPath,
+      {
+        includeTypesNamespaceInName: true,
+      }
+    )
+
+    expect(componentKeys).toEqual(
+      expect.arrayContaining([
+        'V2026_06_09_Customer_Checkout_DiscountCardRequirement',
+        'V2026_06_09_Admin_Checkout_DiscountCardRequirement',
+        'V2026_06_09_Customer_Checkout_Checkout',
+        'V2026_06_09_Admin_Checkout_Checkout',
+      ])
+    )
+    expect(componentKeys).not.toContain('DiscountCardRequirement')
+  })
+
+  test('shared re-export naming is independent of route order', () => {
+    const customerFirstEntry = path.join(
+      __dirname,
+      'scenarios',
+      'esm-barrel-reexport-shared-type.ts'
+    )
+    const adminFirstEntry = path.join(
+      __dirname,
+      'scenarios',
+      'esm-barrel-reexport-shared-type-admin-first.ts'
+    )
+
+    const customerFirstKeys = getComponentKeys(
+      esmBarrelReexportSharedTypeBagOfRoutes,
+      customerFirstEntry,
+      { includeTypesNamespaceInName: true }
+    ).sort()
+    const adminFirstKeys = getComponentKeys(
+      esmBarrelReexportSharedTypeAdminFirstBagOfRoutes,
+      adminFirstEntry,
+      { includeTypesNamespaceInName: true }
+    ).sort()
+
+    expect(adminFirstKeys).toEqual(customerFirstKeys)
+  })
+
+  test('falls back to short name when audience does not re-export shared type', () => {
+    const entryPath = path.join(
+      __dirname,
+      'scenarios',
+      'esm-barrel-reexport-customer-only.ts'
+    )
+
+    const componentKeys = getComponentKeys(
+      esmBarrelReexportCustomerOnlyBagOfRoutes,
+      entryPath,
+      {
+        includeTypesNamespaceInName: true,
+      }
+    )
+
+    expect(componentKeys).toEqual(
+      expect.arrayContaining([
+        'V2026_06_09_Customer_Checkout_DiscountCardRequirement',
+        'DiscountCardRequirement',
+      ])
+    )
+    expect(componentKeys).not.toContain(
+      'V2026_06_09_Admin_Checkout_DiscountCardRequirement'
+    )
+  })
+
+  test('keeps short names when namespace option is disabled for shared re-exports', () => {
+    const entryPath = path.join(
+      __dirname,
+      'scenarios',
+      'esm-barrel-reexport-shared-type.ts'
+    )
+
+    expect(
+      getComponentKeys(esmBarrelReexportSharedTypeBagOfRoutes, entryPath, {
+        includeTypesNamespaceInName: false,
+      })
+    ).toEqual(expect.arrayContaining(['DiscountCardRequirement', 'Checkout']))
+  })
+
+  test('does not treat transforming aliases as shared type re-exports', () => {
+    const entryPath = path.join(
+      __dirname,
+      'scenarios',
+      'esm-barrel-reexport-transformed-alias.ts'
+    )
+
+    const componentKeys = getComponentKeys(
+      esmBarrelReexportTransformedAliasBagOfRoutes,
+      entryPath,
+      {
+        includeTypesNamespaceInName: true,
+      }
+    )
+
+    expect(componentKeys).toEqual(
+      expect.arrayContaining([
+        'V2026_06_09_Customer_TransformedCheckout_TransformedDiscountCardRequirement',
+      ])
+    )
+    expect(componentKeys).not.toContain(
+      'V2026_06_09_Customer_Checkout_DiscountCardRequirement'
     )
   })
 })
