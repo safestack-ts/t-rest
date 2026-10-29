@@ -1592,15 +1592,31 @@ const withNullAlternative = (
   nullable: boolean
 ) => (nullable ? { oneOf: [schema, NULL_SCHEMA] } : schema)
 
-// nested unions are inlined, carrying their nullability over to their members
-const flattenUnionMembers = (types: TypeDefinition[]): TypeDefinition[] =>
-  types.flatMap((t) =>
-    t.kind === 'union'
-      ? flattenUnionMembers(
-          t.nullable ? [...t.types, { kind: 'null' }] : t.types
-        )
-      : [t]
-  )
+// lifts `null` members and member nullability out of (nested) unions, keeping nested
+// unions as their own alternatives since flattening overlapping members into a single
+// `oneOf` would reject values matching several of them
+const stripUnionNullability = (
+  type: TypeDefinition
+): { type: TypeDefinition | null; nullable: boolean } => {
+  if (type.kind === 'null') {
+    return { type: null, nullable: true }
+  }
+  if (type.kind !== 'union') {
+    return {
+      type: type.nullable ? { ...type, nullable: false } : type,
+      nullable: type.nullable === true,
+    }
+  }
+
+  const members = type.types.map(stripUnionNullability)
+  const nonNullTypes = members.flatMap((m) => (m.type ? [m.type] : []))
+  const nullable = type.nullable === true || members.some((m) => m.nullable)
+
+  if (nonNullTypes.length <= 1) {
+    return { type: nonNullTypes[0] ?? null, nullable }
+  }
+  return { type: { ...type, types: nonNullTypes, nullable: false }, nullable }
+}
 
 function resolveTypeToOpenAPI3({
   type,
@@ -1722,23 +1738,20 @@ function resolveTypeToOpenAPI3({
     case 'union': {
       // `null` members and member nullability are expressed via a single null-only
       // alternative, since `oneOf` rejects null when several alternatives accept it
-      const memberTypes = flattenUnionMembers(type.types)
-      const nonNullTypes = memberTypes
-        .filter((t) => t.kind !== 'null')
-        .map((t) => (t.nullable ? { ...t, nullable: false } : t))
-      const isNullable =
-        nullable || memberTypes.some((t) => t.kind === 'null' || t.nullable)
+      const { type: nonNullType, nullable: isNullable } =
+        stripUnionNullability(type)
 
-      if (nonNullTypes.length === 0) {
+      if (nonNullType === null) {
         return NULL_SCHEMA
       }
-      if (nonNullTypes.length === 1) {
+      if (nonNullType.kind !== 'union') {
         return resolveTypeToOpenAPI3({
-          type: { ...nonNullTypes[0], nullable: isNullable },
+          type: { ...nonNullType, nullable: isNullable },
           components,
           replaceRefs,
         })
       }
+      const nonNullTypes = nonNullType.types
 
       const unionTypes = uniqWith(
         nonNullTypes.map((t) =>

@@ -277,6 +277,50 @@ describe('OpenAPI type conversion', () => {
     expect(accepts(schema, header, {})).toBe(false)
   })
 
+  test('nested unions with overlapping members are not flattened (#23)', () => {
+    const schema = scenario('nullable-unions', {
+      ...metaData,
+      headers: [
+        {
+          name: 'x-choice',
+          type: {
+            kind: 'union',
+            types: [
+              { kind: 'string' },
+              {
+                kind: 'union',
+                types: [
+                  { kind: 'string', minLength: 1 },
+                  { kind: 'string', pattern: '^a' },
+                  { kind: 'null' },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    })
+    const header = schema.paths['/nullable-unions'].post.parameters.find(
+      (parameter: { name: string }) => parameter.name === 'x-choice'
+    ).schema
+
+    expect(header).toEqual({
+      oneOf: [
+        { type: 'string' },
+        {
+          oneOf: [
+            { type: 'string', minLength: 1 },
+            { type: 'string', pattern: '^a' },
+          ],
+        },
+        NULL_SCHEMA,
+      ],
+    })
+    for (const value of [null, 'a', '']) {
+      expect(accepts(schema, header, value)).toBe(true)
+    }
+  })
+
   test('tuples are converted to valid OpenAPI 3.0 arrays (#24)', () => {
     const schema = scenario('tuples')
     const response = responseSchema(schema, '/tuples')
