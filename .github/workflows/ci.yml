@@ -29,8 +29,12 @@ jobs:
       - run: pnpm lint
 
   build-and-test:
-    name: Build, Type Check & Test
+    name: Build, Type Check & Test (Express ${{ matrix.express }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        express: ['4', '5']
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -40,7 +44,13 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      # The lockfile pins Express 5; overriding the major across the workspace checks the express peer range.
+      # The lint job's frozen install keeps catching lockfile drift.
+      - name: Pin Express ${{ matrix.express }}
+        run: npm pkg set "pnpm.overrides.express=^${{ matrix.express }}" "pnpm.overrides.@types/express=^${{ matrix.express }}"
+      - run: pnpm install --no-frozen-lockfile
+      - name: Show resolved Express versions
+        run: pnpm ls -r express @types/express --depth 0
       - name: Build
         run: pnpm build
       # Type checks and tests resolve workspace packages through their built dist output, so they run after the build.
