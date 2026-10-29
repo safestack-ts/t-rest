@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest'
 import { z } from 'zod'
 import { ze } from './zod-extensions.js'
 

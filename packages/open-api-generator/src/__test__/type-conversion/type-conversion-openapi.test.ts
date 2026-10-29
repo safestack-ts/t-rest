@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest'
 import Ajv from 'ajv'
 import fs from 'fs'
 import path from 'path'
@@ -18,12 +19,11 @@ type GeneratedSchema = {
   components: Record<string, any>
 }
 
-const generateSchema = (
+const generateSchema = async (
   entryPath: string,
   meta: OpenAPIMetaData = metaData
-): GeneratedSchema => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const bagOfRoutes = require(entryPath).default
+): Promise<GeneratedSchema> => {
+  const bagOfRoutes = (await import(entryPath)).default
 
   return (
     OpenAPIGenerator as unknown as {
@@ -103,8 +103,8 @@ const expectAllRefsToResolve = (schema: GeneratedSchema) => {
 }
 
 describe('OpenAPI type conversion', () => {
-  test('native enums are converted to enum schemas (#20)', () => {
-    const schema = scenario('native-enums')
+  test('native enums are converted to enum schemas (#20)', async () => {
+    const schema = await scenario('native-enums')
     const response = responseSchema(schema, '/native-enums')
 
     expect(response.properties.color).toEqual({
@@ -126,8 +126,8 @@ describe('OpenAPI type conversion', () => {
     expectAllRefsToResolve(schema)
   })
 
-  test('generic type aliases are not expanded via apparent properties (#21)', () => {
-    const schema = scenario('generic-aliases')
+  test('generic type aliases are not expanded via apparent properties (#21)', async () => {
+    const schema = await scenario('generic-aliases')
     const response = responseSchema(schema, '/generic-aliases')
 
     expect(response.properties.nullableString).toEqual({
@@ -153,8 +153,8 @@ describe('OpenAPI type conversion', () => {
     expectAllRefsToResolve(schema)
   })
 
-  test('nullability is kept outside of direct object properties (#22)', () => {
-    const schema = scenario('nullability')
+  test('nullability is kept outside of direct object properties (#22)', async () => {
+    const schema = await scenario('nullability')
     const body = requestBodySchema(schema, '/nullability')
     const response = responseSchema(schema, '/nullability', 'post')
 
@@ -200,8 +200,8 @@ describe('OpenAPI type conversion', () => {
     expectAllRefsToResolve(schema)
   })
 
-  test('nullable unions do not emit a typeless null member (#23)', () => {
-    const schema = scenario('nullable-unions')
+  test('nullable unions do not emit a typeless null member (#23)', async () => {
+    const schema = await scenario('nullable-unions')
     const body = requestBodySchema(schema, '/nullable-unions')
 
     expect(body.properties.flag).toEqual({ type: 'boolean', nullable: true })
@@ -238,8 +238,8 @@ describe('OpenAPI type conversion', () => {
     expectAllRefsToResolve(schema)
   })
 
-  test('nullable unions with nullable members accept null exactly once (#23)', () => {
-    const schema = scenario('nullable-unions', {
+  test('nullable unions with nullable members accept null exactly once (#23)', async () => {
+    const schema = await scenario('nullable-unions', {
       ...metaData,
       headers: [
         {
@@ -277,8 +277,8 @@ describe('OpenAPI type conversion', () => {
     expect(accepts(schema, header, {})).toBe(false)
   })
 
-  test('nested unions with overlapping members are not flattened (#23)', () => {
-    const schema = scenario('nullable-unions', {
+  test('nested unions with overlapping members are not flattened (#23)', async () => {
+    const schema = await scenario('nullable-unions', {
       ...metaData,
       headers: [
         {
@@ -321,8 +321,8 @@ describe('OpenAPI type conversion', () => {
     }
   })
 
-  test('tuples are converted to valid OpenAPI 3.0 arrays (#24)', () => {
-    const schema = scenario('tuples')
+  test('tuples are converted to valid OpenAPI 3.0 arrays (#24)', async () => {
+    const schema = await scenario('tuples')
     const response = responseSchema(schema, '/tuples')
 
     expect(response.properties.pair).toEqual({
@@ -357,8 +357,8 @@ describe('OpenAPI type conversion', () => {
     expectAllRefsToResolve(schema)
   })
 
-  test('mixed literal unions keep the type of each literal (#26)', () => {
-    const schema = scenario('mixed-literals')
+  test('mixed literal unions keep the type of each literal (#26)', async () => {
+    const schema = await scenario('mixed-literals')
     const response = responseSchema(schema, '/mixed-literals')
 
     expect(response.properties.mixed).toEqual({
@@ -373,8 +373,8 @@ describe('OpenAPI type conversion', () => {
     })
   })
 
-  test('named non-object intersections and path params do not leave dangling refs (#30)', () => {
-    const schema = scenario('intersections-and-params')
+  test('named non-object intersections and path params do not leave dangling refs (#30)', async () => {
+    const schema = await scenario('intersections-and-params')
 
     const response = responseSchema(schema, '/intersections')
     expect(response.properties.first).toEqual(response.properties.second)
@@ -383,8 +383,8 @@ describe('OpenAPI type conversion', () => {
     expectAllRefsToResolve(schema)
   })
 
-  test('nested named path params share components with responses (#30)', () => {
-    const schema = scenario('nested-parameter-components')
+  test('nested named path params share components with responses (#30)', async () => {
+    const schema = await scenario('nested-parameter-components')
 
     expect(responseSchema(schema, '/addresses')).toEqual({
       $ref: '#/components/schemas/Address',
@@ -415,8 +415,8 @@ describe('OpenAPI type conversion', () => {
           .map((fileName) => path.join(directory, fileName))
       )
       .forEach((entryPath) => {
-        test(path.relative(__dirname, entryPath), () => {
-          expectAllRefsToResolve(generateSchema(entryPath))
+        test(path.relative(__dirname, entryPath), async () => {
+          expectAllRefsToResolve(await generateSchema(entryPath))
         })
       })
   })

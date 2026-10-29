@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest'
 import { findNearestLowerDate } from './find-nearest-lower-date.js'
 
 const dates = [

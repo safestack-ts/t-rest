@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest'
 import { BagOfRoutes, Route, RouteInput, ze } from '@t-rest/core'
 import { User } from '@t-rest/testing-utilities'
 import Express from 'express'

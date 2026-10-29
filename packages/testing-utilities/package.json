@@ -11,10 +11,10 @@
     ],
     "scripts": {
         "build": "tsc -p tsconfig.json",
-        "test": "TZ=UTC ../../node_modules/.bin/jest --config jest.config.js --colors --passWithNoTests",
-        "test:watch": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.js --colors --passWithNoTests",
-        "test:unit": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.js --colors --passWithNoTests unit",
-        "test:integration": "TZ=UTC ../../node_modules/.bin/jest --watch --config jest.config.js --colors --passWithNoTests integration"
+        "test": "TZ=UTC vitest run",
+        "test:watch": "TZ=UTC vitest",
+        "test:unit": "TZ=UTC vitest unit",
+        "test:integration": "TZ=UTC vitest integration"
     },
     "keywords": [],
     "author": "Yannick Stachelscheid",
