@@ -6,3 +6,9 @@ type _test =
   | AssertTrue<IsExact<JoinPath<'/a', '/b'>, '/a/b'>>
   | AssertTrue<IsExact<JoinPath<'/a/', '/b'>, '/a/b'>>
   | AssertTrue<IsExact<JoinPath<'/a', '/b/'>, '/a/b'>>
+  | AssertTrue<IsExact<JoinPath<'/a', '/'>, '/a'>>
+  | AssertTrue<IsExact<JoinPath<'/', '/'>, '/'>>
+  | AssertTrue<IsExact<JoinPath<'', ''>, '/'>>
+  | AssertTrue<IsExact<JoinPath<'', '/'>, '/'>>
+  | AssertTrue<IsExact<JoinPath<'/', ''>, '/'>>
+  | AssertTrue<IsExact<JoinPath<string, '/a'>, `${string}/a`>>
