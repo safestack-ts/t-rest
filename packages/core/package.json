@@ -20,7 +20,8 @@
     "dist/**/*"
   ],
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "test": "TZ=UTC ../../node_modules/.bin/jest --config jest.config.cjs --colors --passWithNoTests"
   },
   "keywords": [],
   "author": "Yannick Stachelscheid",

@@ -6,6 +6,10 @@ module.exports = {
   testEnvironment: 'node',
   setupFilesAfterEnv: ['jest-expect-message', 'jest-extended/all'],
   preset: 'ts-jest',
+  // packages are ESM and import sources with .js specifiers
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
   testTimeout: 60000,
   ...(process.env.IS_CI === 'true'
     ? {
