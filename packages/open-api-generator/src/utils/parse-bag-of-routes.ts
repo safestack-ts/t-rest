@@ -2,6 +2,7 @@ import { HashMap, normalizePathPattern } from '@t-rest/core'
 import ts from 'typescript'
 import { ObjectType, TypeDefinition } from '../schema/type-schema.js'
 import debug from 'debug'
+import { groupBy, isEqual, uniqWith } from 'lodash'
 import path from 'path'
 import {
   OpenAPIGeneratorOptions,
@@ -651,6 +652,34 @@ const getBuiltInType = (
   return null
 }
 
+const transformEnumLiteralsToIntermediate = (
+  types: ts.Type[],
+  typeChecker: ts.TypeChecker
+): TypeDefinition | undefined => {
+  if (!types.every((t) => t.flags & ts.TypeFlags.EnumLiteral)) {
+    return undefined
+  }
+
+  const values: (string | number)[] = []
+  for (const t of types) {
+    if (!t.isStringLiteral() && !t.isNumberLiteral()) {
+      return undefined
+    }
+    values.push(t.value)
+  }
+
+  const enumSymbol = typeChecker.getBaseTypeOfLiteralType(types[0]).getSymbol()
+
+  return {
+    kind: 'enum',
+    values,
+    type: values.every((value) => typeof value === 'string')
+      ? 'string'
+      : 'number',
+    name: enumSymbol?.name ?? '',
+  }
+}
+
 function transformTypeToIntermediate(
   type: ts.Type,
   typeChecker: ts.TypeChecker,
@@ -664,7 +693,17 @@ function transformTypeToIntermediate(
   const typeRef = type as ts.TypeReference
   let typeName = type.aliasSymbol?.escapedName?.toString()
 
-  if (typeRef.aliasTypeArguments?.length) {
+  // Only object-like generic aliases (e.g. `Paginated<T> = { items: T[] }`)
+  // are expanded structurally here. Aliases resolving to unions, arrays,
+  // tuples or primitives (e.g. `Nullable<T> = T | null`, `List<T> = T[]`)
+  // are handled by the regular type handling below.
+  const isObjectLikeGenericAlias =
+    type.isIntersection() ||
+    ((type.flags & ts.TypeFlags.Object) !== 0 &&
+      !typeChecker.isArrayType(type) &&
+      !typeChecker.isTupleType(type))
+
+  if (typeRef.aliasTypeArguments?.length && isObjectLikeGenericAlias) {
     const baseTypeName =
       typeName || symbol?.getName() || typeChecker.typeToString(type)
 
@@ -910,61 +949,48 @@ function transformTypeToIntermediate(
 
   // Handle unions first, before array detection
   if (type.isUnion()) {
-    // Check if this is a boolean represented as true | false
-    if (type.types.every((t) => t.flags & ts.TypeFlags.BooleanLiteral)) {
-      return {
-        kind: 'boolean',
-      }
-    }
-
-    // Check if this is a nullable type (T | null)
-    const nullTypes = type.types.filter(
-      (t) =>
-        (t.flags & ts.TypeFlags.Null) !== 0 ||
-        (t.flags & ts.TypeFlags.Undefined) !== 0
+    // `null` makes the resulting schema nullable, `undefined` only marks optionality
+    const isNullable = type.types.some(
+      (t) => (t.flags & ts.TypeFlags.Null) !== 0
     )
     const nonNullTypes = type.types.filter(
       (t) =>
         (t.flags & ts.TypeFlags.Null) === 0 &&
         (t.flags & ts.TypeFlags.Undefined) === 0
     )
+    const withNullability = (definition: TypeDefinition): TypeDefinition =>
+      isNullable ? { ...definition, nullable: true } : definition
 
-    // If we have exactly one non-null type and at least one null/undefined type, this is a nullable type
-    if (nonNullTypes.length === 1 && nullTypes.length > 0) {
-      return transformTypeToIntermediate(
-        nonNullTypes[0],
-        typeChecker,
-        rootNode,
-        metadata
+    if (nonNullTypes.length === 0) {
+      return { kind: 'null' }
+    }
+
+    // Check if this is a boolean represented as true | false
+    if (nonNullTypes.every((t) => t.flags & ts.TypeFlags.BooleanLiteral)) {
+      return withNullability({
+        kind: 'boolean',
+      })
+    }
+
+    // A single remaining member (e.g. `T | null` or `T | undefined`) is unwrapped
+    if (nonNullTypes.length === 1) {
+      return withNullability(
+        transformTypeToIntermediate(
+          nonNullTypes[0],
+          typeChecker,
+          rootNode,
+          metadata
+        )
       )
     }
 
-    // Check if this is an enum type by looking at the flags of the type itself
-    if (
-      type.flags & ts.TypeFlags.Enum ||
-      type.flags & ts.TypeFlags.EnumLiteral
-    ) {
-      const enumMembers = typeChecker.getPropertiesOfType(type)
-      const values = enumMembers.map((member) => {
-        const memberType = typeChecker.getTypeOfSymbolAtLocation(
-          member,
-          rootNode
-        )
-        if (memberType.isStringLiteral()) return memberType.value
-        if (memberType.isNumberLiteral()) return memberType.value
-        throw new Error('Unsupported enum member type')
-      })
-
-      // Get enum name from the type's symbol or parent symbol
-      const enumSymbol = type.symbol || type.getSymbol()
-      const enumName = enumSymbol?.name || ''
-
-      return {
-        kind: 'enum',
-        values,
-        type: typeof values[0] === 'string' ? 'string' : 'number',
-        name: enumName,
-      }
+    // Native TS enums are unions of enum literal types
+    const enumDefinition = transformEnumLiteralsToIntermediate(
+      nonNullTypes,
+      typeChecker
+    )
+    if (enumDefinition) {
+      return withNullability(enumDefinition)
     }
 
     // we want to track named union types to not re-visit them again
@@ -975,18 +1001,27 @@ function transformTypeToIntermediate(
       metadata.visitedTypes?.add(visitKey)
     }
 
-    return {
+    // `boolean` is represented as `true | false` within unions, collapse it into a single member
+    const unionMemberTypes = nonNullTypes.filter(
+      (t, index) =>
+        !(t.flags & ts.TypeFlags.BooleanLiteral) ||
+        nonNullTypes.findIndex(
+          (other) => other.flags & ts.TypeFlags.BooleanLiteral
+        ) === index
+    )
+
+    return withNullability({
       kind: 'union',
-      types: type.types.map((t) =>
+      types: unionMemberTypes.map((t) =>
         transformTypeToIntermediate(t, typeChecker, rootNode, metadata)
       ),
-    }
+    })
   }
 
   // Handle arrays after union detection
   if (
     symbol?.name === 'Array' ||
-    typeAsString.endsWith('[]]') ||
+    typeChecker.isArrayType(type) ||
     typeAsString === '[]' ||
     typeAsString.endsWith('[]')
   ) {
@@ -1050,8 +1085,6 @@ function transformTypeToIntermediate(
         // Check if this element type should be treated as a named type reference
         const elementSymbol = propType.getSymbol()
         const elementAliasSymbol = propType.aliasSymbol
-        const elementTypeName =
-          elementAliasSymbol?.getName() || elementSymbol?.getName()
 
         typeDiscoveryLog(
           'Processing tuple element %d: %s, symbol: %s, aliasSymbol: %s',
@@ -1060,14 +1093,6 @@ function transformTypeToIntermediate(
           elementSymbol?.getName(),
           elementAliasSymbol?.getName()
         )
-
-        // Only mark as visited if it's a proper named type (not anonymous)
-        if (
-          isTrackableNamedType(elementTypeName) &&
-          !metadata.visitedTypes?.has(elementTypeName)
-        ) {
-          metadata.visitedTypes?.add(elementTypeName)
-        }
 
         elementTypes.push(
           transformTypeToIntermediate(propType, typeChecker, rootNode, metadata)
@@ -1110,8 +1135,6 @@ function transformTypeToIntermediate(
             resolvedElementType.getSymbol() || elementType.getSymbol()
           const elementAliasSymbol =
             resolvedElementType.aliasSymbol || elementType.aliasSymbol
-          const elementTypeName =
-            elementAliasSymbol?.getName() || elementSymbol?.getName()
 
           typeDiscoveryLog(
             'Processing tuple element %d: %s, symbol: %s, aliasSymbol: %s',
@@ -1120,14 +1143,6 @@ function transformTypeToIntermediate(
             elementSymbol?.getName(),
             elementAliasSymbol?.getName()
           )
-
-          // Only mark as visited if it's a proper named type (not anonymous)
-          if (
-            isTrackableNamedType(elementTypeName) &&
-            !metadata.visitedTypes?.has(elementTypeName)
-          ) {
-            metadata.visitedTypes?.add(elementTypeName)
-          }
 
           elementTypes.push(
             transformTypeToIntermediate(
@@ -1168,8 +1183,6 @@ function transformTypeToIntermediate(
               resolvedElementType.getSymbol() || elementType.getSymbol()
             const elementAliasSymbol =
               resolvedElementType.aliasSymbol || elementType.aliasSymbol
-            const elementTypeName =
-              elementAliasSymbol?.getName() || elementSymbol?.getName()
 
             typeDiscoveryLog(
               'Processing tuple element %d: %s, symbol: %s, aliasSymbol: %s',
@@ -1178,14 +1191,6 @@ function transformTypeToIntermediate(
               elementSymbol?.getName(),
               elementAliasSymbol?.getName()
             )
-
-            // Only mark as visited if it's a proper named type (not anonymous)
-            if (
-              isTrackableNamedType(elementTypeName) &&
-              !metadata.visitedTypes?.has(elementTypeName)
-            ) {
-              metadata.visitedTypes?.add(elementTypeName)
-            }
 
             elementTypes.push(
               transformTypeToIntermediate(
@@ -1323,10 +1328,28 @@ function transformTypeToIntermediate(
       }
     }
 
+    const isObjectType = (t: ts.Type) =>
+      t.isClassOrInterface() || (t.flags & ts.TypeFlags.Object) !== 0
+    const hasProperties = validTypes.some((t) =>
+      t
+        .getProperties()
+        .some((prop) => !isIgnoredSyntheticPropertyName(prop.name))
+    )
+
+    // Intersections with non-object members (or without any properties) are kept as `allOf`.
+    // They never become a named component, so they must not be tracked as visited.
+    if (!validTypes.every(isObjectType) || !hasProperties) {
+      return {
+        kind: 'intersection',
+        types: validTypes.map((t) =>
+          transformTypeToIntermediate(t, typeChecker, rootNode, metadata)
+        ),
+      }
+    }
+
     // Get all properties from all object types in the intersection
     const properties: Record<string, TypeDefinition> = {}
     const required = new Set<string>()
-    let hasNonObjectType = false
 
     // we want to track named intersection types to not re-visit them again
     // important that we add this first before traversing the properties, because it could be a recursive type
@@ -1349,49 +1372,34 @@ function transformTypeToIntermediate(
     }
 
     validTypes.forEach((t) => {
-      if (t.isClassOrInterface() || t.flags & ts.TypeFlags.Object) {
-        t.getProperties().forEach((prop) => {
-          if (isIgnoredSyntheticPropertyName(prop.name)) {
-            return
-          }
+      t.getProperties().forEach((prop) => {
+        if (isIgnoredSyntheticPropertyName(prop.name)) {
+          return
+        }
 
-          const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
-          properties[prop.name] = transformTypeToIntermediate(
-            propType,
-            typeChecker,
-            rootNode,
-            metadata
-          )
-          if (!(prop.flags & ts.SymbolFlags.Optional)) {
-            required.add(prop.name)
-          }
-        })
-      } else {
-        hasNonObjectType = true
-      }
+        const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
+        properties[prop.name] = transformTypeToIntermediate(
+          propType,
+          typeChecker,
+          rootNode,
+          metadata
+        )
+        if (!(prop.flags & ts.SymbolFlags.Optional)) {
+          required.add(prop.name)
+        }
+      })
     })
 
-    // If we only have object types, return merged object
-    if (!hasNonObjectType && Object.keys(properties).length > 0) {
-      return {
-        kind: 'object',
-        properties,
-        ...(required.size > 0 ? { required: Array.from(required) } : {}),
-        ...(shouldTrackIntersectionType
-          ? {
-              name: intersectionTypeIdentity.name ?? intersectionTypeName,
-              ...identityFields(intersectionTypeIdentity),
-            }
-          : {}),
-      }
-    }
-
-    // Otherwise return intersection type
     return {
-      kind: 'intersection',
-      types: validTypes.map((t) =>
-        transformTypeToIntermediate(t, typeChecker, rootNode, metadata)
-      ),
+      kind: 'object',
+      properties,
+      ...(required.size > 0 ? { required: Array.from(required) } : {}),
+      ...(shouldTrackIntersectionType
+        ? {
+            name: intersectionTypeIdentity.name ?? intersectionTypeName,
+            ...identityFields(intersectionTypeIdentity),
+          }
+        : {}),
     }
   }
 
@@ -1619,13 +1627,7 @@ function resolveTypeToOpenAPI3({
         : undefined
       return {
         type: 'array',
-        items:
-          items instanceof Array &&
-          items.length === 1 &&
-          type.maxItems === 1 &&
-          '$ref' in items.at(0)
-            ? items.at(0)
-            : items,
+        items,
         ...(type.minItems !== undefined ? { minItems: type.minItems } : {}),
         ...(type.maxItems !== undefined ? { maxItems: type.maxItems } : {}),
         ...(type.uniqueItems !== undefined
@@ -1635,13 +1637,22 @@ function resolveTypeToOpenAPI3({
       }
     }
     case 'tuple': {
-      const items = type.elementTypes.map((t) =>
-        resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
+      // OpenAPI 3.0 does not support positional `items`, so tuples become
+      // fixed-length arrays whose items match any of the element schemas
+      const items = uniqWith(
+        type.elementTypes.map((t) =>
+          resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
+        ),
+        isEqual
       )
       return {
         type: 'array',
         items:
-          items.length === 1 && '$ref' in items.at(0) ? items.at(0) : items,
+          items.length === 0
+            ? {}
+            : items.length === 1
+              ? items[0]
+              : { oneOf: items },
         minItems: type.elementTypes.length,
         maxItems: type.elementTypes.length,
         ...(nullable ? { nullable: true } : {}),
@@ -1688,19 +1699,36 @@ function resolveTypeToOpenAPI3({
       }
     }
     case 'union': {
-      const unionTypes = type.types.map((t) =>
-        resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
+      // `null` members are expressed via `nullable` instead of a typeless `oneOf` member
+      const nonNullTypes = type.types.filter((t) => t.kind !== 'null')
+      const isNullable = nullable || nonNullTypes.length !== type.types.length
+
+      if (nonNullTypes.length === 0) {
+        return { nullable: true }
+      }
+      if (nonNullTypes.length === 1) {
+        return resolveTypeToOpenAPI3({
+          type: { ...nonNullTypes[0], nullable: isNullable },
+          components,
+          replaceRefs,
+        })
+      }
+
+      const unionTypes = uniqWith(
+        nonNullTypes.map((t) =>
+          resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
+        ),
+        isEqual
       )
       if (unionTypes.every((t) => t.enum)) {
-        return {
-          type: unionTypes[0].type,
-          enum: unionTypes.flatMap((t) => t.enum),
-          ...(nullable ? { nullable: true } : {}),
-        }
+        return resolveEnumToOpenAPI3(
+          unionTypes.flatMap((t) => t.enum),
+          isNullable
+        )
       }
       return {
         oneOf: unionTypes,
-        ...(nullable ? { nullable: true } : {}),
+        ...(isNullable ? { nullable: true } : {}),
       }
     }
     case 'intersection':
@@ -1711,11 +1739,7 @@ function resolveTypeToOpenAPI3({
         ...(nullable ? { nullable: true } : {}),
       }
     case 'literal':
-      return {
-        type: typeof type.value === 'string' ? 'string' : 'number',
-        enum: [type.value],
-        ...(nullable ? { nullable: true } : {}),
-      }
+      return resolveEnumToOpenAPI3([type.value], nullable)
     case 'date':
       return {
         type: 'string',
@@ -1761,11 +1785,7 @@ function resolveTypeToOpenAPI3({
         ...(nullable ? { nullable: true } : {}),
       }
     case 'enum':
-      return {
-        type: type.type,
-        enum: type.values,
-        ...(nullable ? { nullable: true } : {}),
-      }
+      return resolveEnumToOpenAPI3(type.values, nullable)
     case 'generic':
       return {
         ...resolveTypeToOpenAPI3({
@@ -1788,6 +1808,34 @@ function resolveTypeToOpenAPI3({
         type: 'object',
         ...(nullable ? { nullable: true } : {}),
       }
+  }
+}
+
+const resolveEnumToOpenAPI3 = (
+  values: (string | number | boolean)[],
+  nullable: boolean
+) => {
+  const valuesByType = groupBy(values, (value) =>
+    typeof value === 'boolean'
+      ? 'boolean'
+      : typeof value === 'string'
+        ? 'string'
+        : 'number'
+  )
+  const enumSchemas = Object.entries(valuesByType).map(
+    ([type, typeValues]) => ({ type, enum: typeValues })
+  )
+
+  if (enumSchemas.length === 1) {
+    return {
+      ...enumSchemas[0],
+      ...(nullable ? { nullable: true } : {}),
+    }
+  }
+
+  return {
+    oneOf: enumSchemas,
+    ...(nullable ? { nullable: true } : {}),
   }
 }
 

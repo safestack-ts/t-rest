@@ -240,7 +240,25 @@ export abstract class OpenAPIGenerator {
               ? getOpenAPI3Spec(route.typeInfo.output, true)
               : undefined
 
+            // headers and path params are inlined, but named types visited there first
+            // may be referenced from body or response schemas, so keep their components
+            const inlinedParameterTypes = [
+              ...mergedHeaders.map((header) => header.type),
+              ...(route.typeInfo.input?.kind === 'object' &&
+              route.typeInfo.input.properties.params?.kind === 'object'
+                ? Object.values(
+                    route.typeInfo.input.properties.params.properties
+                  )
+                : []),
+            ]
+
             const components = {
+              ...Object.assign(
+                {},
+                ...inlinedParameterTypes.map(
+                  (type) => getOpenAPI3Spec(type, false).components
+                )
+              ),
               ...(bodySchema?.components ?? {}),
               ...(responseSchema?.components ?? {}),
               ...(querySchema?.components ?? {}),
