@@ -57,7 +57,8 @@ const extractMethodPathVersionFromCallChain = (
 ): { method: string; path: string; version: string } | undefined => {
   let method: string | undefined
   let path: string | undefined
-  let version: string | undefined
+  // routes without `.version()` are registered with an empty version
+  let version = ''
 
   for (const call of calls) {
     const callName = getCallPropertyName(call)
@@ -77,7 +78,7 @@ const extractMethodPathVersionFromCallChain = (
     }
   }
 
-  if (!method || !path || !version) {
+  if (!method || !path) {
     return undefined
   }
 
@@ -97,8 +98,7 @@ export const extractNamingContextFromTypeText = (
   }
 
   const bestMatch = [...matches].sort((left, right) => {
-    const segmentDifference =
-      right.split('.').length - left.split('.').length
+    const segmentDifference = right.split('.').length - left.split('.').length
     return segmentDifference !== 0
       ? segmentDifference
       : right.length - left.length
@@ -118,48 +118,344 @@ export const buildRouteNamingContextKey = (
   version: string
 ) => `${method}:${path}:${version}`
 
-/**
- * Walks route builder call chains in the program AST to recover public type
- * namespace context that TypeScript erases for transparent re-exports.
- */
-export const extractRouteNamingContextsFromProgram = (program: ts.Program) => {
-  const namingContexts = new Map<string, string>()
+export type RouteNamingContext = {
+  input?: string
+  response?: string
+}
 
-  for (const sourceFile of program.getSourceFiles()) {
-    if (sourceFile.isDeclarationFile) {
-      continue
+/**
+ * Extracts the naming context of explicitly written types inside a validator
+ * expression, e.g. `z.custom<V2026_06_09.Customer.Checkout.Body>()`. Only type
+ * nodes are considered so that value accessors like `z.object` are ignored.
+ */
+const extractNamingContextFromValidator = (
+  call: ts.CallExpression,
+  sourceFile: ts.SourceFile
+) => {
+  let namingContext: string | undefined
+
+  const visit = (node: ts.Node) => {
+    if (namingContext) {
+      return
     }
 
-    const visit = (node: ts.Node) => {
-      if (
-        ts.isCallExpression(node) &&
-        getCallPropertyName(node) === 'response' &&
-        node.typeArguments?.[0]
-      ) {
-        const namingContext = extractNamingContextFromTypeText(
-          node.typeArguments[0].getText(sourceFile)
-        )
-        const routeMeta = extractMethodPathVersionFromCallChain(
-          collectCallChain(node)
-        )
+    if (ts.isTypeNode(node)) {
+      namingContext = extractNamingContextFromTypeText(node.getText(sourceFile))
+      return
+    }
 
-        if (namingContext && routeMeta) {
-          namingContexts.set(
-            buildRouteNamingContextKey(
-              routeMeta.method,
-              routeMeta.path,
-              routeMeta.version
-            ),
-            namingContext
+    ts.forEachChild(node, visit)
+  }
+
+  call.typeArguments?.forEach(visit)
+  call.arguments.forEach(visit)
+
+  return namingContext
+}
+
+const getDeclarationsToFollow = (
+  symbol: ts.Symbol | undefined,
+  typeChecker: ts.TypeChecker
+) => {
+  if (!symbol) {
+    return []
+  }
+
+  const resolvedSymbol =
+    symbol.flags & ts.SymbolFlags.Alias
+      ? typeChecker.getAliasedSymbol(symbol)
+      : symbol
+
+  return (resolvedSymbol.declarations ?? []).filter(
+    (declaration) => !declaration.getSourceFile().isDeclarationFile
+  )
+}
+
+const containsNode = (container: ts.Node, node: ts.Node) =>
+  container.getSourceFile() === node.getSourceFile() &&
+  container.pos <= node.pos &&
+  node.end <= container.end
+
+/**
+ * Assignments to the property declared by `member` after its declaration,
+ * e.g. `result.customer = customer` or `this.customer = customer`, searched
+ * within the outermost function or class that encloses `member`.
+ */
+const getMemberWrites = (
+  member:
+    | ts.PropertyAssignment
+    | ts.ShorthandPropertyAssignment
+    | ts.PropertyDeclaration,
+  typeChecker: ts.TypeChecker
+) => {
+  let scope: ts.Node | undefined
+  for (
+    let ancestor: ts.Node | undefined = member.parent;
+    ancestor;
+    ancestor = ancestor.parent
+  ) {
+    if (ts.isFunctionLike(ancestor) || ts.isClassLike(ancestor)) {
+      scope = ancestor
+    }
+  }
+  if (!scope) {
+    return []
+  }
+
+  const writes: ts.Expression[] = []
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      ts.isPropertyAccessExpression(node.left) &&
+      // compared by declaration, as widening the type of an object literal
+      // creates new property symbols
+      typeChecker
+        .getSymbolAtLocation(node.left.name)
+        ?.declarations?.includes(member)
+    ) {
+      writes.push(node.right)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(scope)
+
+  return writes
+}
+
+/**
+ * Whether the value of `member` depends on a parameter of a function that
+ * encloses it or a later write to it, either directly or through local
+ * variables of that function, e.g. `customer` in
+ * `function wrap(customer) { return { customer } }`.
+ */
+const dependsOnEnclosingParameter = (
+  member:
+    | ts.PropertyAssignment
+    | ts.ShorthandPropertyAssignment
+    | ts.PropertyDeclaration,
+  typeChecker: ts.TypeChecker
+) => {
+  const visitedDeclarations = new Set<ts.Node>()
+
+  // parameters of functions that only enclose a write, e.g. an uncalled
+  // `replace(customer) { bags.customer = customer }`, do not supply the value
+  // of `member`, except for the constructor of the class declaring `member`
+  const isEnclosingParameterOrLocal = (declaration: ts.Declaration) => {
+    const owner = ts.isParameter(declaration)
+      ? declaration.parent
+      : ts.findAncestor(declaration.parent, ts.isFunctionLike)
+    return (
+      !!owner &&
+      (containsNode(owner, member) ||
+        (ts.isConstructorDeclaration(owner) && owner.parent === member.parent))
+    )
+  }
+
+  const dependsOnDeclarations = (symbol: ts.Symbol | undefined): boolean =>
+    (symbol?.declarations ?? []).some((declaration) => {
+      if (
+        visitedDeclarations.has(declaration) ||
+        !isEnclosingParameterOrLocal(declaration)
+      ) {
+        return false
+      }
+      visitedDeclarations.add(declaration)
+
+      if (ts.isParameter(declaration)) {
+        return true
+      }
+      // other locals, e.g. inner functions, are conservatively treated as
+      // argument-dependent
+      return ts.isVariableDeclaration(declaration) && declaration.initializer
+        ? dependsOnExpression(declaration.initializer)
+        : true
+    })
+
+  const dependsOnExpression = (node: ts.Node): boolean => {
+    if (ts.isTypeNode(node)) {
+      return false
+    }
+    if (ts.isIdentifier(node)) {
+      return dependsOnDeclarations(typeChecker.getSymbolAtLocation(node))
+    }
+    return !!ts.forEachChild(
+      node,
+      (child) => dependsOnExpression(child) || undefined
+    )
+  }
+
+  if (getMemberWrites(member, typeChecker).some(dependsOnExpression)) {
+    return true
+  }
+  if (ts.isShorthandPropertyAssignment(member)) {
+    return dependsOnDeclarations(
+      typeChecker.getShorthandAssignmentValueSymbol(member)
+    )
+  }
+  return !!member.initializer && dependsOnExpression(member.initializer)
+}
+
+/**
+ * Object and class members whose value is fully described by their own
+ * declaration, so that `container.member` can be followed without visiting
+ * the sibling members of `container`. Members whose value depends on the
+ * arguments of the call that produced `container`, e.g. `wrap(bag).customer`,
+ * are excluded.
+ */
+const isMemberValueDeclaration = (
+  declaration: ts.Declaration,
+  typeChecker: ts.TypeChecker
+): declaration is
+  | ts.PropertyAssignment
+  | ts.ShorthandPropertyAssignment
+  | ts.PropertyDeclaration =>
+  (ts.isPropertyAssignment(declaration) ||
+    ts.isShorthandPropertyAssignment(declaration) ||
+    (ts.isPropertyDeclaration(declaration) && !!declaration.initializer)) &&
+  !dependsOnEnclosingParameter(declaration, typeChecker)
+
+/**
+ * Walks the route builder call chains reachable from the bag of routes
+ * expression (`entryNode`) to recover public type namespace context that
+ * TypeScript erases for transparent re-exports. Identifiers are followed to
+ * their declarations, so routes defined in other variables or modules are
+ * included, while unrelated bags in the same program are not.
+ *
+ * This is a best-effort static analysis. Supported exports of a selected
+ * member, e.g. `container.customer`, are:
+ * - object and class members whose value is declared inline, including
+ *   containers created by factories or class methods
+ * - members populated from the arguments of the call producing the container,
+ *   either in their initializer or by a direct assignment in that function,
+ *   e.g. `wrap(bag).customer`
+ *
+ * Values flowing in through other indirections, e.g. nested helpers invoked
+ * to populate a member, callbacks or `Object.assign`, are not tracked. Such
+ * members lose their namespace context and fall back to short component
+ * names.
+ */
+export const extractRouteNamingContexts = (
+  entryNode: ts.Node,
+  typeChecker: ts.TypeChecker
+) => {
+  const namingContexts = new Map<string, RouteNamingContext>()
+  const visitedDeclarations = new Set<ts.Node>()
+
+  const setNamingContext = (
+    call: ts.CallExpression,
+    kind: keyof RouteNamingContext,
+    namingContext: string | undefined
+  ) => {
+    const routeMeta = extractMethodPathVersionFromCallChain(
+      collectCallChain(call)
+    )
+    if (!namingContext || !routeMeta) {
+      return
+    }
+
+    const key = buildRouteNamingContextKey(
+      routeMeta.method,
+      routeMeta.path,
+      routeMeta.version
+    )
+    const existing = namingContexts.get(key) ?? {}
+    // the first route found while walking from the entry wins
+    if (existing[kind] === undefined) {
+      namingContexts.set(key, { ...existing, [kind]: namingContext })
+    }
+  }
+
+  const followDeclarations = (declarations: ts.Declaration[]) => {
+    for (const declaration of declarations) {
+      if (visitedDeclarations.has(declaration)) {
+        continue
+      }
+      visitedDeclarations.add(declaration)
+
+      if (
+        (ts.isVariableDeclaration(declaration) ||
+          ts.isPropertyAssignment(declaration) ||
+          ts.isPropertyDeclaration(declaration)) &&
+        declaration.initializer
+      ) {
+        visit(declaration.initializer)
+      } else if (ts.isShorthandPropertyAssignment(declaration)) {
+        followDeclarations(
+          getDeclarationsToFollow(
+            typeChecker.getShorthandAssignmentValueSymbol(declaration),
+            typeChecker
           )
-        }
+        )
+      } else if (
+        ts.isFunctionDeclaration(declaration) ||
+        ts.isMethodDeclaration(declaration) ||
+        ts.isExportAssignment(declaration)
+      ) {
+        visit(declaration)
+      }
+    }
+  }
+
+  const visit = (node: ts.Node) => {
+    if (ts.isTypeNode(node)) {
+      return
+    }
+
+    if (ts.isPropertyAccessExpression(node)) {
+      const memberDeclarations = getDeclarationsToFollow(
+        typeChecker.getSymbolAtLocation(node.name),
+        typeChecker
+      )
+      // `bags.customer` only depends on the selected member, so the receiver
+      // is not visited to avoid collecting the routes of sibling members
+      if (
+        memberDeclarations.length > 0 &&
+        memberDeclarations.every((declaration) =>
+          isMemberValueDeclaration(declaration, typeChecker)
+        )
+      ) {
+        followDeclarations(memberDeclarations)
+        return
+      }
+    }
+
+    if (ts.isCallExpression(node)) {
+      const callName = getCallPropertyName(node)
+      const sourceFile = node.getSourceFile()
+
+      if (callName === 'response' && node.typeArguments?.[0]) {
+        setNamingContext(
+          node,
+          'response',
+          extractNamingContextFromTypeText(
+            node.typeArguments[0].getText(sourceFile)
+          )
+        )
       }
 
-      ts.forEachChild(node, visit)
+      if (callName === 'validate') {
+        setNamingContext(
+          node,
+          'input',
+          extractNamingContextFromValidator(node, sourceFile)
+        )
+      }
     }
 
-    visit(sourceFile)
+    if (ts.isIdentifier(node)) {
+      followDeclarations(
+        getDeclarationsToFollow(
+          typeChecker.getSymbolAtLocation(node),
+          typeChecker
+        )
+      )
+    }
+
+    ts.forEachChild(node, visit)
   }
+
+  visit(entryNode)
 
   return namingContexts
 }

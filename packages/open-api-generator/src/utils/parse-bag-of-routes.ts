@@ -2,6 +2,7 @@ import { HashMap, normalizePathPattern } from '@t-rest/core'
 import ts from 'typescript'
 import { ObjectType, TypeDefinition } from '../schema/type-schema.js'
 import debug from 'debug'
+import { hashOpenAPISchema } from './openapi-schema-normalize.js'
 import { groupBy, isEqual, uniqWith } from 'lodash'
 import path from 'path'
 import {
@@ -16,7 +17,7 @@ import {
 } from './public-type-reexports.js'
 import {
   buildRouteNamingContextKey,
-  extractRouteNamingContextsFromProgram,
+  extractRouteNamingContexts,
 } from './route-naming-context.js'
 
 const parserLog = debug('t-rest:open-api-generator:parser')
@@ -53,7 +54,7 @@ export const parseBagOfRoutes = (
     typeChecker,
     exportedModuleNamespacePaths
   )
-  const routeNamingContexts = extractRouteNamingContextsFromProgram(program)
+  const routeNamingContexts = extractRouteNamingContexts(rootNode, typeChecker)
 
   const results = new HashMap<[string, string, string], RouteTypeInfo>((key) =>
     key.join('-')
@@ -61,10 +62,10 @@ export const parseBagOfRoutes = (
 
   const createTraverseMeta = (
     rootType: ts.Type | undefined,
-    routeKey?: string
+    routeNamingContext?: string
   ): TraverseMeta => {
     const namingContext =
-      (routeKey ? routeNamingContexts.get(routeKey) : undefined) ??
+      routeNamingContext ??
       (rootType
         ? deriveNamingContext(
             rootType,
@@ -90,7 +91,9 @@ export const parseBagOfRoutes = (
       typeChecker,
       rootNode
     )
-    const routeKey = buildRouteNamingContextKey(method, path, version)
+    const routeNamingContext = routeNamingContexts.get(
+      buildRouteNamingContextKey(method, path, version)
+    )
 
     parserLog('Processing route: %s %s (v%s)', method, path, version)
 
@@ -116,7 +119,7 @@ export const parseBagOfRoutes = (
             validatorType,
             typeChecker,
             rootNode,
-            createTraverseMeta(validatorType, routeKey)
+            createTraverseMeta(validatorType, routeNamingContext?.input)
           )
         : undefined,
       output: responseType
@@ -124,7 +127,7 @@ export const parseBagOfRoutes = (
             responseType,
             typeChecker,
             rootNode,
-            createTraverseMeta(responseType, routeKey)
+            createTraverseMeta(responseType, routeNamingContext?.response)
           )
         : undefined,
       routeMeta: {
@@ -1573,7 +1576,35 @@ export function getOpenAPI3Spec(rootType: TypeDefinition, replaceRefs = true) {
   return {
     spec,
     components,
+    ambiguousComponents: [
+      ...(ambiguousComponentsByRegistry.get(components) ?? []),
+    ],
   }
+}
+
+// component keys that were registered with different shapes, per component registry
+const ambiguousComponentsByRegistry = new WeakMap<
+  Record<string, any>,
+  Set<string>
+>()
+
+const registerComponent = (
+  components: Record<string, any>,
+  componentKey: string,
+  schema: unknown
+) => {
+  const existing = components[componentKey]
+  if (
+    existing !== undefined &&
+    hashOpenAPISchema(existing) !== hashOpenAPISchema(schema)
+  ) {
+    const ambiguousComponents =
+      ambiguousComponentsByRegistry.get(components) ?? new Set<string>()
+    ambiguousComponents.add(componentKey)
+    ambiguousComponentsByRegistry.set(components, ambiguousComponents)
+  }
+
+  components[componentKey] = schema
 }
 
 type ResolveTypeToOpenAPI3Args = {
@@ -1709,7 +1740,7 @@ function resolveTypeToOpenAPI3({
 
       if (type.name) {
         const componentKey = type.schemaName ?? type.name
-        components[componentKey] = baseObjectSpec
+        registerComponent(components, componentKey, baseObjectSpec)
 
         if (replaceRefs) {
           return withNullAlternative(

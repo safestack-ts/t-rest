@@ -179,24 +179,41 @@ export abstract class OpenAPIGenerator {
       })
       .filter(isDefined)
 
-    const routesByPath = groupBy(finalRoutes, (route) => route.path)
+    // paths that only differ in parameter names (`/users/:id`, `/users/:userId`) are equivalent in OpenAPI
+    const routesByPath = groupBy(finalRoutes, (route) =>
+      route.path.replace(pathParamRegex, '{}')
+    )
 
     const allComponents: Record<string, any> = {}
     const componentHashes: Record<string, string> = {}
     const ambiguousTypes = new Set<string>()
 
-    const paths = Object.entries(routesByPath).map(([path, routes]) => {
+    const paths = Object.values(routesByPath).map((routes) => {
       const sortedRoutes = routes.sort(
         (a, b) =>
           httpMethodOrder[a.method as HTTPMethod] -
           httpMethodOrder[b.method as HTTPMethod]
       )
 
-      const pathWithParamPlaceholders = path.replace(/:(\w+)/g, '{$1}')
+      // equivalent paths are emitted once, using the parameter names of the first route in method order
+      const templatePath = sortedRoutes[0].path
+      const templateParamNames = extractPathParamNames(templatePath)
+      const pathWithParamPlaceholders = templatePath.replace(
+        pathParamRegex,
+        '{$1}'
+      )
 
       return {
         [pathWithParamPlaceholders]: sortedRoutes.reduce(
-          (acc, { method, route }) => {
+          (acc, { method, path, route }) => {
+            const routeParamNames = extractPathParamNames(path)
+            const toTemplateParamName = (name: string) => {
+              const paramIndex = routeParamNames.indexOf(name)
+              return paramIndex >= 0
+                ? templateParamNames[paramIndex] ?? name
+                : name
+            }
+
             const routeDefinition = bagOfRoutes.routes.get([
               method as HTTPMethod,
               path,
@@ -242,7 +259,7 @@ export abstract class OpenAPIGenerator {
 
             // headers and path params are inlined, but named types visited there first
             // may be referenced from body or response schemas, so keep their components
-            const inlinedParameterTypes = [
+            const inlinedParameterSchemas = [
               ...mergedHeaders.map((header) => header.type),
               ...(route.typeInfo.input?.kind === 'object' &&
               route.typeInfo.input.properties.params?.kind === 'object'
@@ -250,36 +267,38 @@ export abstract class OpenAPIGenerator {
                     route.typeInfo.input.properties.params.properties
                   )
                 : []),
-            ]
+            ].map((type) => getOpenAPI3Spec(type, true))
 
-            const components = {
-              ...Object.assign(
-                {},
-                ...inlinedParameterTypes.map(
-                  (type) => getOpenAPI3Spec(type, true).components
-                )
-              ),
-              ...(bodySchema?.components ?? {}),
-              ...(responseSchema?.components ?? {}),
-              ...(querySchema?.components ?? {}),
-            }
-
-            Object.entries(components).forEach(([key, value]) => {
-              const schemaHash = hashOpenAPISchema(
-                normalizeComponentForAmbiguityComparison(value)
-              )
-              const previousSchemaHash = componentHashes[key]
-
-              if (
-                previousSchemaHash !== undefined &&
-                previousSchemaHash !== schemaHash
-              ) {
+            // components of body, response and query are compared against each other as well as across routes
+            for (const schema of [
+              ...inlinedParameterSchemas,
+              bodySchema,
+              responseSchema,
+              querySchema,
+            ]) {
+              schema?.ambiguousComponents.forEach((key) =>
                 ambiguousTypes.add(key)
-              }
+              )
 
-              componentHashes[key] = schemaHash
-              allComponents[key] = value
-            })
+              Object.entries(schema?.components ?? {}).forEach(
+                ([key, value]) => {
+                  const schemaHash = hashOpenAPISchema(
+                    normalizeComponentForAmbiguityComparison(value)
+                  )
+                  const previousSchemaHash = componentHashes[key]
+
+                  if (
+                    previousSchemaHash !== undefined &&
+                    previousSchemaHash !== schemaHash
+                  ) {
+                    ambiguousTypes.add(key)
+                  }
+
+                  componentHashes[key] = schemaHash
+                  allComponents[key] = value
+                }
+              )
+            }
 
             return {
               ...acc,
@@ -299,7 +318,7 @@ export abstract class OpenAPIGenerator {
                     ? Object.entries(
                         route.typeInfo.input.properties.params.properties
                       ).map(([name, schema]) => ({
-                        name,
+                        name: toTemplateParamName(name),
                         in: 'path',
                         required: true,
                         schema: getOpenAPI3Spec(schema, false).spec,
@@ -370,7 +389,9 @@ export abstract class OpenAPIGenerator {
       openapi: '3.0.0',
       info: {
         title: metaData.title,
+        description: metaData.description,
         version: metaData.version,
+        ...(metaData.contact ? { contact: metaData.contact } : {}),
       },
       servers: metaData.servers ?? [],
       tags: metaData.tags ?? [],
@@ -400,6 +421,11 @@ const httpMethodOrder: Record<HTTPMethod, number> = {
   PATCH: 3,
   DELETE: 4,
 }
+
+const pathParamRegex = /:(\w+)/g
+
+const extractPathParamNames = (path: string) =>
+  Array.from(path.matchAll(pathParamRegex), (match) => match[1])
 
 const normalizeComponentForAmbiguityComparison = (value: unknown) => {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
