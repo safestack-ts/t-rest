@@ -77,7 +77,7 @@ export namespace ze {
           const parsedJSON = JSON.parse(value)
           zodType.parse(parsedJSON)
           return true
-        } catch (err) {
+        } catch {
           return false
         }
       },

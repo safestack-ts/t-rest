@@ -66,7 +66,7 @@ export abstract class SupertestAdapterBase<
 
     try {
       return JSON.stringify(body)
-    } catch (e) {
+    } catch {
       return String(body)
     }
   }
