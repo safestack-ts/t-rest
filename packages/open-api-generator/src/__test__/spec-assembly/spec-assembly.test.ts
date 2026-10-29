@@ -10,6 +10,9 @@ import equivalentTemplatedPathsBagOfRoutes from './scenarios/equivalent-template
 import reexportUnversionedBagOfRoutes from './scenarios/reexport-unversioned'
 import reexportMultipleBagsBagOfRoutes from './scenarios/reexport-multiple-bags'
 import reexportValidatorContextBagOfRoutes from './scenarios/reexport-validator-context'
+import reexportObjectMemberBagOfRoutes from './scenarios/reexport-object-member'
+import reexportObjectMemberCustomerFirstBagOfRoutes from './scenarios/reexport-object-member-customer-first'
+import reexportClassMethodBagOfRoutes from './scenarios/reexport-class-method'
 
 const tsConfigPath = path.join(__dirname, '../../../', 'tsconfig.json')
 
@@ -190,5 +193,30 @@ describe('spec assembly', () => {
           .data.$ref
       ).toBe('#/components/schemas/V2026_06_09_Customer_Checkout_Checkout')
     })
+
+    test.each([
+      ['reexport-object-member.ts', reexportObjectMemberBagOfRoutes],
+      [
+        'reexport-object-member-customer-first.ts',
+        reexportObjectMemberCustomerFirstBagOfRoutes,
+      ],
+      ['reexport-class-method.ts', reexportClassMethodBagOfRoutes],
+    ])(
+      'only uses the routes of the exported member of a bag container (%s)',
+      (scenario, bagOfRoutes) => {
+        const schema = getSchemaFromBag(bagOfRoutes, scenario, {
+          includeTypesNamespaceInName: true,
+        })
+
+        expect(
+          schema.paths['/accounts/{accountId}'].get.responses['200'].content[
+            'application/json'
+          ].schema.properties.data.$ref
+        ).toBe('#/components/schemas/V2026_06_09_Customer_Checkout_Checkout')
+        expect(Object.keys(schema.components)).not.toContain(
+          'V2026_06_09_Admin_Checkout_Checkout'
+        )
+      }
+    )
   })
 })

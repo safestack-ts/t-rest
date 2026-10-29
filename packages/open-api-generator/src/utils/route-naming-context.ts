@@ -154,10 +154,9 @@ const extractNamingContextFromValidator = (
 }
 
 const getDeclarationsToFollow = (
-  identifier: ts.Identifier,
+  symbol: ts.Symbol | undefined,
   typeChecker: ts.TypeChecker
 ) => {
-  const symbol = typeChecker.getSymbolAtLocation(identifier)
   if (!symbol) {
     return []
   }
@@ -171,6 +170,21 @@ const getDeclarationsToFollow = (
     (declaration) => !declaration.getSourceFile().isDeclarationFile
   )
 }
+
+/**
+ * Object and class members whose value is fully described by their own
+ * declaration, so that `container.member` can be followed without visiting
+ * the sibling members of `container`.
+ */
+const isMemberValueDeclaration = (
+  declaration: ts.Declaration
+): declaration is
+  | ts.PropertyAssignment
+  | ts.ShorthandPropertyAssignment
+  | ts.PropertyDeclaration =>
+  ts.isPropertyAssignment(declaration) ||
+  ts.isShorthandPropertyAssignment(declaration) ||
+  (ts.isPropertyDeclaration(declaration) && !!declaration.initializer)
 
 /**
  * Walks the route builder call chains reachable from the bag of routes
@@ -210,9 +224,56 @@ export const extractRouteNamingContexts = (
     }
   }
 
+  const followDeclarations = (declarations: ts.Declaration[]) => {
+    for (const declaration of declarations) {
+      if (visitedDeclarations.has(declaration)) {
+        continue
+      }
+      visitedDeclarations.add(declaration)
+
+      if (
+        (ts.isVariableDeclaration(declaration) ||
+          ts.isPropertyAssignment(declaration) ||
+          ts.isPropertyDeclaration(declaration)) &&
+        declaration.initializer
+      ) {
+        visit(declaration.initializer)
+      } else if (ts.isShorthandPropertyAssignment(declaration)) {
+        followDeclarations(
+          getDeclarationsToFollow(
+            typeChecker.getShorthandAssignmentValueSymbol(declaration),
+            typeChecker
+          )
+        )
+      } else if (
+        ts.isFunctionDeclaration(declaration) ||
+        ts.isMethodDeclaration(declaration) ||
+        ts.isExportAssignment(declaration)
+      ) {
+        visit(declaration)
+      }
+    }
+  }
+
   const visit = (node: ts.Node) => {
     if (ts.isTypeNode(node)) {
       return
+    }
+
+    if (ts.isPropertyAccessExpression(node)) {
+      const memberDeclarations = getDeclarationsToFollow(
+        typeChecker.getSymbolAtLocation(node.name),
+        typeChecker
+      )
+      // `bags.customer` only depends on the selected member, so the receiver
+      // is not visited to avoid collecting the routes of sibling members
+      if (
+        memberDeclarations.length > 0 &&
+        memberDeclarations.every(isMemberValueDeclaration)
+      ) {
+        followDeclarations(memberDeclarations)
+        return
+      }
     }
 
     if (ts.isCallExpression(node)) {
@@ -239,21 +300,12 @@ export const extractRouteNamingContexts = (
     }
 
     if (ts.isIdentifier(node)) {
-      for (const declaration of getDeclarationsToFollow(node, typeChecker)) {
-        if (visitedDeclarations.has(declaration)) {
-          continue
-        }
-        visitedDeclarations.add(declaration)
-
-        if (ts.isVariableDeclaration(declaration) && declaration.initializer) {
-          visit(declaration.initializer)
-        } else if (
-          ts.isFunctionDeclaration(declaration) ||
-          ts.isExportAssignment(declaration)
-        ) {
-          visit(declaration)
-        }
-      }
+      followDeclarations(
+        getDeclarationsToFollow(
+          typeChecker.getSymbolAtLocation(node),
+          typeChecker
+        )
+      )
     }
 
     ts.forEachChild(node, visit)
