@@ -57,7 +57,8 @@ const extractMethodPathVersionFromCallChain = (
 ): { method: string; path: string; version: string } | undefined => {
   let method: string | undefined
   let path: string | undefined
-  let version: string | undefined
+  // routes without `.version()` are registered with an empty version
+  let version = ''
 
   for (const call of calls) {
     const callName = getCallPropertyName(call)
@@ -77,7 +78,7 @@ const extractMethodPathVersionFromCallChain = (
     }
   }
 
-  if (!method || !path || !version) {
+  if (!method || !path) {
     return undefined
   }
 
@@ -97,8 +98,7 @@ export const extractNamingContextFromTypeText = (
   }
 
   const bestMatch = [...matches].sort((left, right) => {
-    const segmentDifference =
-      right.split('.').length - left.split('.').length
+    const segmentDifference = right.split('.').length - left.split('.').length
     return segmentDifference !== 0
       ? segmentDifference
       : right.length - left.length
@@ -118,48 +118,148 @@ export const buildRouteNamingContextKey = (
   version: string
 ) => `${method}:${path}:${version}`
 
-/**
- * Walks route builder call chains in the program AST to recover public type
- * namespace context that TypeScript erases for transparent re-exports.
- */
-export const extractRouteNamingContextsFromProgram = (program: ts.Program) => {
-  const namingContexts = new Map<string, string>()
+export type RouteNamingContext = {
+  input?: string
+  response?: string
+}
 
-  for (const sourceFile of program.getSourceFiles()) {
-    if (sourceFile.isDeclarationFile) {
-      continue
+/**
+ * Extracts the naming context of explicitly written types inside a validator
+ * expression, e.g. `z.custom<V2026_06_09.Customer.Checkout.Body>()`. Only type
+ * nodes are considered so that value accessors like `z.object` are ignored.
+ */
+const extractNamingContextFromValidator = (
+  call: ts.CallExpression,
+  sourceFile: ts.SourceFile
+) => {
+  let namingContext: string | undefined
+
+  const visit = (node: ts.Node) => {
+    if (namingContext) {
+      return
     }
 
-    const visit = (node: ts.Node) => {
-      if (
-        ts.isCallExpression(node) &&
-        getCallPropertyName(node) === 'response' &&
-        node.typeArguments?.[0]
-      ) {
-        const namingContext = extractNamingContextFromTypeText(
-          node.typeArguments[0].getText(sourceFile)
-        )
-        const routeMeta = extractMethodPathVersionFromCallChain(
-          collectCallChain(node)
-        )
+    if (ts.isTypeNode(node)) {
+      namingContext = extractNamingContextFromTypeText(node.getText(sourceFile))
+      return
+    }
 
-        if (namingContext && routeMeta) {
-          namingContexts.set(
-            buildRouteNamingContextKey(
-              routeMeta.method,
-              routeMeta.path,
-              routeMeta.version
-            ),
-            namingContext
+    ts.forEachChild(node, visit)
+  }
+
+  call.typeArguments?.forEach(visit)
+  call.arguments.forEach(visit)
+
+  return namingContext
+}
+
+const getDeclarationsToFollow = (
+  identifier: ts.Identifier,
+  typeChecker: ts.TypeChecker
+) => {
+  const symbol = typeChecker.getSymbolAtLocation(identifier)
+  if (!symbol) {
+    return []
+  }
+
+  const resolvedSymbol =
+    symbol.flags & ts.SymbolFlags.Alias
+      ? typeChecker.getAliasedSymbol(symbol)
+      : symbol
+
+  return (resolvedSymbol.declarations ?? []).filter(
+    (declaration) => !declaration.getSourceFile().isDeclarationFile
+  )
+}
+
+/**
+ * Walks the route builder call chains reachable from the bag of routes
+ * expression (`entryNode`) to recover public type namespace context that
+ * TypeScript erases for transparent re-exports. Identifiers are followed to
+ * their declarations, so routes defined in other variables or modules are
+ * included, while unrelated bags in the same program are not.
+ */
+export const extractRouteNamingContexts = (
+  entryNode: ts.Node,
+  typeChecker: ts.TypeChecker
+) => {
+  const namingContexts = new Map<string, RouteNamingContext>()
+  const visitedDeclarations = new Set<ts.Node>()
+
+  const setNamingContext = (
+    call: ts.CallExpression,
+    kind: keyof RouteNamingContext,
+    namingContext: string | undefined
+  ) => {
+    const routeMeta = extractMethodPathVersionFromCallChain(
+      collectCallChain(call)
+    )
+    if (!namingContext || !routeMeta) {
+      return
+    }
+
+    const key = buildRouteNamingContextKey(
+      routeMeta.method,
+      routeMeta.path,
+      routeMeta.version
+    )
+    const existing = namingContexts.get(key) ?? {}
+    // the first route found while walking from the entry wins
+    if (existing[kind] === undefined) {
+      namingContexts.set(key, { ...existing, [kind]: namingContext })
+    }
+  }
+
+  const visit = (node: ts.Node) => {
+    if (ts.isTypeNode(node)) {
+      return
+    }
+
+    if (ts.isCallExpression(node)) {
+      const callName = getCallPropertyName(node)
+      const sourceFile = node.getSourceFile()
+
+      if (callName === 'response' && node.typeArguments?.[0]) {
+        setNamingContext(
+          node,
+          'response',
+          extractNamingContextFromTypeText(
+            node.typeArguments[0].getText(sourceFile)
           )
-        }
+        )
       }
 
-      ts.forEachChild(node, visit)
+      if (callName === 'validate') {
+        setNamingContext(
+          node,
+          'input',
+          extractNamingContextFromValidator(node, sourceFile)
+        )
+      }
     }
 
-    visit(sourceFile)
+    if (ts.isIdentifier(node)) {
+      for (const declaration of getDeclarationsToFollow(node, typeChecker)) {
+        if (visitedDeclarations.has(declaration)) {
+          continue
+        }
+        visitedDeclarations.add(declaration)
+
+        if (ts.isVariableDeclaration(declaration) && declaration.initializer) {
+          visit(declaration.initializer)
+        } else if (
+          ts.isFunctionDeclaration(declaration) ||
+          ts.isExportAssignment(declaration)
+        ) {
+          visit(declaration)
+        }
+      }
+    }
+
+    ts.forEachChild(node, visit)
   }
+
+  visit(entryNode)
 
   return namingContexts
 }
