@@ -40,7 +40,7 @@
         "@types/express-serve-static-core": "4.19.6",
         "compression": "^1.8.2",
         "cors": "^2.8.6",
-        "express": "^4.17.21",
+        "express": "^4.22.3",
         "express-async-errors": "^3.1.1",
         "express-serve-static-core": "^0.1.1",
         "helmet": "^8.3.0"
