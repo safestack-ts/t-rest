@@ -3,7 +3,7 @@ import { parseBagOfRoutes } from '../../utils/parse-bag-of-routes.js'
 import * as path from 'path'
 
 describe('input types', () => {
-  test.skip('native enum', () => {
+  test('native enum', () => {
     const routes = parseBagOfRoutes(
       path.resolve(__dirname, './examples/native-enum.example.ts'),
       path.resolve(__dirname, '../../../tsconfig.json')
@@ -25,8 +25,10 @@ describe('input types', () => {
               type: 'string',
             },
           },
+          required: ['orderStatus'],
         },
       },
+      required: ['query'],
     })
   })
 })
