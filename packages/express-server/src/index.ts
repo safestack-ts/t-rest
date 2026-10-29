@@ -4,6 +4,7 @@ export * from './classes/typed-express-application-with-versioning.js'
 export * from './classes/typed-express-application-without-versioning.js'
 export * from './classes/typed-router-with-versioning.js'
 export * from './classes/typed-router-without-versioning.js'
+export * from './classes/version-resolution-error.js'
 
 // types
 export * from './types/version-extractor.js'
