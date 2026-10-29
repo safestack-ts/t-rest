@@ -15,5 +15,12 @@ export const defineMiddleware =
     response: ExpressResponse,
     next: ExpressNextFunction
   ) => {
-    middlewareFn(request, response, next)
+    const result = middlewareFn(request, response, next)
+
+    // forward async errors to express, which does not handle rejected promises itself
+    if (result instanceof Promise) {
+      return result.catch(next)
+    }
+
+    return result
   }

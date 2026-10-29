@@ -93,4 +93,40 @@ describe('resolveDateVersion()', () => {
     )
     expect(result).toBeNull()
   })
+
+  test('should return version of history entry if requested date equals it in another string format', () => {
+    const availableVersions = ['2024-01-01', '2024-02-01']
+    const requestedVersion = '2024-02-01T00:00:00.000Z'
+    const result = resolveDateVersion(
+      ['2024-01-01', '2024-02-01'],
+      availableVersions,
+      requestedVersion,
+      parseDate
+    )
+    expect(result).toBe('2024-02-01')
+  })
+
+  test('should return null if no available version is lower than the requested date', () => {
+    const availableVersions = ['2024-03-01']
+    const requestedVersion = '2024-02-15'
+    const result = resolveDateVersion(
+      dateVersionHistory,
+      availableVersions,
+      requestedVersion,
+      parseDate
+    )
+    expect(result).toBeNull()
+  })
+
+  test('should return null if requested version is not a valid date', () => {
+    const availableVersions = ['2024-01-01', '2024-02-01']
+    const requestedVersion = 'not-a-date'
+    const result = resolveDateVersion(
+      dateVersionHistory,
+      availableVersions,
+      requestedVersion,
+      parseDate
+    )
+    expect(result).toBeNull()
+  })
 })
