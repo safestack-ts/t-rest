@@ -1,5 +1,25 @@
 import { z } from 'zod'
 
+const integerRegex = /^[+-]?\d+$/
+// the decimal point is mandatory before the fraction digits to keep matching linear on long invalid input
+const floatingRegex = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i
+
+const isIntegerString = (value: string) =>
+  integerRegex.test(value) && Number.isSafeInteger(Number(value))
+
+const isFloatingString = (value: string) =>
+  floatingRegex.test(value) && Number.isFinite(Number(value))
+
+const tryParseJSON = (
+  value: string
+): { success: true; data: any } | { success: false } => {
+  try {
+    return { success: true, data: JSON.parse(value) }
+  } catch {
+    return { success: false }
+  }
+}
+
 export namespace ze {
   // Refinements
   export const booleanString = () =>
@@ -8,12 +28,12 @@ export namespace ze {
     })
 
   export const numberString = () =>
-    z.string().refine((value) => !isNaN(+value), {
+    z.string().refine((value) => value.trim() !== '' && !isNaN(+value), {
       message: 'Expected number string',
     })
 
   export const integerString = () =>
-    z.string().refine((value) => Number.isInteger(parseFloat(value)), {
+    z.string().refine(isIntegerString, {
       message: 'Expected integer string',
     })
 
@@ -62,8 +82,10 @@ export namespace ze {
     z.string().refine(
       (value) => {
         const regex =
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-        return regex.test(value)
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        const nilOrMax =
+          /^(?:0{8}-0{4}-0{4}-0{4}-0{12}|f{8}-f{4}-f{4}-f{4}-f{12})$/i
+        return regex.test(value) || nilOrMax.test(value)
       },
       {
         message: 'Expected UUID string',
@@ -73,11 +95,15 @@ export namespace ze {
   export const jsonString = <T extends z.ZodTypeAny>(zodType: T) =>
     z.string().refine(
       (value) => {
+        const parsedJSON = tryParseJSON(value)
+        if (!parsedJSON.success) {
+          return false
+        }
+
+        // the supplied schema may throw inside custom transforms or refinements
         try {
-          const parsedJSON = JSON.parse(value)
-          zodType.parse(parsedJSON)
-          return true
-        } catch (err) {
+          return zodType.safeParse(parsedJSON.data).success
+        } catch {
           return false
         }
       },
@@ -91,7 +117,20 @@ export namespace ze {
   ) =>
     z
       .string()
-      .pipe(z.preprocess((value) => JSON.parse(String(value)), objectValidator))
+      .transform((value, ctx) => {
+        const parsedJSON = tryParseJSON(value)
+
+        if (!parsedJSON.success) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Expected JSON string',
+          })
+          return z.NEVER
+        }
+
+        return parsedJSON.data
+      })
+      .pipe(objectValidator)
       .or(objectValidator)
 
   export const databaseId = () => z.number().int().positive()
@@ -99,28 +138,14 @@ export namespace ze {
   export const parseInteger = (): z.ZodType<number, number | string> =>
     z.union([
       z.number().int(),
-      integerString().transform((value, ctx) => {
-        const parsedValue = parseInt(value, 10)
-
-        if (isNaN(parsedValue)) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'Expected parseable integer string',
-          })
-          return z.NEVER
-        }
-
-        return parsedValue
-      }),
+      integerString().transform((value) => Number(value)),
     ])
 
   export const parseFloating = (): z.ZodType<number, number | string> =>
     z.union([
       z.number(),
       z.string().transform((value, ctx) => {
-        const parsedValue = parseFloat(value)
-
-        if (isNaN(parsedValue)) {
+        if (!isFloatingString(value)) {
           ctx.addIssue({
             code: 'custom',
             message: 'Expected parseable floating number string',
@@ -128,7 +153,7 @@ export namespace ze {
           return z.NEVER
         }
 
-        return parsedValue
+        return Number(value)
       }),
     ])
 
@@ -160,12 +185,38 @@ export namespace ze {
     })
 
   export const parseCSVInteger = () =>
-    z
-      .string()
-      .transform((value) => value.split(',').map((str) => parseInt(str, 10)))
+    z.string().transform((value, ctx) => {
+      if (value.trim().length === 0) {
+        return []
+      }
+
+      const values = value.split(',').map((str) => str.trim())
+
+      if (!values.every(isIntegerString)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Expected comma separated integer string',
+        })
+        return z.NEVER
+      }
+
+      return values.map(Number)
+    })
 
   export const parseJSON = () =>
-    z.string().transform((value) => JSON.parse(value))
+    z.string().transform((value, ctx) => {
+      const parsedJSON = tryParseJSON(value)
+
+      if (!parsedJSON.success) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Expected JSON string',
+        })
+        return z.NEVER
+      }
+
+      return parsedJSON.data
+    })
 
   export const file = () =>
     z.object({
@@ -179,5 +230,5 @@ export namespace ze {
       size: z.number(),
     })
 
-  export const parseDatabaseId = () => parseInteger().pipe(z.number().min(0))
+  export const parseDatabaseId = () => parseInteger().pipe(databaseId())
 }
