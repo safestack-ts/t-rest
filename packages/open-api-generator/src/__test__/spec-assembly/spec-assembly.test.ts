@@ -17,6 +17,7 @@ import reexportWrappedMemberBagOfRoutes from './scenarios/reexport-wrapped-membe
 import reexportWrappedAssignedMemberBagOfRoutes from './scenarios/reexport-wrapped-assigned-member'
 import reexportFactoryMemberAdminFirstBagOfRoutes from './scenarios/reexport-factory-member-admin-first'
 import reexportFactoryMemberCustomerFirstBagOfRoutes from './scenarios/reexport-factory-member-customer-first'
+import reexportFactoryMemberUnusedMutatorBagOfRoutes from './scenarios/reexport-factory-member-unused-mutator'
 
 const tsConfigPath = path.join(__dirname, '../../../', 'tsconfig.json')
 
@@ -217,6 +218,10 @@ describe('spec assembly', () => {
       [
         'reexport-factory-member-customer-first.ts',
         reexportFactoryMemberCustomerFirstBagOfRoutes,
+      ],
+      [
+        'reexport-factory-member-unused-mutator.ts',
+        reexportFactoryMemberUnusedMutatorBagOfRoutes,
       ],
     ])(
       'only uses the routes of the exported member of a bag container (%s)',

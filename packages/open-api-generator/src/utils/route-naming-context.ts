@@ -238,24 +238,25 @@ const dependsOnEnclosingParameter = (
 ) => {
   const visitedDeclarations = new Set<ts.Node>()
 
-  const isEnclosingParameterOrLocal = (
-    declaration: ts.Declaration,
-    site: ts.Node
-  ) => {
+  // parameters of functions that only enclose a write, e.g. an uncalled
+  // `replace(customer) { bags.customer = customer }`, do not supply the value
+  // of `member`, except for the constructor of the class declaring `member`
+  const isEnclosingParameterOrLocal = (declaration: ts.Declaration) => {
     const owner = ts.isParameter(declaration)
       ? declaration.parent
       : ts.findAncestor(declaration.parent, ts.isFunctionLike)
-    return !!owner && containsNode(owner, site)
+    return (
+      !!owner &&
+      (containsNode(owner, member) ||
+        (ts.isConstructorDeclaration(owner) && owner.parent === member.parent))
+    )
   }
 
-  const dependsOnDeclarations = (
-    symbol: ts.Symbol | undefined,
-    site: ts.Node
-  ): boolean =>
+  const dependsOnDeclarations = (symbol: ts.Symbol | undefined): boolean =>
     (symbol?.declarations ?? []).some((declaration) => {
       if (
         visitedDeclarations.has(declaration) ||
-        !isEnclosingParameterOrLocal(declaration, site)
+        !isEnclosingParameterOrLocal(declaration)
       ) {
         return false
       }
@@ -267,38 +268,32 @@ const dependsOnEnclosingParameter = (
       // other locals, e.g. inner functions, are conservatively treated as
       // argument-dependent
       return ts.isVariableDeclaration(declaration) && declaration.initializer
-        ? dependsOnExpression(declaration.initializer, site)
+        ? dependsOnExpression(declaration.initializer)
         : true
     })
 
-  // `site` is the member or write whose value `node` describes
-  const dependsOnExpression = (node: ts.Node, site: ts.Node): boolean => {
+  const dependsOnExpression = (node: ts.Node): boolean => {
     if (ts.isTypeNode(node)) {
       return false
     }
     if (ts.isIdentifier(node)) {
-      return dependsOnDeclarations(typeChecker.getSymbolAtLocation(node), site)
+      return dependsOnDeclarations(typeChecker.getSymbolAtLocation(node))
     }
     return !!ts.forEachChild(
       node,
-      (child) => dependsOnExpression(child, site) || undefined
+      (child) => dependsOnExpression(child) || undefined
     )
   }
 
-  if (
-    getMemberWrites(member, typeChecker).some((write) =>
-      dependsOnExpression(write, write)
-    )
-  ) {
+  if (getMemberWrites(member, typeChecker).some(dependsOnExpression)) {
     return true
   }
   if (ts.isShorthandPropertyAssignment(member)) {
     return dependsOnDeclarations(
-      typeChecker.getShorthandAssignmentValueSymbol(member),
-      member
+      typeChecker.getShorthandAssignmentValueSymbol(member)
     )
   }
-  return !!member.initializer && dependsOnExpression(member.initializer, member)
+  return !!member.initializer && dependsOnExpression(member.initializer)
 }
 
 /**
