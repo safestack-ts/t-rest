@@ -171,15 +171,83 @@ const getDeclarationsToFollow = (
   )
 }
 
+const containsNode = (container: ts.Node, node: ts.Node) =>
+  container.getSourceFile() === node.getSourceFile() &&
+  container.pos <= node.pos &&
+  node.end <= container.end
+
+/**
+ * Whether the value of `member` depends on a parameter of a function that
+ * encloses it, either directly or through local variables of that function,
+ * e.g. `customer` in `function wrap(customer) { return { customer } }`.
+ */
+const dependsOnEnclosingParameter = (
+  member:
+    | ts.PropertyAssignment
+    | ts.ShorthandPropertyAssignment
+    | ts.PropertyDeclaration,
+  typeChecker: ts.TypeChecker
+) => {
+  const visitedDeclarations = new Set<ts.Node>()
+
+  const isEnclosingParameterOrLocal = (declaration: ts.Declaration) => {
+    const owner = ts.isParameter(declaration)
+      ? declaration.parent
+      : ts.findAncestor(declaration.parent, ts.isFunctionLike)
+    return !!owner && containsNode(owner, member)
+  }
+
+  const dependsOnDeclarations = (symbol: ts.Symbol | undefined): boolean =>
+    (symbol?.declarations ?? []).some((declaration) => {
+      if (
+        visitedDeclarations.has(declaration) ||
+        !isEnclosingParameterOrLocal(declaration)
+      ) {
+        return false
+      }
+      visitedDeclarations.add(declaration)
+
+      if (ts.isParameter(declaration)) {
+        return true
+      }
+      // other locals, e.g. inner functions, are conservatively treated as
+      // argument-dependent
+      return ts.isVariableDeclaration(declaration) && declaration.initializer
+        ? dependsOnExpression(declaration.initializer)
+        : true
+    })
+
+  const dependsOnExpression = (node: ts.Node): boolean => {
+    if (ts.isTypeNode(node)) {
+      return false
+    }
+    if (ts.isIdentifier(node)) {
+      return dependsOnDeclarations(typeChecker.getSymbolAtLocation(node))
+    }
+    return !!ts.forEachChild(
+      node,
+      (child) => dependsOnExpression(child) || undefined
+    )
+  }
+
+  if (ts.isShorthandPropertyAssignment(member)) {
+    return dependsOnDeclarations(
+      typeChecker.getShorthandAssignmentValueSymbol(member)
+    )
+  }
+  return !!member.initializer && dependsOnExpression(member.initializer)
+}
+
 /**
  * Object and class members whose value is fully described by their own
  * declaration, so that `container.member` can be followed without visiting
- * the sibling members of `container`. Members declared inside a function are
- * excluded, as their value may depend on the arguments of the call that
- * produced `container`, e.g. `wrap(bag).customer`.
+ * the sibling members of `container`. Members whose value depends on the
+ * arguments of the call that produced `container`, e.g. `wrap(bag).customer`,
+ * are excluded.
  */
 const isMemberValueDeclaration = (
-  declaration: ts.Declaration
+  declaration: ts.Declaration,
+  typeChecker: ts.TypeChecker
 ): declaration is
   | ts.PropertyAssignment
   | ts.ShorthandPropertyAssignment
@@ -187,7 +255,7 @@ const isMemberValueDeclaration = (
   (ts.isPropertyAssignment(declaration) ||
     ts.isShorthandPropertyAssignment(declaration) ||
     (ts.isPropertyDeclaration(declaration) && !!declaration.initializer)) &&
-  !ts.findAncestor(declaration.parent, ts.isFunctionLike)
+  !dependsOnEnclosingParameter(declaration, typeChecker)
 
 /**
  * Walks the route builder call chains reachable from the bag of routes
@@ -272,7 +340,9 @@ export const extractRouteNamingContexts = (
       // is not visited to avoid collecting the routes of sibling members
       if (
         memberDeclarations.length > 0 &&
-        memberDeclarations.every(isMemberValueDeclaration)
+        memberDeclarations.every((declaration) =>
+          isMemberValueDeclaration(declaration, typeChecker)
+        )
       ) {
         followDeclarations(memberDeclarations)
         return

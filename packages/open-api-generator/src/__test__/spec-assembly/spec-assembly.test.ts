@@ -14,6 +14,8 @@ import reexportObjectMemberBagOfRoutes from './scenarios/reexport-object-member'
 import reexportObjectMemberCustomerFirstBagOfRoutes from './scenarios/reexport-object-member-customer-first'
 import reexportClassMethodBagOfRoutes from './scenarios/reexport-class-method'
 import reexportWrappedMemberBagOfRoutes from './scenarios/reexport-wrapped-member'
+import reexportFactoryMemberAdminFirstBagOfRoutes from './scenarios/reexport-factory-member-admin-first'
+import reexportFactoryMemberCustomerFirstBagOfRoutes from './scenarios/reexport-factory-member-customer-first'
 
 const tsConfigPath = path.join(__dirname, '../../../', 'tsconfig.json')
 
@@ -203,6 +205,14 @@ describe('spec assembly', () => {
       ],
       ['reexport-class-method.ts', reexportClassMethodBagOfRoutes],
       ['reexport-wrapped-member.ts', reexportWrappedMemberBagOfRoutes],
+      [
+        'reexport-factory-member-admin-first.ts',
+        reexportFactoryMemberAdminFirstBagOfRoutes,
+      ],
+      [
+        'reexport-factory-member-customer-first.ts',
+        reexportFactoryMemberCustomerFirstBagOfRoutes,
+      ],
     ])(
       'only uses the routes of the exported member of a bag container (%s)',
       (scenario, bagOfRoutes) => {
