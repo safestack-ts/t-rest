@@ -177,9 +177,57 @@ const containsNode = (container: ts.Node, node: ts.Node) =>
   node.end <= container.end
 
 /**
+ * Assignments to the property declared by `member` after its declaration,
+ * e.g. `result.customer = customer` or `this.customer = customer`, searched
+ * within the outermost function or class that encloses `member`.
+ */
+const getMemberWrites = (
+  member:
+    | ts.PropertyAssignment
+    | ts.ShorthandPropertyAssignment
+    | ts.PropertyDeclaration,
+  typeChecker: ts.TypeChecker
+) => {
+  let scope: ts.Node | undefined
+  for (
+    let ancestor: ts.Node | undefined = member.parent;
+    ancestor;
+    ancestor = ancestor.parent
+  ) {
+    if (ts.isFunctionLike(ancestor) || ts.isClassLike(ancestor)) {
+      scope = ancestor
+    }
+  }
+  if (!scope) {
+    return []
+  }
+
+  const writes: ts.Expression[] = []
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      ts.isPropertyAccessExpression(node.left) &&
+      // compared by declaration, as widening the type of an object literal
+      // creates new property symbols
+      typeChecker
+        .getSymbolAtLocation(node.left.name)
+        ?.declarations?.includes(member)
+    ) {
+      writes.push(node.right)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(scope)
+
+  return writes
+}
+
+/**
  * Whether the value of `member` depends on a parameter of a function that
- * encloses it, either directly or through local variables of that function,
- * e.g. `customer` in `function wrap(customer) { return { customer } }`.
+ * encloses it or a later write to it, either directly or through local
+ * variables of that function, e.g. `customer` in
+ * `function wrap(customer) { return { customer } }`.
  */
 const dependsOnEnclosingParameter = (
   member:
@@ -190,18 +238,24 @@ const dependsOnEnclosingParameter = (
 ) => {
   const visitedDeclarations = new Set<ts.Node>()
 
-  const isEnclosingParameterOrLocal = (declaration: ts.Declaration) => {
+  const isEnclosingParameterOrLocal = (
+    declaration: ts.Declaration,
+    site: ts.Node
+  ) => {
     const owner = ts.isParameter(declaration)
       ? declaration.parent
       : ts.findAncestor(declaration.parent, ts.isFunctionLike)
-    return !!owner && containsNode(owner, member)
+    return !!owner && containsNode(owner, site)
   }
 
-  const dependsOnDeclarations = (symbol: ts.Symbol | undefined): boolean =>
+  const dependsOnDeclarations = (
+    symbol: ts.Symbol | undefined,
+    site: ts.Node
+  ): boolean =>
     (symbol?.declarations ?? []).some((declaration) => {
       if (
         visitedDeclarations.has(declaration) ||
-        !isEnclosingParameterOrLocal(declaration)
+        !isEnclosingParameterOrLocal(declaration, site)
       ) {
         return false
       }
@@ -213,29 +267,38 @@ const dependsOnEnclosingParameter = (
       // other locals, e.g. inner functions, are conservatively treated as
       // argument-dependent
       return ts.isVariableDeclaration(declaration) && declaration.initializer
-        ? dependsOnExpression(declaration.initializer)
+        ? dependsOnExpression(declaration.initializer, site)
         : true
     })
 
-  const dependsOnExpression = (node: ts.Node): boolean => {
+  // `site` is the member or write whose value `node` describes
+  const dependsOnExpression = (node: ts.Node, site: ts.Node): boolean => {
     if (ts.isTypeNode(node)) {
       return false
     }
     if (ts.isIdentifier(node)) {
-      return dependsOnDeclarations(typeChecker.getSymbolAtLocation(node))
+      return dependsOnDeclarations(typeChecker.getSymbolAtLocation(node), site)
     }
     return !!ts.forEachChild(
       node,
-      (child) => dependsOnExpression(child) || undefined
+      (child) => dependsOnExpression(child, site) || undefined
     )
   }
 
+  if (
+    getMemberWrites(member, typeChecker).some((write) =>
+      dependsOnExpression(write, write)
+    )
+  ) {
+    return true
+  }
   if (ts.isShorthandPropertyAssignment(member)) {
     return dependsOnDeclarations(
-      typeChecker.getShorthandAssignmentValueSymbol(member)
+      typeChecker.getShorthandAssignmentValueSymbol(member),
+      member
     )
   }
-  return !!member.initializer && dependsOnExpression(member.initializer)
+  return !!member.initializer && dependsOnExpression(member.initializer, member)
 }
 
 /**
