@@ -21,10 +21,15 @@ import { VersionExtractor } from '../types/version-extractor.js'
 import { isDateVersionExtractor } from '../utils/is-date-version-extractor.js'
 import { removePrefixFromPath } from '../utils/remove-prefix-from-path.js'
 import { TypedRouterBase } from './typed-router-base.js'
+import { VersionResolutionError } from './version-resolution-error.js'
 
 export class VersionedRouting {
   // mapping http method and path to potential multiple route versions
   protected readonly routes: HashMap<[HTTPMethod, string], RouteBundle[]> =
+    new HashMap((key) => key.join('-'))
+  // mapping http method and path to the route path which is mounted in express,
+  // i.e. the path of the route version which has been handled first
+  protected readonly mountedPaths: HashMap<[HTTPMethod, string], string> =
     new HashMap((key) => key.join('-'))
   protected readonly router: TypedRouterBase<any, any, string, string[]>
   protected readonly versionHistory: string[]
@@ -57,13 +62,14 @@ export class VersionedRouting {
       const currentRoutes = this.routes.get(key)!
       this.routes.set(
         key,
-        this.getRoutesWithPathParamAliases([
-          ...currentRoutes,
-          { route, handler, middlewares, paramAliases: [] },
-        ])
+        this.getRoutesWithPathParamAliases(
+          [...currentRoutes, { route, handler, middlewares, paramAliases: [] }],
+          this.mountedPaths.get(key)!
+        )
       )
     } else {
       this.routes.set(key, [{ route, handler, middlewares, paramAliases: [] }])
+      this.mountedPaths.set(key, route.path)
 
       this.initRouting(route)
     }
@@ -88,7 +94,8 @@ export class VersionedRouting {
         const { routeToExecute, version } = this.getRouteToExecute(
           method,
           path,
-          this.versionExtractor.extractVersion(request) ??
+          // treat an empty version (e.g. empty header) like a missing version
+          this.versionExtractor.extractVersion(request) ||
             this.versionHistory.at(-1)
         )
 
@@ -113,9 +120,9 @@ export class VersionedRouting {
                 paramAliases
               )
 
-              const validationOutput = await route.validator['~standard'].validate(
-                requestWithParamAliases
-              )
+              const validationOutput = await route.validator[
+                '~standard'
+              ].validate(requestWithParamAliases)
 
               if (validationOutput.issues) {
                 throw new ValidationError(validationOutput.issues)
@@ -162,7 +169,9 @@ export class VersionedRouting {
       return { routeToExecute: firstRoute, version: null }
     } else {
       if (!requestedVersion) {
-        throw new Error('No version specified and no default version found')
+        throw new VersionResolutionError(
+          'No version specified and no default version found'
+        )
       }
 
       const resolvedVersion = isDateVersionExtractor(this.versionExtractor)
@@ -179,7 +188,7 @@ export class VersionedRouting {
           )
 
       if (resolvedVersion === null) {
-        throw new Error(
+        throw new VersionResolutionError(
           `No compatible route version found for requested version ${requestedVersion}`
         )
       }
@@ -201,21 +210,22 @@ export class VersionedRouting {
     }
   }
 
+  // param aliases map the param names of the path mounted in express
+  // to the param names of each route version (by position)
   protected getRoutesWithPathParamAliases(
-    routes: RouteBundle[]
+    routes: RouteBundle[],
+    mountedPath: string
   ): RouteBundle[] {
     const routesSortedByVersion = this.getRoutesSortedByVersion(routes)
+    const mountedParams = mountedPath.match(/:\w+/g) || []
 
     return routesSortedByVersion.map((route) => {
-      const firstRoute = routesSortedByVersion[0]
-      const currentParams = route.route.path.match(/:[a-zA-Z0-9]+/g) || []
-      const firstRouteParams =
-        firstRoute.route.path.match(/:[a-zA-Z0-9]+/g) || []
+      const currentParams = route.route.path.match(/:\w+/g) || []
 
       const paramAliases = currentParams.reduce((aliases, param, index) => {
-        if (param !== firstRouteParams[index]) {
+        if (param !== mountedParams[index]) {
           aliases.push({
-            oldName: firstRouteParams[index].replace(':', ''),
+            oldName: mountedParams[index].replace(':', ''),
             newName: param.replace(':', ''),
             since: route.route.version,
           })
@@ -237,9 +247,12 @@ export class VersionedRouting {
     const newRequest = Object.create(request)
     newRequest.params = { ...request.params }
 
+    // remove all old names first so that swapped param names are not lost
+    paramAliases.forEach((alias) => {
+      delete newRequest.params[alias.oldName]
+    })
     paramAliases.forEach((alias) => {
       newRequest.params[alias.newName] = request.params[alias.oldName]
-      delete newRequest.params[alias.oldName]
     })
 
     return newRequest
@@ -252,11 +265,12 @@ export class VersionedRouting {
 
       if (isDateVersionExtractor(this.versionExtractor)) {
         // Check if versions are dates using this.versionExtractor.parseDate
-        const dateA = this.versionExtractor.parseDate(versionA)
-        const dateB = this.versionExtractor.parseDate(versionB)
+        const timeA = this.versionExtractor.parseDate(versionA).getTime()
+        const timeB = this.versionExtractor.parseDate(versionB).getTime()
 
-        if (dateA && dateB) {
-          return dateA.getTime() - dateB.getTime()
+        // invalid dates fall through to the comparisons below
+        if (!Number.isNaN(timeA) && !Number.isNaN(timeB)) {
+          return timeA - timeB
         }
       }
 
