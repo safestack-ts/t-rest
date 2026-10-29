@@ -40,7 +40,7 @@
         "args": ["run", "${fileBasename}", "--no-file-parallelism"],
         "console": "integratedTerminal",
         "internalConsoleOptions": "neverOpen",
-        "autoAttachChildProcesses": false
+        "autoAttachChildProcesses": true
       },
       {
         "type": "node",
@@ -55,7 +55,7 @@
         "args": ["run", "${fileBasename}", "--no-file-parallelism"],
         "console": "integratedTerminal",
         "internalConsoleOptions": "neverOpen",
-        "autoAttachChildProcesses": false
+        "autoAttachChildProcesses": true
       },
       {
         "type": "node",
@@ -70,7 +70,7 @@
         "args": ["run", "${fileBasename}", "--no-file-parallelism"],
         "console": "integratedTerminal",
         "internalConsoleOptions": "neverOpen",
-        "autoAttachChildProcesses": false
+        "autoAttachChildProcesses": true
       },
     ]
 }
