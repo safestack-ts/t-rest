@@ -66,6 +66,14 @@ describe('parseFloating', () => {
     expect(ze.parseFloating().safeParse('').success).toBe(false)
     expect(ze.parseFloating().safeParse('Infinity').success).toBe(false)
   })
+
+  test('rejects long invalid digit strings in linear time', () => {
+    const start = Date.now()
+    expect(ze.parseFloating().safeParse('1'.repeat(80000) + 'x').success).toBe(
+      false
+    )
+    expect(Date.now() - start).toBeLessThan(500)
+  })
 })
 
 describe('parseCSVInteger', () => {
@@ -121,6 +129,16 @@ describe('jsonString', () => {
     expect(() => schema.safeParse('{bad')).not.toThrow()
     expect(schema.safeParse('{bad').success).toBe(false)
     expect(schema.safeParse('{"a":"1"}').success).toBe(false)
+  })
+
+  test('reports a validation issue when the supplied schema throws', () => {
+    const throwingSchema = ze.jsonString(
+      z.string().transform((value) => JSON.parse(value))
+    )
+    const input = JSON.stringify('{bad')
+
+    expect(() => throwingSchema.safeParse(input)).not.toThrow()
+    expect(throwingSchema.safeParse(input).success).toBe(false)
   })
 })
 

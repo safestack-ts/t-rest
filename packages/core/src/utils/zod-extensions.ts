@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
 const integerRegex = /^[+-]?\d+$/
-const floatingRegex = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i
+// the decimal point is mandatory before the fraction digits to keep matching linear on long invalid input
+const floatingRegex = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i
 
 const isIntegerString = (value: string) =>
   integerRegex.test(value) && Number.isSafeInteger(Number(value))
@@ -95,7 +96,16 @@ export namespace ze {
     z.string().refine(
       (value) => {
         const parsedJSON = tryParseJSON(value)
-        return parsedJSON.success && zodType.safeParse(parsedJSON.data).success
+        if (!parsedJSON.success) {
+          return false
+        }
+
+        // the supplied schema may throw inside custom transforms or refinements
+        try {
+          return zodType.safeParse(parsedJSON.data).success
+        } catch {
+          return false
+        }
       },
       {
         message: 'Expected JSON string',
