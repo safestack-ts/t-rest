@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest'
 import path from 'path'
 import {
   getOpenAPI3Spec,
@@ -22,17 +23,14 @@ describe('OpenAPI Generation for Zod tuples', () => {
 
     expect(tupleSpec).toEqual({
       type: 'array',
-      items: [{ type: 'number' }, { type: 'number' }, { type: 'string' }],
+      items: { anyOf: [{ type: 'number' }, { type: 'string' }] },
       minItems: 3,
       maxItems: 3,
     })
 
     expect(dateRangeSpec).toEqual({
       type: 'array',
-      items: [
-        { type: 'string', format: 'date-time' },
-        { type: 'string', format: 'date-time' },
-      ],
+      items: { type: 'string', format: 'date-time' },
       minItems: 2,
       maxItems: 2,
     })

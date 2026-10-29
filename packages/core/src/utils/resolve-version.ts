@@ -4,7 +4,7 @@ export const resolveVersion = (
   versionHistory: string[],
   availableVersions: string[],
   requestedVersion: string
-) => {
+): string | null => {
   if (availableVersions.includes(requestedVersion)) {
     return requestedVersion
   }
@@ -27,7 +27,7 @@ export const resolveDateVersion = (
   availableVersions: string[],
   requestedVersion: string,
   parseDate: (version: string) => Date
-) => {
+): string | null => {
   const simpleResolvedVersion = resolveVersion(
     versionHistory,
     availableVersions,
@@ -58,5 +58,7 @@ export const resolveDateVersion = (
         return version
       }
     }
+
+    return null
   }
 }

@@ -21,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "test": "TZ=UTC ../../node_modules/.bin/jest --config jest.config.cjs --colors --passWithNoTests"
+    "test": "TZ=UTC vitest run"
   },
   "keywords": [],
   "author": "Yannick Stachelscheid",
@@ -30,13 +30,13 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/node": "^22.13.1",
+    "@types/node": "^22.20.5",
     "zod": "^3.25.0 || ^4.0.0"
   },
   "peerDependencies": {
     "zod": "^3.25.0 || ^4.0.0"
   },
   "dependencies": {
-    "@standard-schema/spec": "^1.0.0"
+    "@standard-schema/spec": "^1.1.0"
   }
 }

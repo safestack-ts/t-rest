@@ -1,9 +1,9 @@
-import 'jest-extended'
+import { describe, expect, test } from 'vitest'
 import { parseBagOfRoutes } from '../../utils/parse-bag-of-routes.js'
 import * as path from 'path'
 
 describe('input types', () => {
-  test.skip('native enum', () => {
+  test('native enum', () => {
     const routes = parseBagOfRoutes(
       path.resolve(__dirname, './examples/native-enum.example.ts'),
       path.resolve(__dirname, '../../../tsconfig.json')
@@ -21,12 +21,13 @@ describe('input types', () => {
               kind: 'enum',
               values: ['PENDING', 'SHIPPED', 'DELIVERED'],
               name: 'OrderStatus',
-              //name: expect.toBeString(),
               type: 'string',
             },
           },
+          required: ['orderStatus'],
         },
       },
+      required: ['query'],
     })
   })
 })

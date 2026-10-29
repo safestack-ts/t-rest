@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest'
 import { parseBagOfRoutes } from '../../utils/parse-bag-of-routes.js'
 import path from 'path'
 import fs from 'fs'
@@ -11,21 +12,21 @@ const tsConfigPath = path.join(__dirname, '../../../', 'tsconfig.json')
 interface RouteTestCase {
   name: string
   modulePath: string
-  expectedOutput: any
 }
 
 /**
  * Helper to run a single test case
  */
 const runTestCase = (testCase: RouteTestCase) => {
-  test(testCase.name, () => {
+  test(testCase.name, async () => {
+    const { expectedResult } = await import(testCase.modulePath)
     const results = parseBagOfRoutes(testCase.modulePath, tsConfigPath)
 
-    if (!isEqual(Array.from(results.values()), testCase.expectedOutput)) {
+    if (!isEqual(Array.from(results.values()), expectedResult)) {
       console.log(JSON.stringify(Array.from(results.values()), null, 2))
     }
 
-    expect(Array.from(results.values())).toEqual(testCase.expectedOutput)
+    expect(Array.from(results.values())).toEqual(expectedResult)
   })
 }
 
@@ -39,15 +40,12 @@ describe('BagOfRoutes Parsing', () => {
       return
     }
 
-    const scenario = require(`./scenarios/${filePath}`)
-
     const name = path.basename(filePath, '.ts').replace(/-/g, ' ')
     const modulePath = path.join(__dirname, 'scenarios', filePath)
 
     runTestCase({
       name,
       modulePath,
-      expectedOutput: scenario.expectedResult,
     })
   })
 })

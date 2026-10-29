@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest'
 import axios from 'axios'
 import nock from 'nock'
 import { RESTClient } from '../classes/rest-client.js'
@@ -31,13 +32,8 @@ const apiClient = RESTClient.withVersioning(
 test('GET request works', async () => {
   const scope = nock('http://localhost')
     .get('/basket')
-    .reply(200, function () {
-      expect(this.req.headers).toMatchObject({
-        'x-version': '2024-03-01',
-      })
-
-      return { id: 1, entries: [] }
-    })
+    .matchHeader('x-version', '2024-03-01')
+    .reply(200, { id: 1, entries: [] })
 
   const response = await apiClient.get('/basket')
 
@@ -49,13 +45,8 @@ test('GET request works', async () => {
 test('POST request works', async () => {
   const scope = nock('http://localhost')
     .post('/basket', { entries: [{ id: 'a' }, { id: 'b' }] })
-    .reply(201, function () {
-      expect(this.req.headers).toMatchObject({
-        'x-version': '2024-03-01',
-      })
-
-      return { id: 42 }
-    })
+    .matchHeader('x-version', '2024-03-01')
+    .reply(201, { id: 42 })
 
   const response = await apiClient.post('/basket', {
     body: {
@@ -71,11 +62,7 @@ test('POST request works', async () => {
 test('path params are replaced', async () => {
   const scope = nock('http://localhost')
     .get('/basket/123/entries')
-    .reply(200, function () {
-      expect(this.req.path).toBe('/basket/123/entries')
-
-      return [{ id: 'a' }, { id: 'b' }]
-    })
+    .reply(200, [{ id: 'a' }, { id: 'b' }])
 
   const response = await apiClient.get('/basket/:basketId/entries', {
     params: {

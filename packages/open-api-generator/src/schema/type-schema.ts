@@ -387,6 +387,7 @@ export const validateTypeDefinition: z.ZodType<TypeDefinition> = z
     namespaceName: z.string().optional(),
     qualifiedName: z.string().optional(),
     schemaName: z.string().optional(),
+    nullable: z.boolean().optional(),
     typeParameters: z
       .record(z.string(), z.lazy(() => validateTypeDefinition))
       .optional(),

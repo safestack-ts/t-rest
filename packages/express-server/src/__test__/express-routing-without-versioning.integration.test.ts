@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest'
 import { BagOfRoutes, Route, ze } from '@t-rest/core'
 import Express from 'express'
 import { z } from 'zod'
