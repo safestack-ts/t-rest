@@ -11,7 +11,7 @@
     "test": "pnpm recursive run test",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "verify": "tsc  --noEmit",
+    "verify": "pnpm -r exec tsc --noEmit -p tsconfig.ref.json",
     "format": "prettier --write \"./**/*.ts\"",
     "changeset:add": "pnpm changeset",
     "changeset:check": "pnpm exec ./scripts/check-changeset-status.sh",
