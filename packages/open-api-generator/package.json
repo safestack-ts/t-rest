@@ -41,6 +41,7 @@
     "@types/debug": "^4.1.13",
     "@types/lodash": "^4.17.27",
     "@types/node": "^22.20.5",
+    "ajv": "^8.20.0",
     "dedent": "^1.7.2",
     "typescript": "^6.0.3",
     "zod": "^3.25.0 || ^4.0.0"
