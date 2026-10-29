@@ -10,6 +10,7 @@ export default BagOfRoutes.withoutVersioning()
             flag: z.boolean().nullable(),
             choice: z.enum(['a', 'b']).nullable(),
             mixed: z.union([z.string(), z.number()]).nullable(),
+            mixedLiterals: z.union([z.literal('x'), z.literal(1)]).nullable(),
             boolOrString: z.union([z.boolean(), z.string()]),
           }),
         })

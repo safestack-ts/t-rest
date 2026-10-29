@@ -1,3 +1,4 @@
+import Ajv from 'ajv'
 import fs from 'fs'
 import path from 'path'
 import { OpenAPIGenerator } from '../../classes/open-api-generator'
@@ -75,6 +76,22 @@ const collectRefs = (value: unknown, refs: string[] = []): string[] => {
   return refs
 }
 
+// validates a value against a generated schema, resolving `#/components/schemas` refs
+const accepts = (
+  schema: GeneratedSchema,
+  target: object,
+  value: unknown
+): boolean => {
+  const ajv = new Ajv({ validateFormats: false })
+  ajv.addKeyword('components')
+  return ajv.validate(
+    { ...target, components: { schemas: schema.components } },
+    value
+  )
+}
+
+const NULL_SCHEMA = { type: 'string', enum: [null], nullable: true }
+
 const expectAllRefsToResolve = (schema: GeneratedSchema) => {
   const danglingRefs = collectRefs(schema).filter(
     (ref) => !(ref.replace('#/components/schemas/', '') in schema.components)
@@ -93,9 +110,12 @@ describe('OpenAPI type conversion', () => {
     })
     expect(response.properties.maybeColor).toEqual({
       type: 'string',
-      enum: ['red', 'blue'],
+      enum: ['red', 'blue', null],
       nullable: true,
     })
+    expect(accepts(schema, response.properties.maybeColor, null)).toBe(true)
+    expect(accepts(schema, response.properties.maybeColor, 'red')).toBe(true)
+    expect(accepts(schema, response.properties.maybeColor, 'green')).toBe(false)
     expect(response.properties.priority).toEqual({
       type: 'number',
       enum: [0, 1],
@@ -140,9 +160,12 @@ describe('OpenAPI type conversion', () => {
       nullable: true,
     })
     expect(response.properties.items.items).toEqual({
-      $ref: '#/components/schemas/Item',
-      nullable: true,
+      oneOf: [{ $ref: '#/components/schemas/Item' }, NULL_SCHEMA],
     })
+    expect(
+      accepts(schema, response.properties.items, [null, { id: 'a' }])
+    ).toBe(true)
+    expect(accepts(schema, response.properties.items, [{}])).toBe(false)
     expect(response.properties.user.properties.email).toEqual({
       type: 'string',
       nullable: true,
@@ -163,10 +186,14 @@ describe('OpenAPI type conversion', () => {
       type: 'string',
       nullable: true,
     })
-    expect(responseSchema(schema, '/nullable-item')).toEqual({
-      $ref: '#/components/schemas/Item',
-      nullable: true,
+    const nullableItem = responseSchema(schema, '/nullable-item')
+    expect(nullableItem).toEqual({
+      oneOf: [{ $ref: '#/components/schemas/Item' }, NULL_SCHEMA],
     })
+    expect(accepts(schema, nullableItem, null)).toBe(true)
+    expect(accepts(schema, nullableItem, { id: 'a' })).toBe(true)
+    expect(accepts(schema, nullableItem, 'a')).toBe(false)
+    expect(schema.components.Item.nullable).toBeUndefined()
     expectAllRefsToResolve(schema)
   })
 
@@ -177,13 +204,31 @@ describe('OpenAPI type conversion', () => {
     expect(body.properties.flag).toEqual({ type: 'boolean', nullable: true })
     expect(body.properties.choice).toEqual({
       type: 'string',
-      enum: ['a', 'b'],
+      enum: ['a', 'b', null],
       nullable: true,
     })
     expect(body.properties.mixed).toEqual({
-      oneOf: [{ type: 'string' }, { type: 'number' }],
-      nullable: true,
+      oneOf: [{ type: 'string' }, { type: 'number' }, NULL_SCHEMA],
     })
+    expect(body.properties.mixedLiterals).toEqual({
+      oneOf: [
+        { type: 'number', enum: [1] },
+        { type: 'string', enum: ['x'] },
+        NULL_SCHEMA,
+      ],
+    })
+
+    for (const [property, values, rejected] of [
+      ['flag', [null, true], 'a'],
+      ['choice', [null, 'a'], 'c'],
+      ['mixed', [null, 'a', 1], true],
+      ['mixedLiterals', [null, 'x', 1], 'y'],
+    ] as const) {
+      values.forEach((value) =>
+        expect(accepts(schema, body.properties[property], value)).toBe(true)
+      )
+      expect(accepts(schema, body.properties[property], rejected)).toBe(false)
+    }
     expect(body.properties.boolOrString).toEqual({
       oneOf: [{ type: 'string' }, { type: 'boolean' }],
     })
@@ -197,7 +242,7 @@ describe('OpenAPI type conversion', () => {
     expect(response.properties.pair).toEqual({
       type: 'array',
       items: {
-        oneOf: [{ $ref: '#/components/schemas/Item' }, { type: 'number' }],
+        anyOf: [{ $ref: '#/components/schemas/Item' }, { type: 'number' }],
       },
       minItems: 2,
       maxItems: 2,
@@ -205,7 +250,7 @@ describe('OpenAPI type conversion', () => {
     expect(response.properties.withArray).toEqual({
       type: 'array',
       items: {
-        oneOf: [
+        anyOf: [
           { $ref: '#/components/schemas/Other' },
           { type: 'array', items: { type: 'number' } },
         ],
@@ -219,6 +264,9 @@ describe('OpenAPI type conversion', () => {
       minItems: 2,
       maxItems: 2,
     })
+    // overlapping element schemas must not reject values matching several of them
+    expect(accepts(schema, response.properties.overlapping, [2, 1])).toBe(true)
+    expect(accepts(schema, response.properties.overlapping, [1, 1])).toBe(true)
     expect(Object.keys(schema.components).sort()).toEqual(['Item', 'Other'])
     expectAllRefsToResolve(schema)
   })
@@ -246,6 +294,18 @@ describe('OpenAPI type conversion', () => {
     expect(response.properties.first).toEqual(response.properties.second)
     expect(response.properties.first.allOf).toBeDefined()
 
+    expectAllRefsToResolve(schema)
+  })
+
+  test('nested named path params share components with responses (#30)', () => {
+    const schema = scenario('nested-parameter-components')
+
+    expect(responseSchema(schema, '/addresses')).toEqual({
+      $ref: '#/components/schemas/Address',
+    })
+    expect(schema.components.Address.properties.city).toEqual({
+      $ref: '#/components/schemas/City',
+    })
     expectAllRefsToResolve(schema)
   })
 

@@ -9,6 +9,7 @@ export default BagOfRoutes.withoutVersioning()
       pair: [Item, number]
       withArray: [Other, number[]]
       same: [string, string]
+      overlapping: [number, 1]
     }>()
   )
   .build()

@@ -256,7 +256,7 @@ export abstract class OpenAPIGenerator {
               ...Object.assign(
                 {},
                 ...inlinedParameterTypes.map(
-                  (type) => getOpenAPI3Spec(type, false).components
+                  (type) => getOpenAPI3Spec(type, true).components
                 )
               ),
               ...(bodySchema?.components ?? {}),

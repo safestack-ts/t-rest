@@ -1582,6 +1582,16 @@ type ResolveTypeToOpenAPI3Args = {
   replaceRefs: boolean
 }
 
+// OpenAPI 3.0 applies `nullable` only alongside an explicit `type` in the same schema
+// and ignores siblings of `$ref`, so schemas without a `type` accept null through this
+// null-only alternative instead
+const NULL_SCHEMA = { type: 'string', enum: [null], nullable: true }
+
+const withNullAlternative = (
+  schema: Record<string, unknown>,
+  nullable: boolean
+) => (nullable ? { oneOf: [schema, NULL_SCHEMA] } : schema)
+
 function resolveTypeToOpenAPI3({
   type,
   components,
@@ -1616,7 +1626,7 @@ function resolveTypeToOpenAPI3({
         ...(nullable ? { nullable: true } : {}),
       }
     case 'null':
-      return { nullable: true }
+      return NULL_SCHEMA
     case 'array': {
       const items = type.items
         ? resolveTypeToOpenAPI3({
@@ -1638,7 +1648,8 @@ function resolveTypeToOpenAPI3({
     }
     case 'tuple': {
       // OpenAPI 3.0 does not support positional `items`, so tuples become
-      // fixed-length arrays whose items match any of the element schemas
+      // fixed-length arrays whose items match any of the element schemas.
+      // Element schemas may overlap (e.g. `[number, 1]`), hence `anyOf` over `oneOf`
       const items = uniqWith(
         type.elementTypes.map((t) =>
           resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
@@ -1652,7 +1663,7 @@ function resolveTypeToOpenAPI3({
             ? {}
             : items.length === 1
               ? items[0]
-              : { oneOf: items },
+              : { anyOf: items },
         minItems: type.elementTypes.length,
         maxItems: type.elementTypes.length,
         ...(nullable ? { nullable: true } : {}),
@@ -1675,10 +1686,10 @@ function resolveTypeToOpenAPI3({
         components[componentKey] = baseObjectSpec
 
         if (replaceRefs) {
-          return {
-            $ref: `#/components/schemas/${componentKey}`,
-            ...(nullable ? { nullable: true } : {}),
-          }
+          return withNullAlternative(
+            { $ref: `#/components/schemas/${componentKey}` },
+            nullable
+          )
         }
       }
 
@@ -1699,12 +1710,12 @@ function resolveTypeToOpenAPI3({
       }
     }
     case 'union': {
-      // `null` members are expressed via `nullable` instead of a typeless `oneOf` member
+      // `null` members are expressed via a single null-only alternative
       const nonNullTypes = type.types.filter((t) => t.kind !== 'null')
       const isNullable = nullable || nonNullTypes.length !== type.types.length
 
       if (nonNullTypes.length === 0) {
-        return { nullable: true }
+        return NULL_SCHEMA
       }
       if (nonNullTypes.length === 1) {
         return resolveTypeToOpenAPI3({
@@ -1727,17 +1738,18 @@ function resolveTypeToOpenAPI3({
         )
       }
       return {
-        oneOf: unionTypes,
-        ...(isNullable ? { nullable: true } : {}),
+        oneOf: [...unionTypes, ...(isNullable ? [NULL_SCHEMA] : [])],
       }
     }
     case 'intersection':
-      return {
-        allOf: type.types.map((t) =>
-          resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
-        ),
-        ...(nullable ? { nullable: true } : {}),
-      }
+      return withNullAlternative(
+        {
+          allOf: type.types.map((t) =>
+            resolveTypeToOpenAPI3({ type: t, components, replaceRefs })
+          ),
+        },
+        nullable
+      )
     case 'literal':
       return resolveEnumToOpenAPI3([type.value], nullable)
     case 'date':
@@ -1787,20 +1799,17 @@ function resolveTypeToOpenAPI3({
     case 'enum':
       return resolveEnumToOpenAPI3(type.values, nullable)
     case 'generic':
-      return {
-        ...resolveTypeToOpenAPI3({
-          type: type.structure,
-          components,
-          replaceRefs,
-        }),
-        ...(nullable ? { nullable: true } : {}),
-      }
+      return resolveTypeToOpenAPI3({
+        type: nullable ? { ...type.structure, nullable } : type.structure,
+        components,
+        replaceRefs,
+      })
     case 'ref': {
       const componentKey = type.schemaName ?? type.name
-      return {
-        $ref: `#/components/schemas/${componentKey}`,
-        ...(nullable ? { nullable: true } : {}),
-      }
+      return withNullAlternative(
+        { $ref: `#/components/schemas/${componentKey}` },
+        nullable
+      )
     }
     case 'any':
     case 'unknown':
@@ -1827,15 +1836,14 @@ const resolveEnumToOpenAPI3 = (
   )
 
   if (enumSchemas.length === 1) {
-    return {
-      ...enumSchemas[0],
-      ...(nullable ? { nullable: true } : {}),
-    }
+    // `nullable` does not override `enum` membership, so null must be listed as well
+    return nullable
+      ? { ...enumSchemas[0], enum: [...enumSchemas[0].enum, null], nullable }
+      : enumSchemas[0]
   }
 
   return {
-    oneOf: enumSchemas,
-    ...(nullable ? { nullable: true } : {}),
+    oneOf: [...enumSchemas, ...(nullable ? [NULL_SCHEMA] : [])],
   }
 }
 

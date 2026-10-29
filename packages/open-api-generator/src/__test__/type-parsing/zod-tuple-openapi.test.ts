@@ -22,7 +22,7 @@ describe('OpenAPI Generation for Zod tuples', () => {
 
     expect(tupleSpec).toEqual({
       type: 'array',
-      items: { oneOf: [{ type: 'number' }, { type: 'string' }] },
+      items: { anyOf: [{ type: 'number' }, { type: 'string' }] },
       minItems: 3,
       maxItems: 3,
     })
