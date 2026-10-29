@@ -1592,6 +1592,16 @@ const withNullAlternative = (
   nullable: boolean
 ) => (nullable ? { oneOf: [schema, NULL_SCHEMA] } : schema)
 
+// nested unions are inlined, carrying their nullability over to their members
+const flattenUnionMembers = (types: TypeDefinition[]): TypeDefinition[] =>
+  types.flatMap((t) =>
+    t.kind === 'union'
+      ? flattenUnionMembers(
+          t.nullable ? [...t.types, { kind: 'null' }] : t.types
+        )
+      : [t]
+  )
+
 function resolveTypeToOpenAPI3({
   type,
   components,
@@ -1710,9 +1720,14 @@ function resolveTypeToOpenAPI3({
       }
     }
     case 'union': {
-      // `null` members are expressed via a single null-only alternative
-      const nonNullTypes = type.types.filter((t) => t.kind !== 'null')
-      const isNullable = nullable || nonNullTypes.length !== type.types.length
+      // `null` members and member nullability are expressed via a single null-only
+      // alternative, since `oneOf` rejects null when several alternatives accept it
+      const memberTypes = flattenUnionMembers(type.types)
+      const nonNullTypes = memberTypes
+        .filter((t) => t.kind !== 'null')
+        .map((t) => (t.nullable ? { ...t, nullable: false } : t))
+      const isNullable =
+        nullable || memberTypes.some((t) => t.kind === 'null' || t.nullable)
 
       if (nonNullTypes.length === 0) {
         return NULL_SCHEMA

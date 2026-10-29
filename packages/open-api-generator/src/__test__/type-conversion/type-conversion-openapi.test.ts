@@ -18,7 +18,10 @@ type GeneratedSchema = {
   components: Record<string, any>
 }
 
-const generateSchema = (entryPath: string): GeneratedSchema => {
+const generateSchema = (
+  entryPath: string,
+  meta: OpenAPIMetaData = metaData
+): GeneratedSchema => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const bagOfRoutes = require(entryPath).default
 
@@ -37,14 +40,14 @@ const generateSchema = (entryPath: string): GeneratedSchema => {
     bagOfRoutes,
     entryPath,
     tsConfigPath,
-    metaData,
+    meta,
     () => true,
     {}
   )
 }
 
-const scenario = (name: string) =>
-  generateSchema(path.join(__dirname, 'scenarios', `${name}.ts`))
+const scenario = (name: string, meta?: OpenAPIMetaData) =>
+  generateSchema(path.join(__dirname, 'scenarios', `${name}.ts`), meta)
 
 const responseSchema = (
   schema: GeneratedSchema,
@@ -233,6 +236,45 @@ describe('OpenAPI type conversion', () => {
       oneOf: [{ type: 'string' }, { type: 'boolean' }],
     })
     expectAllRefsToResolve(schema)
+  })
+
+  test('nullable unions with nullable members accept null exactly once (#23)', () => {
+    const schema = scenario('nullable-unions', {
+      ...metaData,
+      headers: [
+        {
+          name: 'x-choice',
+          type: {
+            kind: 'union',
+            nullable: true,
+            types: [
+              { kind: 'string', nullable: true },
+              { kind: 'number' },
+              {
+                kind: 'union',
+                types: [{ kind: 'boolean' }, { kind: 'null' }],
+              },
+            ],
+          },
+        },
+      ],
+    })
+    const header = schema.paths['/nullable-unions'].post.parameters.find(
+      (parameter: { name: string }) => parameter.name === 'x-choice'
+    ).schema
+
+    expect(header).toEqual({
+      oneOf: [
+        { type: 'string' },
+        { type: 'number' },
+        { type: 'boolean' },
+        NULL_SCHEMA,
+      ],
+    })
+    for (const value of [null, 'a', 1, true]) {
+      expect(accepts(schema, header, value)).toBe(true)
+    }
+    expect(accepts(schema, header, {})).toBe(false)
   })
 
   test('tuples are converted to valid OpenAPI 3.0 arrays (#24)', () => {
