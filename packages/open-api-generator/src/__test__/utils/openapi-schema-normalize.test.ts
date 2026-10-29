@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest'
 import {
   hashOpenAPISchema,
   normalizeOpenAPISchema,
@@ -25,7 +26,7 @@ describe('openapi schema normalize', () => {
     }
 
     expect(hashOpenAPISchema(left)).toEqual(hashOpenAPISchema(right))
-    expect(openAPISchemaShapeEqual(left, right)).toBeTrue()
+    expect(openAPISchemaShapeEqual(left, right)).toBe(true)
   })
 
   test('creates equal hash when required order differs', () => {
@@ -82,7 +83,7 @@ describe('openapi schema normalize', () => {
     }
 
     expect(hashOpenAPISchema(left)).not.toEqual(hashOpenAPISchema(right))
-    expect(openAPISchemaShapeEqual(left, right)).toBeFalse()
+    expect(openAPISchemaShapeEqual(left, right)).toBe(false)
   })
 
   test('keeps $ref identity and handles nested oneOf or allOf', () => {
@@ -161,7 +162,7 @@ describe('openapi schema normalize', () => {
     }
 
     expect(hashOpenAPISchema(left)).toEqual(hashOpenAPISchema(right))
-    expect(openAPISchemaShapeEqual(left, right)).toBeTrue()
+    expect(openAPISchemaShapeEqual(left, right)).toBe(true)
   })
 
   test('creates equal hash when allOf item order differs', () => {
@@ -204,7 +205,7 @@ describe('openapi schema normalize', () => {
     }
 
     expect(hashOpenAPISchema(left)).toEqual(hashOpenAPISchema(right))
-    expect(openAPISchemaShapeEqual(left, right)).toBeTrue()
+    expect(openAPISchemaShapeEqual(left, right)).toBe(true)
   })
 
   test('removes undefined keys while normalizing', () => {

@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest'
 import path from 'path'
 import { OpenAPIGenerator } from '../../classes/open-api-generator'
 import type { OpenAPIMetaData } from '../../types/open-api-meta-data'

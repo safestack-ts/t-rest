@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest'
 import { joinPath } from './join-path.js'
 
 test('joins prefix and path', () => {

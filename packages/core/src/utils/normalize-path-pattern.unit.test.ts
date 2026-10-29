@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest'
 import { normalizePathPattern } from './normalize-path-pattern.js'
 
 test('replaces path params with placeholder', () => {

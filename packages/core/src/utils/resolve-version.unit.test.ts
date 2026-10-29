@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest'
 import { resolveDateVersion, resolveVersion } from './resolve-version.js'
 
 const dateVersionHistory = [

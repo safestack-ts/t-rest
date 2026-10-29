@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest'
 import axios from 'axios'
 import nock from 'nock'
 import { RESTClient } from '../classes/rest-client.js'

@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest'
 import { buildUrl } from './build-url.js'
 
 const url = '/account/:accountId/persons/:personId'

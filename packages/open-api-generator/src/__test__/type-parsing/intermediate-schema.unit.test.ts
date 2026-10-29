@@ -1,4 +1,4 @@
-import 'jest-extended'
+import { describe, expect, test } from 'vitest'
 import { parseBagOfRoutes } from '../../utils/parse-bag-of-routes.js'
 import * as path from 'path'
 
@@ -21,7 +21,6 @@ describe('input types', () => {
               kind: 'enum',
               values: ['PENDING', 'SHIPPED', 'DELIVERED'],
               name: 'OrderStatus',
-              //name: expect.toBeString(),
               type: 'string',
             },
           },
