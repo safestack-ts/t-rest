@@ -2,7 +2,7 @@
 module.exports = {
   testRegex: '(?<!type)\\.(test|spec)\\.ts$',
   moduleFileExtensions: ['js', 'json', 'ts'],
-  transform: { '^.+\\.ts$': ['ts-jest', { isolatedModules: true }] },
+  transform: { '^.+\\.ts$': 'ts-jest' },
   testEnvironment: 'node',
   setupFilesAfterEnv: ['jest-expect-message', 'jest-extended/all'],
   preset: 'ts-jest',

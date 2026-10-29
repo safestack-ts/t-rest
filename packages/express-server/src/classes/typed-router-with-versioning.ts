@@ -82,7 +82,7 @@ export class TypedRouterWithVersioning<
   > {
     const newRouter = new TypedRouterWithVersioning(
       this.routes,
-      Express.Router(),
+      Express.Router({ mergeParams: true }),
       joinPath(this.path, path),
       this.versioning,
       this.versionHistory,

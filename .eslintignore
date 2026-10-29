@@ -1,8 +1,0 @@
-__test__
-node_modules
-dist
-build
-.husky
-.vscode
-.eslintrc.js
-.env

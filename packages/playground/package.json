@@ -20,8 +20,8 @@
   "dependencies": {
     "@t-rest/client": "workspace:*",
     "@t-rest/core": "workspace:*",
-    "axios": "^1.13.6",
-    "zod": "^4.0.0"
+    "axios": "^1.21.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@t-rest/testing-utilities": "workspace:*"
