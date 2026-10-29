@@ -30,13 +30,13 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/node": "^22.13.1",
+    "@types/node": "^22.20.5",
     "zod": "^3.25.0 || ^4.0.0"
   },
   "peerDependencies": {
     "zod": "^3.25.0 || ^4.0.0"
   },
   "dependencies": {
-    "@standard-schema/spec": "^1.0.0"
+    "@standard-schema/spec": "^1.1.0"
   }
 }
