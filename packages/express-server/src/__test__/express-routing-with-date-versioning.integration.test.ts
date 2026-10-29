@@ -19,7 +19,6 @@ import {
 import { BagOfRoutes, Route, Versioning, ze } from '@t-rest/core'
 import { z } from 'zod'
 import { defineMiddleware } from '../utils/define-middleware.js'
-import 'express-async-errors'
 
 const { bagOfRoutes: baseBagOfRoutes, versionHistory } =
   TestBagOfRoutesWithVersioning

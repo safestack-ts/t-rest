@@ -7,7 +7,6 @@ import { z } from 'zod'
 import { DateVersionExtractor } from '../types/date-version-extractor.js'
 import { TypedExpressApplication } from '../classes/typed-express-application.js'
 import { ExpressRequest } from '../types/express-type-shortcuts.js'
-import 'express-async-errors'
 
 const versionHistory = VersionHistory([
   '2024-01-01',

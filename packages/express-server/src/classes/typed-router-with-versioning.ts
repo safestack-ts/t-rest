@@ -82,6 +82,7 @@ export class TypedRouterWithVersioning<
   > {
     const newRouter = new TypedRouterWithVersioning(
       this.routes,
+      // branch paths can contain params, which handlers of the branch need to see
       Express.Router({ mergeParams: true }),
       joinPath(this.path, path),
       this.versioning,
