@@ -13,6 +13,7 @@ import reexportValidatorContextBagOfRoutes from './scenarios/reexport-validator-
 import reexportObjectMemberBagOfRoutes from './scenarios/reexport-object-member'
 import reexportObjectMemberCustomerFirstBagOfRoutes from './scenarios/reexport-object-member-customer-first'
 import reexportClassMethodBagOfRoutes from './scenarios/reexport-class-method'
+import reexportWrappedMemberBagOfRoutes from './scenarios/reexport-wrapped-member'
 
 const tsConfigPath = path.join(__dirname, '../../../', 'tsconfig.json')
 
@@ -201,6 +202,7 @@ describe('spec assembly', () => {
         reexportObjectMemberCustomerFirstBagOfRoutes,
       ],
       ['reexport-class-method.ts', reexportClassMethodBagOfRoutes],
+      ['reexport-wrapped-member.ts', reexportWrappedMemberBagOfRoutes],
     ])(
       'only uses the routes of the exported member of a bag container (%s)',
       (scenario, bagOfRoutes) => {

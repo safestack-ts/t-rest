@@ -174,7 +174,9 @@ const getDeclarationsToFollow = (
 /**
  * Object and class members whose value is fully described by their own
  * declaration, so that `container.member` can be followed without visiting
- * the sibling members of `container`.
+ * the sibling members of `container`. Members declared inside a function are
+ * excluded, as their value may depend on the arguments of the call that
+ * produced `container`, e.g. `wrap(bag).customer`.
  */
 const isMemberValueDeclaration = (
   declaration: ts.Declaration
@@ -182,9 +184,10 @@ const isMemberValueDeclaration = (
   | ts.PropertyAssignment
   | ts.ShorthandPropertyAssignment
   | ts.PropertyDeclaration =>
-  ts.isPropertyAssignment(declaration) ||
-  ts.isShorthandPropertyAssignment(declaration) ||
-  (ts.isPropertyDeclaration(declaration) && !!declaration.initializer)
+  (ts.isPropertyAssignment(declaration) ||
+    ts.isShorthandPropertyAssignment(declaration) ||
+    (ts.isPropertyDeclaration(declaration) && !!declaration.initializer)) &&
+  !ts.findAncestor(declaration.parent, ts.isFunctionLike)
 
 /**
  * Walks the route builder call chains reachable from the bag of routes
