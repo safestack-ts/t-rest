@@ -61,7 +61,7 @@ export class TypedRouterWithoutVersioning<
   > {
     const newRouter = new TypedRouterWithoutVersioning(
       this.routes,
-      Express.Router(),
+      Express.Router({ mergeParams: true }),
       joinPath(this.path, path)
     ) as TypedRouterWithoutVersioning<
       TRoutes,
