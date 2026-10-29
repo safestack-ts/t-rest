@@ -321,6 +321,19 @@ const isMemberValueDeclaration = (
  * TypeScript erases for transparent re-exports. Identifiers are followed to
  * their declarations, so routes defined in other variables or modules are
  * included, while unrelated bags in the same program are not.
+ *
+ * This is a best-effort static analysis. Supported exports of a selected
+ * member, e.g. `container.customer`, are:
+ * - object and class members whose value is declared inline, including
+ *   containers created by factories or class methods
+ * - members populated from the arguments of the call producing the container,
+ *   either in their initializer or by a direct assignment in that function,
+ *   e.g. `wrap(bag).customer`
+ *
+ * Values flowing in through other indirections, e.g. nested helpers invoked
+ * to populate a member, callbacks or `Object.assign`, are not tracked. Such
+ * members lose their namespace context and fall back to short component
+ * names.
  */
 export const extractRouteNamingContexts = (
   entryNode: ts.Node,
