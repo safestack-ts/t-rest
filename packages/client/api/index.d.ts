@@ -1,28 +1,33 @@
 import { AxiosRequestConfig, AxiosInstance } from 'axios';
 import * as _t_rest_core from '@t-rest/core';
-import { HTTPMethod, AnyRouteDef, BagOfRoutes, Versioning, ExtractLatestMatchingRoutePerPath, NewerVersions, VersioningRequired, RouteValidationInput } from '@t-rest/core';
+import { JsonResponseDescriptor, TextResponseDescriptor, BinaryResponseDescriptor, EmptyResponseDescriptor, ResponseMap, HTTPMethod, AnyRouteDef, BagOfRoutes, Versioning, ExtractLatestMatchingRoutePerPath, NewerVersions, VersioningRequired, RouteValidationInput } from '@t-rest/core';
 import { BaseRequestInput, VersionConvention } from '@t-rest/protocol';
 
 type RequestConfig = {
     headers?: Record<string, string | number | boolean>;
 };
 
-type HTTPResponse<TResponse> = {
-    data: TResponse;
-    statusCode: number;
-};
+type ResponseData<TDescriptor> = TDescriptor extends JsonResponseDescriptor<infer TBody> ? TBody : TDescriptor extends TextResponseDescriptor<string> ? string : TDescriptor extends BinaryResponseDescriptor ? ArrayBuffer : TDescriptor extends EmptyResponseDescriptor ? undefined : never;
+/** Discriminated union of the responses a route declares, by `statusCode`. */
+type HTTPResponse<TResponses> = TResponses extends unknown ? {
+    [TStatus in keyof TResponses & number]: {
+        data: ResponseData<TResponses[TStatus]>;
+        statusCode: TStatus;
+    };
+}[keyof TResponses & number] : never;
 
 interface HTTPAdapter<TRequestContext = {}> {
-    request<TResponse>(method: HTTPMethod, url: string, data: unknown, requestConfig?: RequestConfig & TRequestContext): Promise<HTTPResponse<TResponse>>;
+    /**
+     * Resolves for the statuses declared in `responses` and rejects for all
+     * others. `responses` holds the descriptors of the route of the request.
+     */
+    request<TResponses extends ResponseMap>(method: HTTPMethod, url: string, data: unknown, responses: TResponses, requestConfig?: RequestConfig & TRequestContext): Promise<HTTPResponse<TResponses>>;
 }
 
 declare class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
     private readonly axiosInstance;
     constructor(axiosInstance: AxiosInstance);
-    request<TResponse>(method: HTTPMethod, url: string, data: unknown, requestConfig?: RequestConfig & AxiosRequestConfig): Promise<{
-        data: TResponse;
-        statusCode: number;
-    }>;
+    request<TResponses extends ResponseMap>(method: HTTPMethod, url: string, data: unknown, responses: TResponses, requestConfig?: RequestConfig & AxiosRequestConfig): Promise<HTTPResponse<TResponses>>;
 }
 
 declare abstract class VersionInjector {
@@ -41,7 +46,9 @@ declare abstract class RESTClientBase<TRoutes extends AnyRouteDef, TVersionHisto
     protected readonly httpAdapter: HTTPAdapter<TRequestContext>;
     protected readonly versionInjector: VersionInjector;
     constructor(routes: BagOfRoutes<TRoutes, Versioning, TVersionHistory>, httpAdapter: HTTPAdapter<TRequestContext>, versionInjector: VersionInjector);
-    protected request<TMethod extends HTTPMethod, TResponse, TRequestConfig extends BaseRequestInput & RequestConfig & TRequestContext>(method: TMethod, path: string, requestConfig?: TRequestConfig): Promise<HTTPResponse<TResponse>>;
+    private routeOf;
+    protected routeVersion(_method: HTTPMethod, _path: string): string;
+    protected request<TMethod extends HTTPMethod, TResponses extends ResponseMap, TRequestConfig extends BaseRequestInput & RequestConfig & TRequestContext>(method: TMethod, path: string, requestConfig?: TRequestConfig): Promise<HTTPResponse<TResponses>>;
 }
 
 type RequestArgs<TRequestInput, TPath extends string, TRequestContext> = {} extends TRequestInput ? [
@@ -56,6 +63,7 @@ declare class RESTClientWithVersioning<TRoutes extends AnyRouteDef, TVersion ext
     protected readonly version: TVersion;
     protected readonly versionInjectorConstructor: VersionInjectorConstructor;
     constructor(routes: BagOfRoutes<TRoutes, Versioning, TVersionHistory>, version: TVersion, httpAdapter: HTTPAdapter<TRequestContext>, versionInjectorConstructor: VersionInjectorConstructor);
+    protected routeVersion(method: HTTPMethod, path: string): string;
     private makeRouteHandler;
     get: <TAbsolutePath extends ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "GET";
@@ -65,7 +73,7 @@ declare class RESTClientWithVersioning<TRoutes extends AnyRouteDef, TVersion ext
     }>, TVersion, TVersionHistory>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "GET";
         path: TAbsolutePath;
-    }>, TVersion, TVersionHistory>["~responseType"]>>;
+    }>, TVersion, TVersionHistory>["~responses"]>>;
     post: <TAbsolutePath extends ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "POST";
     }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
@@ -74,7 +82,7 @@ declare class RESTClientWithVersioning<TRoutes extends AnyRouteDef, TVersion ext
     }>, TVersion, TVersionHistory>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "POST";
         path: TAbsolutePath;
-    }>, TVersion, TVersionHistory>["~responseType"]>>;
+    }>, TVersion, TVersionHistory>["~responses"]>>;
     put: <TAbsolutePath extends ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "PUT";
     }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
@@ -83,7 +91,7 @@ declare class RESTClientWithVersioning<TRoutes extends AnyRouteDef, TVersion ext
     }>, TVersion, TVersionHistory>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "PUT";
         path: TAbsolutePath;
-    }>, TVersion, TVersionHistory>["~responseType"]>>;
+    }>, TVersion, TVersionHistory>["~responses"]>>;
     patch: <TAbsolutePath extends ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "PATCH";
     }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
@@ -92,7 +100,7 @@ declare class RESTClientWithVersioning<TRoutes extends AnyRouteDef, TVersion ext
     }>, TVersion, TVersionHistory>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "PATCH";
         path: TAbsolutePath;
-    }>, TVersion, TVersionHistory>["~responseType"]>>;
+    }>, TVersion, TVersionHistory>["~responses"]>>;
     delete: <TAbsolutePath extends ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "DELETE";
     }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
@@ -101,7 +109,7 @@ declare class RESTClientWithVersioning<TRoutes extends AnyRouteDef, TVersion ext
     }>, TVersion, TVersionHistory>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "DELETE";
         path: TAbsolutePath;
-    }>, TVersion, TVersionHistory>["~responseType"]>>;
+    }>, TVersion, TVersionHistory>["~responses"]>>;
     withVersion<TNewVersion extends NewerVersions<TVersionHistory, TVersion>>(version: TNewVersion): RESTClientWithVersioning<TRoutes, TNewVersion, TVersionHistory, TRequestContext>;
 }
 
@@ -116,7 +124,7 @@ declare class RESTClientWithoutVersioning<TRoutes extends AnyRouteDef, TRequestC
     }>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
         method: "GET";
         path: TAbsolutePath;
-    }>["~responseType"]>>;
+    }>["~responses"]>>;
     post: <TAbsolutePath extends Extract<TRoutes, {
         method: "POST";
     }>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<Extract<TRoutes, {
@@ -125,7 +133,7 @@ declare class RESTClientWithoutVersioning<TRoutes extends AnyRouteDef, TRequestC
     }>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
         method: "POST";
         path: TAbsolutePath;
-    }>["~responseType"]>>;
+    }>["~responses"]>>;
     put: <TAbsolutePath extends Extract<TRoutes, {
         method: "PUT";
     }>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<Extract<TRoutes, {
@@ -134,7 +142,7 @@ declare class RESTClientWithoutVersioning<TRoutes extends AnyRouteDef, TRequestC
     }>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
         method: "PUT";
         path: TAbsolutePath;
-    }>["~responseType"]>>;
+    }>["~responses"]>>;
     patch: <TAbsolutePath extends Extract<TRoutes, {
         method: "PATCH";
     }>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<Extract<TRoutes, {
@@ -143,7 +151,7 @@ declare class RESTClientWithoutVersioning<TRoutes extends AnyRouteDef, TRequestC
     }>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
         method: "PATCH";
         path: TAbsolutePath;
-    }>["~responseType"]>>;
+    }>["~responses"]>>;
     delete: <TAbsolutePath extends Extract<TRoutes, {
         method: "DELETE";
     }>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<Extract<TRoutes, {
@@ -152,7 +160,7 @@ declare class RESTClientWithoutVersioning<TRoutes extends AnyRouteDef, TRequestC
     }>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
         method: "DELETE";
         path: TAbsolutePath;
-    }>["~responseType"]>>;
+    }>["~responses"]>>;
 }
 
 declare abstract class RESTClient<TRoutes extends AnyRouteDef, TVersionHistory extends string[], TRequestContext> extends RESTClientBase<TRoutes, TVersionHistory, TRequestContext> {

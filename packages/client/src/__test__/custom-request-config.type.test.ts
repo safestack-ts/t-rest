@@ -1,4 +1,4 @@
-import { demoBagOfRoutes, HTTPMethod } from '@t-rest/core'
+import { demoBagOfRoutes, HTTPMethod, ResponseMap } from '@t-rest/core'
 import { HTTPAdapter } from '../types/http-adapter.js'
 import { RequestConfig } from '../types/request-config.js'
 import { HTTPResponse } from '../types/http-response.js'
@@ -19,12 +19,13 @@ type MyRequestConfig = {
 }
 
 class MyHttpAdapter implements HTTPAdapter<MyRequestConfig> {
-  request<TResponse>(
+  request<TResponses extends ResponseMap>(
     method: HTTPMethod,
     url: string,
     data: unknown,
+    responses: TResponses,
     requestConfig?: RequestConfig & MyRequestConfig
-  ): Promise<HTTPResponse<TResponse>> {
+  ): Promise<HTTPResponse<TResponses>> {
     throw new Error('Method not implemented.')
   }
 }
