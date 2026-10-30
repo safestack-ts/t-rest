@@ -1,5 +1,6 @@
 import { BagOfRoutes } from '../classes/core/bag-of-routes.js'
 import { HTTPMethod } from './http-method.js'
+import { BodyOf } from './response-descriptor.js'
 
 export type RouteInput<
   TBagOfRoutes extends BagOfRoutes<any, any, any>,
@@ -19,8 +20,7 @@ export type RouteOutput<
   TPath extends string,
   TVersion extends string = ''
 > = TBagOfRoutes extends BagOfRoutes<infer TRoutes, any, any>
-  ? Extract<
-      TRoutes,
-      { method: TMethod; path: TPath; version: TVersion }
-    >['~responseType']
+  ? BodyOf<
+      Extract<TRoutes, { method: TMethod; path: TPath; version: TVersion }>
+    >
   : never

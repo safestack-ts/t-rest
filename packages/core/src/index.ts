@@ -41,6 +41,7 @@ export * from './types/prefix-matching-routes.js'
 export * from './types/bag-of-routes-versions.js'
 export * from './types/without-double-slash.js'
 export * from './types/route-input-output.js'
+export * from './types/response-descriptor.js'
 
 // utils
 export * from './utils/combine.js'
@@ -56,3 +57,4 @@ export * from './utils/find-nearest-lower-date.js'
 export * from './utils/is-defined.js'
 export * from './utils/normalize-path-pattern.js'
 export * from './utils/empty-validation.js'
+export * from './utils/response-descriptors.js'

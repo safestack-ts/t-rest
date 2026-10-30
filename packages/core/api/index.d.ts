@@ -11,15 +11,16 @@ declare enum Versioning {
 
 type HTTPMethod = HttpMethod;
 
-declare class RouteDef<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TValidator, TResponse, TMetaData> {
+declare class RouteDef<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TValidator, TResponses, TMetaData> {
     readonly version: TVersion;
     readonly method: TMethod;
     readonly path: TPath;
     readonly validator: TValidator;
-    readonly ['~responseType']: TResponse;
+    readonly responses: TResponses;
+    readonly ['~responses']: TResponses;
     readonly ['~validatorOutputType']: TValidator extends StandardSchemaV1 ? StandardSchemaV1.InferOutput<TValidator> : never;
     readonly metaData: TMetaData;
-    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, metaData: TMetaData);
+    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, responses: TResponses, metaData: TMetaData);
 }
 
 type AnyRouteValidator = StandardSchemaV1<{
@@ -82,6 +83,32 @@ declare class BagOfRoutes<_TRoutes extends AnyRouteDef, TVersioning extends Vers
     static withoutVersioning(): BagOfRoutesBuilderWithoutVersioning<never>;
 }
 
+interface ResponseDescriptor<TKind extends string, TContentType extends string | undefined, TBody> {
+    readonly kind: TKind;
+    readonly contentType: TContentType;
+    readonly ['~body']: TBody;
+}
+type JsonResponseDescriptor<TBody> = ResponseDescriptor<'json', 'application/json', TBody>;
+type TextResponseDescriptor<TContentType extends string = 'text/plain'> = ResponseDescriptor<'text', TContentType, string>;
+type BinaryResponseDescriptor<TContentType extends string = string> = ResponseDescriptor<'binary', TContentType, Uint8Array>;
+type EmptyResponseDescriptor = ResponseDescriptor<'empty', undefined, undefined>;
+type AnyResponseDescriptor = JsonResponseDescriptor<any> | TextResponseDescriptor<string> | BinaryResponseDescriptor | EmptyResponseDescriptor;
+/** The responses of a route: HTTP status code to response descriptor. */
+type ResponseMap = {
+    readonly [status: number]: AnyResponseDescriptor;
+};
+type DeclaredStatus<TRoute extends {
+    '~responses': unknown;
+}> = keyof TRoute['~responses'] & number;
+/** The descriptor of a status, a status enum member resolves like its value. */
+type ResponseDescriptorOf<TRoute extends {
+    '~responses': unknown;
+}, TStatus extends number> = TStatus extends keyof TRoute['~responses'] ? TRoute['~responses'][TStatus] : never;
+/** The body type of the given statuses of a route, by default of all of them. */
+type BodyOf<TRoute extends {
+    '~responses': unknown;
+}, TStatus extends number = DeclaredStatus<TRoute>> = ResponseDescriptorOf<TRoute, TStatus> extends infer TDescriptor ? TDescriptor extends ResponseDescriptor<string, string | undefined, infer TBody> ? TBody : never : never;
+
 interface EmptySchema extends StandardSchemaV1<{}> {
     type: 'empty';
 }
@@ -95,7 +122,11 @@ declare class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVe
     private validator;
     private metaData;
     constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, metaData: TMetaData);
-    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, TValidator, TResponse, TMetaData>;
+    responses<TResponses extends ResponseMap>(responses: TResponses): RouteDef<TVersion, TMethod, TPath, TValidator, TResponses, TMetaData>;
+    /** Shorthand for `.responses({ 200: json<TResponse>() })`. */
+    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, TValidator, {
+        200: JsonResponseDescriptor<TResponse>;
+    }, TMetaData>;
 }
 
 declare class RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TValidator> {
@@ -105,7 +136,11 @@ declare class RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion exten
     private validator;
     constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator);
     metaData<TMetaData>(metaData: TMetaData): RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion, TMethod, TPath, TValidator, TMetaData>;
-    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, TValidator, TResponse, unknown>;
+    responses<TResponses extends ResponseMap>(responses: TResponses): RouteDef<TVersion, TMethod, TPath, TValidator, TResponses, unknown>;
+    /** Shorthand for `.responses({ 200: json<TResponse>() })`. */
+    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, TValidator, {
+        200: JsonResponseDescriptor<TResponse>;
+    }, unknown>;
 }
 
 declare class RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TMetaData> {
@@ -115,7 +150,11 @@ declare class RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion extend
     private metaData;
     constructor(version: TVersion, method: TMethod, path: TPath, metaData: TMetaData);
     validate<TValidator>(validator: TValidator): RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion, TMethod, TPath, TValidator, TMetaData>;
-    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, EmptySchema, TResponse, TMetaData>;
+    responses<TResponses extends ResponseMap>(responses: TResponses): RouteDef<TVersion, TMethod, TPath, EmptySchema, TResponses, TMetaData>;
+    /** Shorthand for `.responses({ 200: json<TResponse>() })`. */
+    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, EmptySchema, {
+        200: JsonResponseDescriptor<TResponse>;
+    }, TMetaData>;
 }
 
 declare class RouteBuilderWithVersionAndMethodAndPath<TVersion extends string, TMethod extends HTTPMethod, TPath extends string> {
@@ -125,7 +164,11 @@ declare class RouteBuilderWithVersionAndMethodAndPath<TVersion extends string, T
     constructor(version: TVersion, method: TMethod, path: TPath);
     validate<TValidator>(validator: TValidator): RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion, TMethod, TPath, TValidator>;
     metaData<TMetaData>(metaData: TMetaData): RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion, TMethod, TPath, TMetaData>;
-    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, EmptySchema, TResponse, unknown>;
+    responses<TResponses extends ResponseMap>(responses: TResponses): RouteDef<TVersion, TMethod, TPath, EmptySchema, TResponses, unknown>;
+    /** Shorthand for `.responses({ 200: json<TResponse>() })`. */
+    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, EmptySchema, {
+        200: JsonResponseDescriptor<TResponse>;
+    }, unknown>;
 }
 
 declare class RouteWithVersion<TVersion extends string> {
@@ -231,11 +274,11 @@ type RouteInput<TBagOfRoutes extends BagOfRoutes<any, any, any>, TMethod extends
     path: TPath;
     version: TVersion;
 }>['~validatorOutputType'] : never;
-type RouteOutput<TBagOfRoutes extends BagOfRoutes<any, any, any>, TMethod extends HTTPMethod, TPath extends string, TVersion extends string = ''> = TBagOfRoutes extends BagOfRoutes<infer TRoutes, any, any> ? Extract<TRoutes, {
+type RouteOutput<TBagOfRoutes extends BagOfRoutes<any, any, any>, TMethod extends HTTPMethod, TPath extends string, TVersion extends string = ''> = TBagOfRoutes extends BagOfRoutes<infer TRoutes, any, any> ? BodyOf<Extract<TRoutes, {
     method: TMethod;
     path: TPath;
     version: TVersion;
-}>['~responseType'] : never;
+}>> : never;
 
 type EnsureSameVersioning<T extends BagOfRoutes<any, any, any>[]> = T extends [] ? never : T extends [infer _First extends BagOfRoutes<any, any, any>] ? T : T extends [
     infer First extends BagOfRoutes<any, any, any>,
@@ -262,20 +305,26 @@ declare const VersionHistory: <TVersions extends readonly string[]>(versions: TV
 declare const versionHistory: ["2024-01-01", "2024-02-01", "2024-03-01"];
 /** @deprecated Internal helper, will be removed from the public API in a future major. */
 declare const demoBagOfRoutes: BagOfRoutes<RouteDef<"2024-01-01", "GET", "/basket", EmptySchema, {
-    id: string;
-    entries: any[];
+    200: JsonResponseDescriptor<{
+        id: string;
+        entries: any[];
+    }>;
 }, unknown> | RouteDef<"2024-01-01", "GET", "/basket/:basketId/entries", z.ZodObject<{
     params: z.ZodObject<{
         basketId: z.ZodString;
     }, z.core.$strip>;
-}, z.core.$strip>, any[], unknown> | RouteDef<"2024-03-01", "POST", "/basket", z.ZodObject<{
+}, z.core.$strip>, {
+    200: JsonResponseDescriptor<any[]>;
+}, unknown> | RouteDef<"2024-03-01", "POST", "/basket", z.ZodObject<{
     body: z.ZodObject<{
         entries: z.ZodArray<z.ZodObject<{
             id: z.ZodString;
         }, z.core.$strip>>;
     }, z.core.$strip>;
 }, z.core.$strip>, {
-    id: string;
+    200: JsonResponseDescriptor<{
+        id: string;
+    }>;
 }, unknown>, Versioning.DATE, ["2024-01-01", "2024-02-01", "2024-03-01"]>;
 
 declare const resolveVersion: (versionHistory: string[], availableVersions: string[], requestedVersion: string) => string | null;
@@ -293,5 +342,10 @@ declare function isDefined<Value>(value: Value | null | undefined): value is Val
 /** @deprecated Use `pathShape` from `@t-rest/protocol`. */
 declare const normalizePathPattern: (path: string) => string;
 
-export { BagOfRoutes, BagOfRoutesBuilderWithVersioning, BagOfRoutesBuilderWithoutVersioning, HashMap, Identity, Route, RouteBuilderWithVersionAndMethodAndPath, RouteBuilderWithVersionAndMethodAndPathAndMetaData, RouteBuilderWithVersionAndMethodAndPathAndValidator, RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData, RouteDef, RouteWithVersion, TypedIdentity, ValidationError, VersionHistory, Versioning, combine, demoBagOfRoutes, emptyValidation, findNearestLowerDate, first, isDefined, isNonEmptyArray, joinPath, last, normalizePathPattern, resolveDateVersion, resolveVersion, typedLowerCase, typedUpperCase, versionHistory };
-export type { AddReadonlyDeep, AnyRouteDef, AnyRouteValidator, BagOfRoutesVersions, CombinedBags, EmptySchema, EmptyValidation, ExtractLatestMatchingRoutePerPath, ExtractRoute, ExtractRoutes, ExtractVersionMatchingRoute, HTTPMethod, InferMetaData, JoinPath, NewerVersions, NonEmptyArray, OlderVersions, PrefixMatchingRoutes, PrefixString, RemoveReadonlyDeep, RemoveReadonlyDeepArray, RouteHashMap, RouteInput, RouteOutput, RouteValidationInput, RouteValidationOutput, StringReplaceHead, StringStartsWith, SuffixString, VersioningRequired, WithoutDoubleSlash, WithoutLeadingSlash, WithoutTrailingSlash };
+declare const json: <TBody>() => JsonResponseDescriptor<TBody>;
+declare const text: <TContentType extends string = "text/plain">(contentType?: TContentType) => TextResponseDescriptor<TContentType>;
+declare const binary: <TContentType extends string>(contentType: TContentType) => BinaryResponseDescriptor<TContentType>;
+declare const empty: () => EmptyResponseDescriptor;
+
+export { BagOfRoutes, BagOfRoutesBuilderWithVersioning, BagOfRoutesBuilderWithoutVersioning, HashMap, Identity, Route, RouteBuilderWithVersionAndMethodAndPath, RouteBuilderWithVersionAndMethodAndPathAndMetaData, RouteBuilderWithVersionAndMethodAndPathAndValidator, RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData, RouteDef, RouteWithVersion, TypedIdentity, ValidationError, VersionHistory, Versioning, binary, combine, demoBagOfRoutes, empty, emptyValidation, findNearestLowerDate, first, isDefined, isNonEmptyArray, joinPath, json, last, normalizePathPattern, resolveDateVersion, resolveVersion, text, typedLowerCase, typedUpperCase, versionHistory };
+export type { AddReadonlyDeep, AnyResponseDescriptor, AnyRouteDef, AnyRouteValidator, BagOfRoutesVersions, BinaryResponseDescriptor, BodyOf, CombinedBags, DeclaredStatus, EmptyResponseDescriptor, EmptySchema, EmptyValidation, ExtractLatestMatchingRoutePerPath, ExtractRoute, ExtractRoutes, ExtractVersionMatchingRoute, HTTPMethod, InferMetaData, JoinPath, JsonResponseDescriptor, NewerVersions, NonEmptyArray, OlderVersions, PrefixMatchingRoutes, PrefixString, RemoveReadonlyDeep, RemoveReadonlyDeepArray, ResponseDescriptor, ResponseDescriptorOf, ResponseMap, RouteHashMap, RouteInput, RouteOutput, RouteValidationInput, RouteValidationOutput, StringReplaceHead, StringStartsWith, SuffixString, TextResponseDescriptor, VersioningRequired, WithoutDoubleSlash, WithoutLeadingSlash, WithoutTrailingSlash };
