@@ -5,6 +5,7 @@ import {
   VersionHistory,
   Versioning,
   ze,
+  json,
 } from '@t-rest/core'
 import {
   DateVersionExtractor,
@@ -28,7 +29,7 @@ const bagOfRoutes = BagOfRoutes.withoutVersioning()
   .addRoute(
     Route.post('/api/items')
       .validate(z.object({ body: z.strictObject({ name: z.string() }) }))
-      .response<Item>()
+      .responses({ 201: json<Item>() })
   )
   .build()
 
