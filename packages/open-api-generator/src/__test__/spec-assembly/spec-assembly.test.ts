@@ -8,6 +8,7 @@ import type { OpenAPISchema } from '../../types/open-api-schema'
 import sameNameWithinResponseBagOfRoutes from './scenarios/same-name-within-response'
 import sameNameAcrossBodyAndResponseBagOfRoutes from './scenarios/same-name-across-body-and-response'
 import equivalentTemplatedPathsBagOfRoutes from './scenarios/equivalent-templated-paths'
+import multipartBagOfRoutes from './scenarios/multipart'
 import reexportUnversionedBagOfRoutes from './scenarios/reexport-unversioned'
 import reexportMultipleBagsBagOfRoutes from './scenarios/reexport-multiple-bags'
 import reexportValidatorContextBagOfRoutes from './scenarios/reexport-validator-context'
@@ -112,6 +113,30 @@ describe('spec assembly', () => {
           'same-name-across-body-and-response.ts'
         )
       ).toThrow('Ambiguous type(s): User.')
+    })
+  })
+
+  describe('multipart routes', () => {
+    test('declare their body as multipart/form-data', () => {
+      const schema = getSchemaFromBag(multipartBagOfRoutes, 'multipart.ts')
+
+      expect(schema.paths['/uploads'].post.requestBody.content).toEqual({
+        'multipart/form-data': {
+          schema: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+          },
+        },
+      })
+    })
+
+    test('declare a request body even without a validated body', () => {
+      const schema = getSchemaFromBag(multipartBagOfRoutes, 'multipart.ts')
+
+      expect(schema.paths['/avatar'].post.requestBody.content).toEqual({
+        'multipart/form-data': { schema: { type: 'object' } },
+      })
     })
   })
 
