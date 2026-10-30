@@ -9,9 +9,11 @@ declare enum Versioning {
     SEMVER = 2
 }
 
+type BodyEncoding = 'json' | 'multipart';
+
 type HTTPMethod = HttpMethod;
 
-declare class RouteDef<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TValidator, TResponse, TMetaData> {
+declare class RouteDef<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TValidator, TResponse, TMetaData, TBodyEncoding extends BodyEncoding = BodyEncoding> {
     readonly version: TVersion;
     readonly method: TMethod;
     readonly path: TPath;
@@ -19,7 +21,8 @@ declare class RouteDef<TVersion extends string, TMethod extends HTTPMethod, TPat
     readonly ['~responseType']: TResponse;
     readonly ['~validatorOutputType']: TValidator extends StandardSchemaV1 ? StandardSchemaV1.InferOutput<TValidator> : never;
     readonly metaData: TMetaData;
-    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, metaData: TMetaData);
+    readonly bodyEncoding: TBodyEncoding;
+    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, metaData: TMetaData, bodyEncoding?: TBodyEncoding);
 }
 
 type AnyRouteValidator = StandardSchemaV1<{
@@ -30,7 +33,7 @@ type AnyRouteValidator = StandardSchemaV1<{
     [key: string]: any;
 }>;
 
-type AnyRouteDef = RouteDef<string, HTTPMethod, string, AnyRouteValidator, any, unknown>;
+type AnyRouteDef = RouteDef<string, HTTPMethod, string, AnyRouteValidator, any, unknown, BodyEncoding>;
 
 type HashFunction<TKey> = (input: TKey) => string;
 /** @deprecated Internal helper, will be removed from the public API in a future major. */
@@ -88,63 +91,74 @@ interface EmptySchema extends StandardSchemaV1<{}> {
 declare const emptyValidation: EmptySchema;
 type EmptyValidation = StandardSchemaV1.InferOutput<EmptySchema>;
 
-declare class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TValidator, TMetaData> {
+declare class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TValidator, TMetaData, TBodyEncoding extends BodyEncoding = 'json'> {
     private version;
     private method;
     private path;
     private validator;
     private metaData;
-    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, metaData: TMetaData);
-    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, TValidator, TResponse, TMetaData>;
+    private bodyEncoding?;
+    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, metaData: TMetaData, bodyEncoding?: TBodyEncoding | undefined);
+    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, TValidator, TResponse, TMetaData, TBodyEncoding>;
 }
 
-declare class RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TValidator> {
+declare class RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TValidator, TBodyEncoding extends BodyEncoding = 'json'> {
     private version;
     private method;
     private path;
     private validator;
-    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator);
-    metaData<TMetaData>(metaData: TMetaData): RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion, TMethod, TPath, TValidator, TMetaData>;
-    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, TValidator, TResponse, unknown>;
+    private bodyEncoding?;
+    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, bodyEncoding?: TBodyEncoding | undefined);
+    metaData<TMetaData>(metaData: TMetaData): RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion, TMethod, TPath, TValidator, TMetaData, TBodyEncoding>;
+    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, TValidator, TResponse, unknown, TBodyEncoding>;
 }
 
-declare class RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TMetaData> {
+declare class RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TMetaData, TBodyEncoding extends BodyEncoding = 'json'> {
     private version;
     private method;
     private path;
     private metaData;
-    constructor(version: TVersion, method: TMethod, path: TPath, metaData: TMetaData);
-    validate<TValidator>(validator: TValidator): RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion, TMethod, TPath, TValidator, TMetaData>;
-    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, EmptySchema, TResponse, TMetaData>;
+    private bodyEncoding?;
+    constructor(version: TVersion, method: TMethod, path: TPath, metaData: TMetaData, bodyEncoding?: TBodyEncoding | undefined);
+    validate<TValidator>(validator: TValidator): RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion, TMethod, TPath, TValidator, TMetaData, TBodyEncoding>;
+    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, EmptySchema, TResponse, TMetaData, TBodyEncoding>;
 }
 
-declare class RouteBuilderWithVersionAndMethodAndPath<TVersion extends string, TMethod extends HTTPMethod, TPath extends string> {
+type BodyMethod = Exclude<HTTPMethod, 'GET' | 'DELETE'>;
+declare class RouteBuilderWithVersionAndMethodAndPath<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TBodyEncoding extends BodyEncoding = 'json'> {
     private version;
     private method;
     private path;
-    constructor(version: TVersion, method: TMethod, path: TPath);
-    validate<TValidator>(validator: TValidator): RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion, TMethod, TPath, TValidator>;
-    metaData<TMetaData>(metaData: TMetaData): RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion, TMethod, TPath, TMetaData>;
-    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, EmptySchema, TResponse, unknown>;
+    private bodyEncoding?;
+    constructor(version: TVersion, method: TMethod, path: TPath, bodyEncoding?: TBodyEncoding | undefined);
+    /**
+     * Declares that the route takes `multipart/form-data`. Parsing the upload
+     * stays up to a route middleware, the validator describes its result.
+     * GET and DELETE never send a body and are rejected.
+     */
+    multipart(this: RouteBuilderWithVersionAndMethodAndPath<TVersion, TMethod & BodyMethod, TPath, TBodyEncoding>): RouteBuilderWithVersionAndMethodAndPath<TVersion, TMethod, TPath, "multipart">;
+    validate<TValidator>(validator: TValidator): RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion, TMethod, TPath, TValidator, TBodyEncoding>;
+    metaData<TMetaData>(metaData: TMetaData): RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion, TMethod, TPath, TMetaData, TBodyEncoding>;
+    response<TResponse>(): RouteDef<TVersion, TMethod, TPath, EmptySchema, TResponse, unknown, TBodyEncoding>;
 }
 
 declare class RouteWithVersion<TVersion extends string> {
     private version;
     constructor(version: TVersion);
-    get<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<TVersion, "GET", TPath>;
-    post<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<TVersion, "POST", TPath>;
-    put<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<TVersion, "PUT", TPath>;
-    patch<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<TVersion, "PATCH", TPath>;
-    delete<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<TVersion, "DELETE", TPath>;
+    get<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<TVersion, "GET", TPath, "json">;
+    post<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<TVersion, "POST", TPath, "json">;
+    put<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<TVersion, "PUT", TPath, "json">;
+    patch<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<TVersion, "PATCH", TPath, "json">;
+    delete<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<TVersion, "DELETE", TPath, "json">;
 }
 
 declare abstract class Route {
     static version<TVersion extends string>(version: TVersion): RouteWithVersion<TVersion>;
-    static get<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<"", "GET", TPath>;
-    static post<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<"", "POST", TPath>;
-    static put<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<"", "PUT", TPath>;
-    static patch<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<"", "PATCH", TPath>;
-    static delete<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<"", "DELETE", TPath>;
+    static get<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<"", "GET", TPath, "json">;
+    static post<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<"", "POST", TPath, "json">;
+    static put<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<"", "PUT", TPath, "json">;
+    static patch<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<"", "PATCH", TPath, "json">;
+    static delete<TPath extends string>(path: TPath): RouteBuilderWithVersionAndMethodAndPath<"", "DELETE", TPath, "json">;
 }
 
 declare class ValidationError extends Error {
@@ -216,11 +230,20 @@ type RouteValidationOutput<TRoute extends AnyRouteDef> = TRoute extends RouteDef
 
 type RouteValidationInput<TRoute extends AnyRouteDef> = TRoute extends RouteDef<any, any, any, infer TValidator, any, any> ? TValidator extends StandardSchemaV1 ? StandardSchemaV1.InferInput<TValidator> : never : never;
 
+type OmitFromEach<T, TKeys extends PropertyKey> = T extends unknown ? Omit<T, TKeys> : never;
+/**
+ * The input a binding sends for a route. On a multipart route the validator
+ * describes the request after the upload middleware parsed it, so `body` and
+ * the `file`/`files` keys that middleware adds give way to the wire format of
+ * the binding.
+ */
+type RouteRequestInput<TRoute extends AnyRouteDef, TMultipartInput> = TRoute extends RouteDef<any, any, any, any, any, any, 'multipart'> ? OmitFromEach<RouteValidationInput<TRoute>, 'body' | 'file' | 'files'> & TMultipartInput : RouteValidationInput<TRoute>;
+
 type OlderVersions<TVersionHistory extends string[], TVersion extends TVersionHistory[number]> = TVersionHistory extends [...infer TOlderVersions, infer TCurrentVersion] ? TCurrentVersion extends TVersion ? TOlderVersions extends string[] ? TOlderVersions[number] : never : TOlderVersions extends string[] ? OlderVersions<TOlderVersions, TVersion> : never : never;
 
 type NewerVersions<TVersionHistory extends string[], TVersion extends TVersionHistory[number]> = TVersionHistory extends [...infer TOlderVersions, infer TCurrentVersion] ? TCurrentVersion extends TVersion ? never : TOlderVersions extends string[] ? TCurrentVersion | NewerVersions<TOlderVersions, TVersion> : never : never;
 
-type PrefixMatchingRoutes<TRoutes extends AnyRouteDef, TPrefix extends string> = TRoutes extends RouteDef<infer TVersion, infer TMethod, infer TPath, infer TValidator, infer TResponse, infer TMetaData> ? StringStartsWith<TPath, TPrefix> extends never ? never : RouteDef<TVersion, TMethod, TPath, TValidator, TResponse, TMetaData> : never;
+type PrefixMatchingRoutes<TRoutes extends AnyRouteDef, TPrefix extends string> = TRoutes extends RouteDef<infer TVersion, infer TMethod, infer TPath, infer TValidator, infer TResponse, infer TMetaData, infer TBodyEncoding> ? StringStartsWith<TPath, TPrefix> extends never ? never : RouteDef<TVersion, TMethod, TPath, TValidator, TResponse, TMetaData, TBodyEncoding> : never;
 
 type BagOfRoutesVersions<TBagOfRoutes extends BagOfRoutes<any, any, any>> = TBagOfRoutes extends BagOfRoutes<any, any, infer TVersionHistory> ? TVersionHistory[number] : never;
 
@@ -264,11 +287,11 @@ declare const versionHistory: ["2024-01-01", "2024-02-01", "2024-03-01"];
 declare const demoBagOfRoutes: BagOfRoutes<RouteDef<"2024-01-01", "GET", "/basket", EmptySchema, {
     id: string;
     entries: any[];
-}, unknown> | RouteDef<"2024-01-01", "GET", "/basket/:basketId/entries", z.ZodObject<{
+}, unknown, "json"> | RouteDef<"2024-01-01", "GET", "/basket/:basketId/entries", z.ZodObject<{
     params: z.ZodObject<{
         basketId: z.ZodString;
     }, z.core.$strip>;
-}, z.core.$strip>, any[], unknown> | RouteDef<"2024-03-01", "POST", "/basket", z.ZodObject<{
+}, z.core.$strip>, any[], unknown, "json"> | RouteDef<"2024-03-01", "POST", "/basket", z.ZodObject<{
     body: z.ZodObject<{
         entries: z.ZodArray<z.ZodObject<{
             id: z.ZodString;
@@ -276,7 +299,7 @@ declare const demoBagOfRoutes: BagOfRoutes<RouteDef<"2024-01-01", "GET", "/baske
     }, z.core.$strip>;
 }, z.core.$strip>, {
     id: string;
-}, unknown>, Versioning.DATE, ["2024-01-01", "2024-02-01", "2024-03-01"]>;
+}, unknown, "json">, Versioning.DATE, ["2024-01-01", "2024-02-01", "2024-03-01"]>;
 
 declare const resolveVersion: (versionHistory: string[], availableVersions: string[], requestedVersion: string) => string | null;
 declare const resolveDateVersion: (versionHistory: string[], availableVersions: string[], requestedVersion: string, parseDate: (version: string) => Date) => string | null;
@@ -294,4 +317,4 @@ declare function isDefined<Value>(value: Value | null | undefined): value is Val
 declare const normalizePathPattern: (path: string) => string;
 
 export { BagOfRoutes, BagOfRoutesBuilderWithVersioning, BagOfRoutesBuilderWithoutVersioning, HashMap, Identity, Route, RouteBuilderWithVersionAndMethodAndPath, RouteBuilderWithVersionAndMethodAndPathAndMetaData, RouteBuilderWithVersionAndMethodAndPathAndValidator, RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData, RouteDef, RouteWithVersion, TypedIdentity, ValidationError, VersionHistory, Versioning, combine, demoBagOfRoutes, emptyValidation, findNearestLowerDate, first, isDefined, isNonEmptyArray, joinPath, last, normalizePathPattern, resolveDateVersion, resolveVersion, typedLowerCase, typedUpperCase, versionHistory };
-export type { AddReadonlyDeep, AnyRouteDef, AnyRouteValidator, BagOfRoutesVersions, CombinedBags, EmptySchema, EmptyValidation, ExtractLatestMatchingRoutePerPath, ExtractRoute, ExtractRoutes, ExtractVersionMatchingRoute, HTTPMethod, InferMetaData, JoinPath, NewerVersions, NonEmptyArray, OlderVersions, PrefixMatchingRoutes, PrefixString, RemoveReadonlyDeep, RemoveReadonlyDeepArray, RouteHashMap, RouteInput, RouteOutput, RouteValidationInput, RouteValidationOutput, StringReplaceHead, StringStartsWith, SuffixString, VersioningRequired, WithoutDoubleSlash, WithoutLeadingSlash, WithoutTrailingSlash };
+export type { AddReadonlyDeep, AnyRouteDef, AnyRouteValidator, BagOfRoutesVersions, BodyEncoding, CombinedBags, EmptySchema, EmptyValidation, ExtractLatestMatchingRoutePerPath, ExtractRoute, ExtractRoutes, ExtractVersionMatchingRoute, HTTPMethod, InferMetaData, JoinPath, NewerVersions, NonEmptyArray, OlderVersions, PrefixMatchingRoutes, PrefixString, RemoveReadonlyDeep, RemoveReadonlyDeepArray, RouteHashMap, RouteInput, RouteOutput, RouteRequestInput, RouteValidationInput, RouteValidationOutput, StringReplaceHead, StringStartsWith, SuffixString, VersioningRequired, WithoutDoubleSlash, WithoutLeadingSlash, WithoutTrailingSlash };

@@ -1,3 +1,4 @@
+import { BodyEncoding } from '../../types/body-encoding.js'
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
 import { RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData } from './route-builder-with-version-and-method-and-path-and-validator-and-meta-data.js'
@@ -7,13 +8,15 @@ export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
   TVersion extends string,
   TMethod extends HTTPMethod,
   TPath extends string,
-  TMetaData
+  TMetaData,
+  TBodyEncoding extends BodyEncoding = 'json'
 > {
   constructor(
     private version: TVersion,
     private method: TMethod,
     private path: TPath,
-    private metaData: TMetaData
+    private metaData: TMetaData,
+    private bodyEncoding?: TBodyEncoding
   ) {}
 
   public validate<TValidator>(validator: TValidator) {
@@ -22,8 +25,16 @@ export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
       TMethod,
       TPath,
       TValidator,
-      TMetaData
-    >(this.version, this.method, this.path, validator, this.metaData)
+      TMetaData,
+      TBodyEncoding
+    >(
+      this.version,
+      this.method,
+      this.path,
+      validator,
+      this.metaData,
+      this.bodyEncoding
+    )
   }
 
   public response<TResponse>() {
@@ -33,7 +44,15 @@ export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
       TPath,
       typeof emptyValidation,
       TResponse,
-      TMetaData
-    >(this.version, this.method, this.path, emptyValidation, this.metaData)
+      TMetaData,
+      TBodyEncoding
+    >(
+      this.version,
+      this.method,
+      this.path,
+      emptyValidation,
+      this.metaData,
+      this.bodyEncoding
+    )
   }
 }

@@ -11,9 +11,18 @@ export type PrefixMatchingRoutes<
   infer TPath,
   infer TValidator,
   infer TResponse,
-  infer TMetaData
+  infer TMetaData,
+  infer TBodyEncoding
 >
   ? StringStartsWith<TPath, TPrefix> extends never
     ? never
-    : RouteDef<TVersion, TMethod, TPath, TValidator, TResponse, TMetaData>
+    : RouteDef<
+        TVersion,
+        TMethod,
+        TPath,
+        TValidator,
+        TResponse,
+        TMetaData,
+        TBodyEncoding
+      >
   : never
