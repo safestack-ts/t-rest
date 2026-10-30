@@ -1,4 +1,6 @@
-import { AnyRouteDef, RouteValidationInput } from '@t-rest/core'
+import { AnyRouteDef, RouteRequestInput } from '@t-rest/core'
 
-export type RequestInput<TRoute extends AnyRouteDef> =
-  RouteValidationInput<TRoute>
+export type RequestInput<TRoute extends AnyRouteDef> = RouteRequestInput<
+  TRoute,
+  { body: FormData }
+>

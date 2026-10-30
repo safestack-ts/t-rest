@@ -34,6 +34,8 @@ If the resolved version is handled on a router the request never reaches, expres
 
 `RESTClient` and `SupertestAdapter` both plan a request with protocol's `planRequest` (url from path params and query, body only for methods that send one) and then hand it to their transport. Two differences are intentional: the client applies its `VersionInjector.modifyUrl` to the built url, the supertest adapter to the path template; and supertest merges default headers below call headers below the injector's.
 
+A route declared with `.multipart()` takes `multipart/form-data`: `RouteDef.bodyEncoding` is `'multipart'`, and the OpenAPI generator emits that media type. Parsing stays with a route middleware such as multer, so the validator keeps describing the parsed request. Because that is not what a caller sends, `RouteRequestInput` replaces `body`, `file` and `files` of such routes: the client takes `body: FormData` and passes it to its `HTTPAdapter` unserialized, the supertest adapter takes `multipart: { fields, files }` and maps it to `.field()` and `.attach()`.
+
 The version header convention can be declared once with `versionHeader('x-api-version')` and turned into each side's adapter with `versionExtractorFrom` (server) and `versionInjectorFrom` (client, supertest).
 
 ## Guardrails

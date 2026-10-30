@@ -344,15 +344,26 @@ export abstract class OpenAPIGenerator {
                       }))
                     : []),
                 ],
-                requestBody: bodySchema
-                  ? {
-                      content: {
-                        'application/json': {
-                          schema: bodySchema.spec,
+                requestBody:
+                  routeDefinition?.bodyEncoding === 'multipart'
+                    ? {
+                        content: {
+                          'multipart/form-data': {
+                            // the files of a route without text fields
+                            // are not part of its validated body
+                            schema: bodySchema?.spec ?? { type: 'object' },
+                          },
                         },
-                      },
-                    }
-                  : undefined,
+                      }
+                    : bodySchema
+                    ? {
+                        content: {
+                          'application/json': {
+                            schema: bodySchema.spec,
+                          },
+                        },
+                      }
+                    : undefined,
                 responses: {
                   '200': {
                     description: 'Successful response',

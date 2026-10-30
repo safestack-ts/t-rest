@@ -1,4 +1,11 @@
-import { AnyRouteDef, RouteValidationInput } from '@t-rest/core'
+import {
+  AnyRouteDef,
+  RouteRequestInput,
+  RouteValidationInput,
+} from '@t-rest/core'
+import { MultipartInput } from './multipart.js'
 
-export type RequestInput<TRoute extends AnyRouteDef> =
-  RouteValidationInput<TRoute>
+export type RequestInput<TRoute extends AnyRouteDef> = RouteRequestInput<
+  TRoute,
+  { multipart: MultipartInput<RouteValidationInput<TRoute>> }
+>

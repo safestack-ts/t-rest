@@ -24,6 +24,15 @@ export class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
       data,
       headers: requestConfig?.headers,
       ...requestConfigWithoutParams,
+      // axios json-serializes form data if a default header says json, it
+      // replaces this content type with the one containing the boundary
+      ...(typeof FormData !== 'undefined' &&
+        data instanceof FormData && {
+          headers: {
+            ...requestConfig?.headers,
+            'Content-Type': 'multipart/form-data',
+          },
+        }),
     })
 
     return {
