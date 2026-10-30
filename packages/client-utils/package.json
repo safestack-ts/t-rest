@@ -1,7 +1,7 @@
 {
     "name": "@t-rest/client-utils",
     "version": "1.0.0-alpha.11",
-    "description": "",
+    "description": "Deprecated: use @t-rest/protocol instead",
     "main": "./dist/index.cjs",
     "types": "./dist/index.d.ts",
     "type": "module",
