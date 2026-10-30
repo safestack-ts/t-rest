@@ -34,6 +34,8 @@ If the resolved version is handled on a router the request never reaches, expres
 
 `RESTClient` and `SupertestAdapter` both plan a request with protocol's `planRequest` (url from path params and query, body only for methods that send one) and then hand it to their transport. Two differences are intentional: the client applies its `VersionInjector.modifyUrl` to the built url, the supertest adapter to the path template; and supertest merges default headers below call headers below the injector's.
 
+`adapter.invalid.<method>` is the supertest adapter's escape hatch for testing validation failures: it takes the same path and version and returns the same response type as the regular handler, but leaves `params`, `query` and `body` unknown.
+
 The version header convention can be declared once with `versionHeader('x-api-version')` and turned into each side's adapter with `versionExtractorFrom` (server) and `versionInjectorFrom` (client, supertest).
 
 ## Guardrails
