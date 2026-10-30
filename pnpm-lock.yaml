@@ -71,12 +71,12 @@ importers:
 
   packages/client:
     dependencies:
-      '@t-rest/client-utils':
-        specifier: workspace:*
-        version: link:../client-utils
       '@t-rest/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
+      '@t-rest/protocol':
+        specifier: workspace:^
+        version: link:../protocol
     devDependencies:
       '@t-rest/testing-utilities':
         specifier: workspace:*
@@ -88,13 +88,20 @@ importers:
         specifier: ^14.0.17
         version: 14.0.17
 
-  packages/client-utils: {}
+  packages/client-utils:
+    dependencies:
+      '@t-rest/protocol':
+        specifier: workspace:^
+        version: link:../protocol
 
   packages/core:
     dependencies:
       '@standard-schema/spec':
         specifier: ^1.1.0
         version: 1.1.0
+      '@t-rest/protocol':
+        specifier: workspace:^
+        version: link:../protocol
     devDependencies:
       '@types/node':
         specifier: ^22.20.5
@@ -106,8 +113,11 @@ importers:
   packages/express-server:
     dependencies:
       '@t-rest/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
+      '@t-rest/protocol':
+        specifier: workspace:^
+        version: link:../protocol
     devDependencies:
       '@t-rest/testing-utilities':
         specifier: workspace:*
@@ -137,7 +147,7 @@ importers:
   packages/open-api-generator:
     dependencies:
       '@t-rest/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       debug:
         specifier: ^4.4.3
@@ -180,10 +190,10 @@ importers:
   packages/playground:
     dependencies:
       '@t-rest/client':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../client
       '@t-rest/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       axios:
         specifier: ^1.21.0
@@ -196,17 +206,19 @@ importers:
         specifier: workspace:*
         version: link:../testing-utilities
 
+  packages/protocol: {}
+
   packages/supertest-adapter:
     dependencies:
-      '@t-rest/client-utils':
-        specifier: workspace:*
-        version: link:../client-utils
       '@t-rest/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@t-rest/express-server':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../express-server
+      '@t-rest/protocol':
+        specifier: workspace:^
+        version: link:../protocol
       '@types/supertest':
         specifier: ^7.2.1
         version: 7.2.1
@@ -214,6 +226,9 @@ importers:
         specifier: ^7.3.1
         version: 7.3.1
     devDependencies:
+      '@t-rest/client':
+        specifier: workspace:*
+        version: link:../client
       '@t-rest/testing-utilities':
         specifier: workspace:*
         version: link:../testing-utilities
@@ -242,7 +257,7 @@ importers:
   packages/testing-utilities:
     dependencies:
       '@t-rest/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
 
 packages:

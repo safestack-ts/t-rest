@@ -11,6 +11,8 @@ export default [
       '**/__test__/',
       '.husky/',
       '.vscode/',
+      '.claude/',
+      '.worktrees/',
       '**/.env',
     ],
   },

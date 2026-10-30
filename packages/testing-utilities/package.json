@@ -20,7 +20,7 @@
     "author": "Yannick Stachelscheid",
     "license": "MIT",
     "dependencies": {
-        "@t-rest/core": "workspace:*"
+        "@t-rest/core": "workspace:^"
     },
     "publishConfig": {
         "access": "public"
