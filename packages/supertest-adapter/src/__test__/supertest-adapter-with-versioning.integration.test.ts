@@ -390,7 +390,8 @@ describe('expectations', () => {
 
     const response = await makeAdapter().patch(
       '/api/items/:itemId',
-      '2024-01-01' as '2024-02-01',
+      // @ts-expect-error older than every version of the route, the server rejects it
+      '2024-01-01',
       {
         params: { itemId: 1 },
         body: { name: 'chair' },

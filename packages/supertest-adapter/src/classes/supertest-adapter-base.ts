@@ -1,10 +1,11 @@
-import { BaseRequestInput, buildUrl } from '@t-rest/client-utils'
+import { BaseRequestInput, planRequest } from '@t-rest/protocol'
 import { AnyTypedExpressApplication } from '../types/any-typed-express-application.js'
 import { HTTPMethod, typedLowerCase } from '@t-rest/core'
 import { SupertestConfig } from '../types/supertest-config.js'
 import supertest from 'supertest'
 import { SupertestResponse } from '../types/supertest-response.js'
 import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config.js'
+import { SupertestTargetError } from './supertest-target-error.js'
 
 // express applications and http servers can be listened on, routers cannot
 const isExpressRouter = (target: unknown) =>
@@ -25,7 +26,7 @@ export abstract class SupertestAdapterBase<
     // supertest would serve the router alone: requests it does not handle
     // never complete instead of responding with 404
     if (isExpressRouter(requestTarget)) {
-      throw new Error(
+      throw new SupertestTargetError(
         'The typed application is built on an express router, which cannot be served on its own. ' +
           'Pass the root express application as `expressApp` in the config of the supertest adapter.'
       )
@@ -39,12 +40,15 @@ export abstract class SupertestAdapterBase<
     path: string,
     context: SupertestConfig & TRequestInput & BaseRequestInput
   ) {
+    // the version injector already modified the path template, before its
+    // params and query are put into it
+    const plan = planRequest(method, path, context)
     let request = supertest(this.requestTarget)[typedLowerCase(method)](
-      buildUrl(path, context)
+      plan.url
     )
 
-    if (method !== 'GET' && method !== 'DELETE') {
-      request = request.send(context.body as string | object | undefined)
+    if (plan.body.send) {
+      request = request.send(plan.body.value as string | object | undefined)
     }
 
     const headers = { ...this.defaultConfig.headers, ...context.headers }

@@ -30,8 +30,8 @@
     "author": "Yannick Stachelscheid",
     "license": "MIT",
     "dependencies": {
-        "@t-rest/client-utils": "workspace:*",
-        "@t-rest/core": "workspace:*"
+        "@t-rest/core": "workspace:^",
+        "@t-rest/protocol": "workspace:^"
     },
     "devDependencies": {
         "@t-rest/testing-utilities": "workspace:*",

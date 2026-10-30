@@ -6,7 +6,7 @@
   },
   "references": [
     { "path": "../core/tsconfig.ref.json" },
-    { "path": "../client-utils/tsconfig.ref.json" },
+    { "path": "../protocol/tsconfig.ref.json" },
     { "path": "../testing-utilities/tsconfig.ref.json" }
   ]
 }

@@ -14,7 +14,8 @@ import {
 import { z } from 'zod'
 import Express from 'express'
 import { SupertestAdapter } from '../classes/supertest-adapter.js'
-import { VersionInjector } from '../classes/version-injector.js'
+import { SupertestTargetError } from '../classes/supertest-target-error.js'
+import { SupertestVersionInjector } from '../classes/version-injector.js'
 
 type Item = { id: number; name: string }
 
@@ -59,6 +60,9 @@ test('a typed application built on a router without the root application is reje
 
   expect(() => SupertestAdapter.withoutVersioning(app)).toThrow(
     /built on an express router.*`expressApp`/
+  )
+  expect(() => SupertestAdapter.withoutVersioning(app)).toThrow(
+    SupertestTargetError
   )
 })
 
@@ -123,7 +127,7 @@ test('a versioned typed application built on a router uses the root application'
       return new Date(version)
     }
   }
-  class HeaderVersionInjector extends VersionInjector {
+  class HeaderVersionInjector extends SupertestVersionInjector {
     modifyHeaders(
       headers: Record<string, string | number | boolean>,
       version: string

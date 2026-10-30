@@ -1,4 +1,4 @@
-export abstract class VersionInjector {
+export abstract class SupertestVersionInjector {
   public modifyUrl(url: string, _version: string) {
     return url
   }
@@ -10,3 +10,9 @@ export abstract class VersionInjector {
     return headers
   }
 }
+
+/** @deprecated Renamed to `SupertestVersionInjector`, the client has a `VersionInjector` of its own. */
+export const VersionInjector = SupertestVersionInjector
+
+/** @deprecated Renamed to `SupertestVersionInjector`, the client has a `VersionInjector` of its own. */
+export type VersionInjector = SupertestVersionInjector
