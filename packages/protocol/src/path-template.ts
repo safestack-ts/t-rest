@@ -21,10 +21,10 @@ export const pathShape = (path: string): string =>
  */
 export const fillPathParams = (
   path: string,
-  params: Record<string, unknown> = {}
+  params?: Record<string, unknown> | null
 ): string =>
   path.replace(PARAM_TOKEN, (placeholder, key: string) =>
-    Object.prototype.hasOwnProperty.call(params, key)
+    params != null && Object.prototype.hasOwnProperty.call(params, key)
       ? encodeURIComponent(String(params[key]))
       : placeholder
   )
