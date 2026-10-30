@@ -1,6 +1,6 @@
 import { TypedExpressApplicationWithoutVersioning, TypedExpressApplicationWithVersioning, ApplicationRoutes } from '@t-rest/express-server';
 import * as _t_rest_core from '@t-rest/core';
-import { AnyRouteDef, RouteValidationInput, HTTPMethod, ExtractVersionMatchingRoute } from '@t-rest/core';
+import { AnyRouteDef, RouteRequestInput, RouteValidationInput, HTTPMethod, ExtractVersionMatchingRoute } from '@t-rest/core';
 import { BaseRequestInput, VersionConvention } from '@t-rest/protocol';
 import supertest from 'supertest';
 
@@ -12,7 +12,36 @@ type SupertestConfig = {
     };
 };
 
-type RequestInput<TRoute extends AnyRouteDef> = RouteValidationInput<TRoute>;
+type MultipartFileSource = {
+    buffer: Buffer;
+    path?: undefined;
+    filename: string;
+} | {
+    path: string;
+    buffer?: undefined;
+    filename?: string;
+};
+type MultipartFile = MultipartFileSource & {
+    field: string;
+    contentType?: string;
+};
+type MultipartBody<TFields = Record<string, unknown>> = {
+    fields?: TFields;
+    files?: MultipartFile[];
+};
+/**
+ * The text fields are what the validator of the route gets as `body`. Routes
+ * validating no body still accept untyped fields.
+ */
+type MultipartInput<TInput> = TInput extends {
+    body: infer TFields;
+} ? MultipartBody<TFields> & {
+    fields: TFields;
+} : 'body' extends keyof TInput ? MultipartBody<TInput['body']> : MultipartBody;
+
+type RequestInput<TRoute extends AnyRouteDef> = RouteRequestInput<TRoute, {
+    multipart: MultipartInput<RouteValidationInput<TRoute>>;
+}>;
 
 type AnyTypedExpressApplication = TypedExpressApplicationWithoutVersioning<any, any, any> | TypedExpressApplicationWithVersioning<any, any, any, any>;
 
@@ -36,7 +65,10 @@ declare abstract class SupertestAdapterBase<TApp extends AnyTypedExpressApplicat
     protected defaultConfig: DefaultSupertestAdapterConfig;
     private readonly requestTarget;
     constructor(app: TApp, defaultConfig: DefaultSupertestAdapterConfig);
-    protected executeRequest<TRequestInput, TResponseType>(method: HTTPMethod, path: string, context: SupertestConfig & TRequestInput & BaseRequestInput): Promise<SupertestResponse<TResponseType>>;
+    protected executeRequest<TRequestInput, TResponseType>(method: HTTPMethod, path: string, context: SupertestConfig & TRequestInput & BaseRequestInput & {
+        multipart?: MultipartBody;
+    }): Promise<SupertestResponse<TResponseType>>;
+    private attachMultipart;
     private stringifyBody;
 }
 
@@ -52,46 +84,71 @@ declare class SupertestAdapterWithoutVersioning<TApp extends TypedExpressApplica
     }>["~responseType"]>>;
     get: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "GET";
-    }>["path"]>(path: TAbsolutePath, context: SupertestConfig & _t_rest_core.RouteValidationInput<Extract<ApplicationRoutes<TApp>, {
+    }>["path"]>(path: TAbsolutePath, context: SupertestConfig & _t_rest_core.RouteRequestInput<Extract<ApplicationRoutes<TApp>, {
         method: "GET";
         path: TAbsolutePath;
-    }>>) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
+    }>, {
+        multipart: MultipartInput<_t_rest_core.RouteValidationInput<Extract<ApplicationRoutes<TApp>, {
+            method: "GET";
+            path: TAbsolutePath;
+        }>>>;
+    }>) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
         method: "GET";
         path: TAbsolutePath;
     }>["~responseType"]>>;
     post: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "POST";
-    }>["path"]>(path: TAbsolutePath, context: SupertestConfig & _t_rest_core.RouteValidationInput<Extract<ApplicationRoutes<TApp>, {
+    }>["path"]>(path: TAbsolutePath, context: SupertestConfig & _t_rest_core.RouteRequestInput<Extract<ApplicationRoutes<TApp>, {
         method: "POST";
         path: TAbsolutePath;
-    }>>) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
+    }>, {
+        multipart: MultipartInput<_t_rest_core.RouteValidationInput<Extract<ApplicationRoutes<TApp>, {
+            method: "POST";
+            path: TAbsolutePath;
+        }>>>;
+    }>) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
         method: "POST";
         path: TAbsolutePath;
     }>["~responseType"]>>;
     put: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "PUT";
-    }>["path"]>(path: TAbsolutePath, context: SupertestConfig & _t_rest_core.RouteValidationInput<Extract<ApplicationRoutes<TApp>, {
+    }>["path"]>(path: TAbsolutePath, context: SupertestConfig & _t_rest_core.RouteRequestInput<Extract<ApplicationRoutes<TApp>, {
         method: "PUT";
         path: TAbsolutePath;
-    }>>) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
+    }>, {
+        multipart: MultipartInput<_t_rest_core.RouteValidationInput<Extract<ApplicationRoutes<TApp>, {
+            method: "PUT";
+            path: TAbsolutePath;
+        }>>>;
+    }>) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
         method: "PUT";
         path: TAbsolutePath;
     }>["~responseType"]>>;
     patch: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "PATCH";
-    }>["path"]>(path: TAbsolutePath, context: SupertestConfig & _t_rest_core.RouteValidationInput<Extract<ApplicationRoutes<TApp>, {
+    }>["path"]>(path: TAbsolutePath, context: SupertestConfig & _t_rest_core.RouteRequestInput<Extract<ApplicationRoutes<TApp>, {
         method: "PATCH";
         path: TAbsolutePath;
-    }>>) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
+    }>, {
+        multipart: MultipartInput<_t_rest_core.RouteValidationInput<Extract<ApplicationRoutes<TApp>, {
+            method: "PATCH";
+            path: TAbsolutePath;
+        }>>>;
+    }>) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
         method: "PATCH";
         path: TAbsolutePath;
     }>["~responseType"]>>;
     delete: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "DELETE";
-    }>["path"]>(path: TAbsolutePath, context: SupertestConfig & _t_rest_core.RouteValidationInput<Extract<ApplicationRoutes<TApp>, {
+    }>["path"]>(path: TAbsolutePath, context: SupertestConfig & _t_rest_core.RouteRequestInput<Extract<ApplicationRoutes<TApp>, {
         method: "DELETE";
         path: TAbsolutePath;
-    }>>) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
+    }>, {
+        multipart: MultipartInput<_t_rest_core.RouteValidationInput<Extract<ApplicationRoutes<TApp>, {
+            method: "DELETE";
+            path: TAbsolutePath;
+        }>>>;
+    }>) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
         method: "DELETE";
         path: TAbsolutePath;
     }>["~responseType"]>>;
@@ -158,19 +215,29 @@ declare class SupertestAdapterWithVersioning<TApp extends TypedExpressApplicatio
     }>["path"], TVersion extends CallableVersions<TApp, TMethod, TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & RequestInput<AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>>) => Promise<SupertestResponse<AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>["~responseType"]>>;
     get: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "GET";
-    }>["path"], TVersion extends CallableVersions<TApp, "GET", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & _t_rest_core.RouteValidationInput<AppRouteAt<TApp, "GET", TAbsolutePath, TVersion>>) => Promise<SupertestResponse<AppRouteAt<TApp, "GET", TAbsolutePath, TVersion>["~responseType"]>>;
+    }>["path"], TVersion extends CallableVersions<TApp, "GET", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & _t_rest_core.RouteRequestInput<AppRouteAt<TApp, "GET", TAbsolutePath, TVersion>, {
+        multipart: MultipartInput<_t_rest_core.RouteValidationInput<AppRouteAt<TApp, "GET", TAbsolutePath, TVersion>>>;
+    }>) => Promise<SupertestResponse<AppRouteAt<TApp, "GET", TAbsolutePath, TVersion>["~responseType"]>>;
     post: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "POST";
-    }>["path"], TVersion extends CallableVersions<TApp, "POST", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & _t_rest_core.RouteValidationInput<AppRouteAt<TApp, "POST", TAbsolutePath, TVersion>>) => Promise<SupertestResponse<AppRouteAt<TApp, "POST", TAbsolutePath, TVersion>["~responseType"]>>;
+    }>["path"], TVersion extends CallableVersions<TApp, "POST", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & _t_rest_core.RouteRequestInput<AppRouteAt<TApp, "POST", TAbsolutePath, TVersion>, {
+        multipart: MultipartInput<_t_rest_core.RouteValidationInput<AppRouteAt<TApp, "POST", TAbsolutePath, TVersion>>>;
+    }>) => Promise<SupertestResponse<AppRouteAt<TApp, "POST", TAbsolutePath, TVersion>["~responseType"]>>;
     put: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "PUT";
-    }>["path"], TVersion extends CallableVersions<TApp, "PUT", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & _t_rest_core.RouteValidationInput<AppRouteAt<TApp, "PUT", TAbsolutePath, TVersion>>) => Promise<SupertestResponse<AppRouteAt<TApp, "PUT", TAbsolutePath, TVersion>["~responseType"]>>;
+    }>["path"], TVersion extends CallableVersions<TApp, "PUT", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & _t_rest_core.RouteRequestInput<AppRouteAt<TApp, "PUT", TAbsolutePath, TVersion>, {
+        multipart: MultipartInput<_t_rest_core.RouteValidationInput<AppRouteAt<TApp, "PUT", TAbsolutePath, TVersion>>>;
+    }>) => Promise<SupertestResponse<AppRouteAt<TApp, "PUT", TAbsolutePath, TVersion>["~responseType"]>>;
     patch: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "PATCH";
-    }>["path"], TVersion extends CallableVersions<TApp, "PATCH", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & _t_rest_core.RouteValidationInput<AppRouteAt<TApp, "PATCH", TAbsolutePath, TVersion>>) => Promise<SupertestResponse<AppRouteAt<TApp, "PATCH", TAbsolutePath, TVersion>["~responseType"]>>;
+    }>["path"], TVersion extends CallableVersions<TApp, "PATCH", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & _t_rest_core.RouteRequestInput<AppRouteAt<TApp, "PATCH", TAbsolutePath, TVersion>, {
+        multipart: MultipartInput<_t_rest_core.RouteValidationInput<AppRouteAt<TApp, "PATCH", TAbsolutePath, TVersion>>>;
+    }>) => Promise<SupertestResponse<AppRouteAt<TApp, "PATCH", TAbsolutePath, TVersion>["~responseType"]>>;
     delete: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "DELETE";
-    }>["path"], TVersion extends CallableVersions<TApp, "DELETE", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & _t_rest_core.RouteValidationInput<AppRouteAt<TApp, "DELETE", TAbsolutePath, TVersion>>) => Promise<SupertestResponse<AppRouteAt<TApp, "DELETE", TAbsolutePath, TVersion>["~responseType"]>>;
+    }>["path"], TVersion extends CallableVersions<TApp, "DELETE", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & _t_rest_core.RouteRequestInput<AppRouteAt<TApp, "DELETE", TAbsolutePath, TVersion>, {
+        multipart: MultipartInput<_t_rest_core.RouteValidationInput<AppRouteAt<TApp, "DELETE", TAbsolutePath, TVersion>>>;
+    }>) => Promise<SupertestResponse<AppRouteAt<TApp, "DELETE", TAbsolutePath, TVersion>["~responseType"]>>;
 }
 
 declare abstract class SupertestAdapter {
@@ -187,4 +254,4 @@ declare class SupertestTargetError extends Error {
 declare const versionInjectorFrom: (convention: VersionConvention) => SupertestVersionInjector;
 
 export { SupertestAdapter, SupertestAdapterWithVersioning, SupertestAdapterWithoutVersioning, SupertestTargetError, SupertestVersionInjector, VersionInjector, versionInjectorFrom };
-export type { AnyTypedExpressApplication, DefaultSupertestAdapterConfig, RequestInput, SupertestConfig, SupertestResponse };
+export type { AnyTypedExpressApplication, DefaultSupertestAdapterConfig, MultipartBody, MultipartFile, MultipartInput, RequestInput, SupertestConfig, SupertestResponse };

@@ -1,6 +1,7 @@
 import { BaseRequestInput, planRequest } from '@t-rest/protocol'
 import { AnyTypedExpressApplication } from '../types/any-typed-express-application.js'
 import { HTTPMethod, typedLowerCase } from '@t-rest/core'
+import { MultipartBody } from '../types/multipart.js'
 import { SupertestConfig } from '../types/supertest-config.js'
 import supertest from 'supertest'
 import { SupertestResponse } from '../types/supertest-response.js'
@@ -38,7 +39,9 @@ export abstract class SupertestAdapterBase<
   protected async executeRequest<TRequestInput, TResponseType>(
     method: HTTPMethod,
     path: string,
-    context: SupertestConfig & TRequestInput & BaseRequestInput
+    context: SupertestConfig &
+      TRequestInput &
+      BaseRequestInput & { multipart?: MultipartBody }
   ) {
     // the version injector already modified the path template, before its
     // params and query are put into it
@@ -47,7 +50,9 @@ export abstract class SupertestAdapterBase<
       plan.url
     )
 
-    if (plan.body.send) {
+    if (context.multipart !== undefined) {
+      request = this.attachMultipart(request, context.multipart)
+    } else if (plan.body.send) {
       request = request.send(plan.body.value as string | object | undefined)
     }
 
@@ -78,6 +83,25 @@ export abstract class SupertestAdapterBase<
     const response = await request
 
     return response as SupertestResponse<TResponseType>
+  }
+
+  private attachMultipart(request: supertest.Test, multipart: MultipartBody) {
+    for (const [name, value] of Object.entries(multipart.fields ?? {})) {
+      // optional fields can be undefined, which superagent refuses
+      if (value !== undefined) {
+        request = request.field(name, value as string)
+      }
+    }
+
+    for (const { field, filename, contentType, ...source } of multipart.files ??
+      []) {
+      request = request.attach(field, source.buffer ?? source.path, {
+        filename,
+        contentType,
+      })
+    }
+
+    return request
   }
 
   private stringifyBody(body: any, text?: string) {
