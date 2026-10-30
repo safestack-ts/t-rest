@@ -174,3 +174,10 @@ usersRouter.get('/me').handle((request, _validation, response) => {
 ```
 
 Router modules are only a new composition option for larger applications.
+
+Every `.handle()` registers its own express route on the router it is called
+on, so the middlewares of a router apply to the versions handled after them,
+and the versions of one route may be handled on the app and on its branches.
+A request is resolved against all versions handled by the application. If the
+resolved version is handled on a router the request never reaches, express
+responds with its 404.

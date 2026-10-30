@@ -4,6 +4,7 @@ export * from './classes/typed-express-application-with-versioning.js'
 export * from './classes/typed-express-application-without-versioning.js'
 export * from './classes/typed-router-with-versioning.js'
 export * from './classes/typed-router-without-versioning.js'
+export * from './classes/route-setup-error.js'
 export * from './classes/version-resolution-error.js'
 
 // types
@@ -21,3 +22,4 @@ export * from './types/typed-router-module.js'
 // utils
 export * from './utils/define-middleware.js'
 export * from './utils/define-router-module.js'
+export * from './utils/version-extractor-from.js'

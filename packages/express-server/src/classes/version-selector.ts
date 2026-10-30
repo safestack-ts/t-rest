@@ -11,6 +11,7 @@ import {
 import { ExpressRequest } from '../types/express-type-shortcuts.js'
 import { RequestVersion } from '../types/request-version.js'
 import { RouteVersions } from '../types/route-versions.js'
+import { RouteSetupError } from './route-setup-error.js'
 import { TypedRouterBase } from './typed-router-base.js'
 import { TypedRouteHandler } from './typed-route-handler.js'
 
@@ -61,7 +62,7 @@ export class VersionSelector<
     ])
 
     if (!route) {
-      throw new Error(
+      throw new RouteSetupError(
         `Route not found for path ${joinPath(
           this.path,
           this.pathSuffix

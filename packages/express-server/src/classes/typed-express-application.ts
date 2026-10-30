@@ -38,15 +38,53 @@ export abstract class TypedExpressApplication {
   >(
     expressApp: ExpressApp | ExpressRouter,
     bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired, TVersionHistory>,
+    versionExtractor: VersionExtractor,
+    mountPath?: TMountPath
+  ): TypedExpressApplicationWithVersioning<
+    TRoutes,
+    TRequest,
+    TMountPath,
+    TVersionHistory
+  >
+  /**
+   * @deprecated The version history is taken from the bag of routes, omit the
+   * `versionHistory` argument.
+   */
+  public static withVersioning<
+    TRoutes extends AnyRouteDef,
+    TRequest extends ExpressRequest,
+    TVersionHistory extends string[],
+    TMountPath extends string = '/'
+  >(
+    expressApp: ExpressApp | ExpressRouter,
+    bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired, TVersionHistory>,
     versionHistory: TVersionHistory,
     versionExtractor: VersionExtractor,
-    mountPath: TMountPath = '/' as TMountPath
+    mountPath?: TMountPath
+  ): TypedExpressApplicationWithVersioning<
+    TRoutes,
+    TRequest,
+    TMountPath,
+    TVersionHistory
+  >
+  public static withVersioning(
+    expressApp: ExpressApp | ExpressRouter,
+    bagOfRoutes: BagOfRoutes<AnyRouteDef, VersioningRequired, string[]>,
+    ...args: [string[], VersionExtractor, string?] | [VersionExtractor, string?]
   ) {
-    return new TypedExpressApplicationWithVersioning<
-      TRoutes,
-      TRequest,
-      TVersionHistory,
-      TMountPath
-    >(expressApp, bagOfRoutes, versionHistory, versionExtractor, mountPath)
+    // the deprecated overload passes the version history as third argument
+    const [versionHistory, versionExtractor, mountPath = '/'] = Array.isArray(
+      args[0]
+    )
+      ? (args as [string[], VersionExtractor, string?])
+      : [bagOfRoutes.versionHistory, ...(args as [VersionExtractor, string?])]
+
+    return new TypedExpressApplicationWithVersioning(
+      expressApp,
+      bagOfRoutes,
+      versionHistory,
+      versionExtractor,
+      mountPath
+    )
   }
 }
