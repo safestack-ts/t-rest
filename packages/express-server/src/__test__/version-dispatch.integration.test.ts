@@ -145,7 +145,11 @@ describe('dispatch', () => {
         })
     }
 
-    expect(registerRoute).toHaveBeenCalledTimes(3)
+    // express 4 also reads the `query parser fn` setting through `app.get`
+    const userRoutes = registerRoute.mock.calls.filter(
+      ([path]) => path === '/users'
+    )
+    expect(userRoutes).toHaveLength(3)
 
     await request(expressApp)
       .get('/users')

@@ -116,3 +116,78 @@ type _returnType = AssertTrue<
     Promise<SupertestResponse<{ v: 3 }>>
   >
 >
+
+// a union of versions yields the routes of all its members
+export const unionTest = async (
+  mixed: '2024-01-01' | '2024-04-01',
+  inherited: '2024-02-01' | '2024-04-01'
+) => {
+  const mixedResponse = await adapter.get('/items', mixed, {} as any)
+  type _mixed = AssertTrue<
+    IsExact<typeof mixedResponse, SupertestResponse<{ v: 1 } | { v: 3 }>>
+  >
+
+  const inheritedResponse = await adapter.get('/items', inherited, {} as any)
+  type _inherited = AssertTrue<
+    IsExact<typeof inheritedResponse, SupertestResponse<{ v: 1 } | { v: 3 }>>
+  >
+}
+
+const renamedBag = BagOfRoutes.withVersioning(Versioning.DATE, versionHistory)
+  .addRoute(
+    Route.version('2024-01-01')
+      .get('/users/:id')
+      .validate(
+        z.object({
+          params: z.object({ id: z.string() }),
+          query: z.object({ page: z.string() }),
+        })
+      )
+      .response<{ v: 1 }>()
+  )
+  .addRoute(
+    Route.version('2024-03-01')
+      .get('/users/:userId')
+      .validate(
+        z.object({
+          params: z.object({ userId: z.string() }),
+          query: z.object({ cursor: z.string() }),
+        })
+      )
+      .response<{ v: 3 }>()
+  )
+  .build()
+
+const renamedAdapter = SupertestAdapter.withVersioning(
+  TypedExpressApplication.withVersioning(
+    Express(),
+    renamedBag,
+    versionHistory,
+    { extractVersion: () => undefined }
+  ),
+  new (class extends SupertestVersionInjector {})()
+)
+
+// the server groups templates by shape, so a renamed template supersedes the old one
+export const renamedTest = async () => {
+  const old = await renamedAdapter.get('/users/:id', '2024-02-01', {
+    params: { id: '1' },
+    query: { page: '1' },
+  })
+  type _old = AssertTrue<IsExact<typeof old, SupertestResponse<{ v: 1 }>>>
+
+  const renamed = await renamedAdapter.get('/users/:userId', '2024-04-01', {
+    params: { userId: '1' },
+    query: { cursor: 'a' },
+  })
+  type _renamed = AssertTrue<
+    IsExact<typeof renamed, SupertestResponse<{ v: 3 }>>
+  >
+
+  await renamedAdapter.get(
+    '/users/:id',
+    // @ts-expect-error the server executes the route of /users/:userId
+    '2024-04-01',
+    { params: { id: '1' }, query: { page: '1' } }
+  )
+}

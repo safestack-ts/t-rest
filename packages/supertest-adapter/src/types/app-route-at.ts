@@ -22,21 +22,56 @@ type AppRoutesFor<
   TPath extends string
 > = Extract<ApplicationRoutes<TApp>, { method: TMethod; path: TPath }>
 
-// the history versions the server resolves to a declared version of the route
+type DropParamName<TRest extends string> =
+  TRest extends `${string}/${infer TTail}` ? `/${TTail}` : ''
+
+// type level `pathShape` of @t-rest/protocol: `/users/:id` -> `/users/%s`
+type PathShape<TPath extends string> =
+  TPath extends `${infer THead}:${infer TRest}`
+    ? `${THead}%s${PathShape<DropParamName<TRest>>}`
+    : TPath
+
+// the routes the server resolves a request to the path against: all routes of
+// the method whose template has the same shape, e.g. `/users/:id` and
+// `/users/:userId`
+type AppRoutesOfShape<
+  TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>,
+  TMethod extends HTTPMethod,
+  TPath extends string
+> = Extract<ApplicationRoutes<TApp>, { method: TMethod }> extends infer TRoute
+  ? TRoute extends { path: string }
+    ? PathShape<TRoute['path']> extends PathShape<TPath>
+      ? TRoute
+      : never
+    : never
+  : never
+
+// the route the server executes for a single version of the history
+type ResolvedRoute<
+  TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>,
+  TMethod extends HTTPMethod,
+  TPath extends string,
+  TVersion extends string
+> = ExtractVersionMatchingRoute<
+  AppRoutesOfShape<TApp, TMethod, TPath>,
+  TVersion,
+  AppVersionHistory<TApp>
+>
+
+// the history versions the server resolves to a declared version of the route,
+// leaving out versions that resolve to a newer template of the same shape
 type ResolvableVersions<
   TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>,
   TMethod extends HTTPMethod,
   TPath extends string
 > = {
   [TVersion in AppVersionHistory<TApp>[number]]: [
-    ExtractVersionMatchingRoute<
-      AppRoutesFor<TApp, TMethod, TPath>,
-      TVersion,
-      AppVersionHistory<TApp>
-    >
+    ResolvedRoute<TApp, TMethod, TPath, TVersion>
   ] extends [never]
     ? never
-    : TVersion
+    : ResolvedRoute<TApp, TMethod, TPath, TVersion> extends { path: TPath }
+    ? TVersion
+    : never
 }[AppVersionHistory<TApp>[number]]
 
 /**
@@ -58,18 +93,17 @@ export type CallableVersions<
 /**
  * The route the server executes for the version of a request: the route
  * declared for exactly this version, else the newest route of an older version.
+ * A union of versions yields the routes of all its members.
  */
 export type AppRouteAt<
   TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>,
   TMethod extends HTTPMethod,
   TPath extends string,
   TVersion extends string
-> = [
-  Extract<AppRoutesFor<TApp, TMethod, TPath>, { version: TVersion }>
-] extends [never]
-  ? ExtractVersionMatchingRoute<
-      AppRoutesFor<TApp, TMethod, TPath>,
-      TVersion,
-      AppVersionHistory<TApp>
-    >
-  : Extract<AppRoutesFor<TApp, TMethod, TPath>, { version: TVersion }>
+> = TVersion extends string
+  ? [
+      Extract<AppRoutesFor<TApp, TMethod, TPath>, { version: TVersion }>
+    ] extends [never]
+    ? ResolvedRoute<TApp, TMethod, TPath, TVersion>
+    : Extract<AppRoutesFor<TApp, TMethod, TPath>, { version: TVersion }>
+  : never

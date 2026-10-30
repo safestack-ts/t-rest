@@ -111,10 +111,20 @@ type AppRoutesFor<TApp extends TypedExpressApplicationWithVersioning<any, any, a
     method: TMethod;
     path: TPath;
 }>;
+type DropParamName<TRest extends string> = TRest extends `${string}/${infer TTail}` ? `/${TTail}` : '';
+type PathShape<TPath extends string> = TPath extends `${infer THead}:${infer TRest}` ? `${THead}%s${PathShape<DropParamName<TRest>>}` : TPath;
+type AppRoutesOfShape<TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>, TMethod extends HTTPMethod, TPath extends string> = Extract<ApplicationRoutes<TApp>, {
+    method: TMethod;
+}> extends infer TRoute ? TRoute extends {
+    path: string;
+} ? PathShape<TRoute['path']> extends PathShape<TPath> ? TRoute : never : never : never;
+type ResolvedRoute<TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>, TMethod extends HTTPMethod, TPath extends string, TVersion extends string> = ExtractVersionMatchingRoute<AppRoutesOfShape<TApp, TMethod, TPath>, TVersion, AppVersionHistory<TApp>>;
 type ResolvableVersions<TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>, TMethod extends HTTPMethod, TPath extends string> = {
     [TVersion in AppVersionHistory<TApp>[number]]: [
-        ExtractVersionMatchingRoute<AppRoutesFor<TApp, TMethod, TPath>, TVersion, AppVersionHistory<TApp>>
-    ] extends [never] ? never : TVersion;
+        ResolvedRoute<TApp, TMethod, TPath, TVersion>
+    ] extends [never] ? never : ResolvedRoute<TApp, TMethod, TPath, TVersion> extends {
+        path: TPath;
+    } ? TVersion : never;
 }[AppVersionHistory<TApp>[number]];
 /**
  * The versions a request to the route may be sent with: the declared versions
@@ -128,14 +138,15 @@ type CallableVersions<TApp extends TypedExpressApplicationWithVersioning<any, an
 /**
  * The route the server executes for the version of a request: the route
  * declared for exactly this version, else the newest route of an older version.
+ * A union of versions yields the routes of all its members.
  */
-type AppRouteAt<TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>, TMethod extends HTTPMethod, TPath extends string, TVersion extends string> = [
+type AppRouteAt<TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>, TMethod extends HTTPMethod, TPath extends string, TVersion extends string> = TVersion extends string ? [
     Extract<AppRoutesFor<TApp, TMethod, TPath>, {
         version: TVersion;
     }>
-] extends [never] ? ExtractVersionMatchingRoute<AppRoutesFor<TApp, TMethod, TPath>, TVersion, AppVersionHistory<TApp>> : Extract<AppRoutesFor<TApp, TMethod, TPath>, {
+] extends [never] ? ResolvedRoute<TApp, TMethod, TPath, TVersion> : Extract<AppRoutesFor<TApp, TMethod, TPath>, {
     version: TVersion;
-}>;
+}> : never;
 
 declare class SupertestAdapterWithVersioning<TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>> extends SupertestAdapterBase<TApp> {
     private readonly versionInjector;
