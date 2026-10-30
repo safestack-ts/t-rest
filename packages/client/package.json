@@ -38,6 +38,14 @@
         "axios": "^1.21.0",
         "nock": "^14.0.17"
     },
+    "peerDependencies": {
+        "axios": "^1.0.0"
+    },
+    "peerDependenciesMeta": {
+        "axios": {
+            "optional": true
+        }
+    },
     "publishConfig": {
         "access": "public"
     }

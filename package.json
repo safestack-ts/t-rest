@@ -19,12 +19,14 @@
     "changeset:snapshot:publish": "pnpm changeset publish --tag dev --no-git-tag",
     "changeset:snapshot:version": "pnpm changeset version --snapshot dev",
     "pub:dev": "pnpm build && pnpm exec ./scripts/publish-dev-version.sh",
-    "prepublish": "pnpm clean && pnpm build"
+    "prepublish": "pnpm clean && pnpm build",
+    "check:packages": "node scripts/check-package-dependencies.mjs && pnpm -r --no-bail --filter \"!@t-rest/playground\" --filter \"!@t-rest/testing-utilities\" exec sh -c \"publint --strict && attw --pack .\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^10.0.1",
     "@safestack/prettier-config": "^1.0.1",
     "@types/supertest": "^7.2.1",
@@ -32,6 +34,7 @@
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
     "glob": "^14.0.3",
+    "publint": "^0.3.25",
     "supertest": "^7.3.1",
     "tsup": "^9.0.0",
     "typescript": "^6.0.3",

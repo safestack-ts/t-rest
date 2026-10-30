@@ -53,6 +53,10 @@ jobs:
         run: pnpm ls -r express @types/express --depth 0
       - name: Build
         run: pnpm build
+      # Checks the built packages for undeclared dependencies, invalid exports and wrong types resolution.
+      - name: Check Packages
+        if: matrix.express == '5'
+        run: pnpm check:packages
       # Type checks and tests resolve workspace packages through their built dist output, so they run after the build.
       - name: Type Check
         run: pnpm verify
