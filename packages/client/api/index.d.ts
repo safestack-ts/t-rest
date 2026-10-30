@@ -1,6 +1,6 @@
 import { AxiosRequestConfig, AxiosInstance } from 'axios';
 import * as _t_rest_core from '@t-rest/core';
-import { HTTPMethod, AnyRouteDef, BagOfRoutes, Versioning, ExtractLatestMatchingRoutePerPath, NewerVersions, VersioningRequired, RouteValidationInput } from '@t-rest/core';
+import { HTTPMethod, AnyRouteDef, BagOfRoutes, Versioning, ExtractLatestMatchingRoutePerPath, NewerVersions, VersioningRequired, RouteRequestInput } from '@t-rest/core';
 import { BaseRequestInput, VersionConvention } from '@t-rest/protocol';
 
 type RequestConfig = {
@@ -13,6 +13,10 @@ type HTTPResponse<TResponse> = {
 };
 
 interface HTTPAdapter<TRequestContext = {}> {
+    /**
+     * `data` is a `FormData` for routes declared with `.multipart()`. It has to
+     * be sent as is: the transport sets the content type with its boundary.
+     */
     request<TResponse>(method: HTTPMethod, url: string, data: unknown, requestConfig?: RequestConfig & TRequestContext): Promise<HTTPResponse<TResponse>>;
 }
 
@@ -59,46 +63,56 @@ declare class RESTClientWithVersioning<TRoutes extends AnyRouteDef, TVersion ext
     private makeRouteHandler;
     get: <TAbsolutePath extends ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "GET";
-    }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
+    }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteRequestInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "GET";
         path: TAbsolutePath;
-    }>, TVersion, TVersionHistory>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
+    }>, TVersion, TVersionHistory>, {
+        body: FormData;
+    }>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "GET";
         path: TAbsolutePath;
     }>, TVersion, TVersionHistory>["~responseType"]>>;
     post: <TAbsolutePath extends ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "POST";
-    }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
+    }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteRequestInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "POST";
         path: TAbsolutePath;
-    }>, TVersion, TVersionHistory>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
+    }>, TVersion, TVersionHistory>, {
+        body: FormData;
+    }>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "POST";
         path: TAbsolutePath;
     }>, TVersion, TVersionHistory>["~responseType"]>>;
     put: <TAbsolutePath extends ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "PUT";
-    }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
+    }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteRequestInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "PUT";
         path: TAbsolutePath;
-    }>, TVersion, TVersionHistory>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
+    }>, TVersion, TVersionHistory>, {
+        body: FormData;
+    }>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "PUT";
         path: TAbsolutePath;
     }>, TVersion, TVersionHistory>["~responseType"]>>;
     patch: <TAbsolutePath extends ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "PATCH";
-    }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
+    }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteRequestInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "PATCH";
         path: TAbsolutePath;
-    }>, TVersion, TVersionHistory>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
+    }>, TVersion, TVersionHistory>, {
+        body: FormData;
+    }>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "PATCH";
         path: TAbsolutePath;
     }>, TVersion, TVersionHistory>["~responseType"]>>;
     delete: <TAbsolutePath extends ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "DELETE";
-    }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
+    }>, TVersion, TVersionHistory>["path"]>(...args: RequestArgs<_t_rest_core.RouteRequestInput<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "DELETE";
         path: TAbsolutePath;
-    }>, TVersion, TVersionHistory>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
+    }>, TVersion, TVersionHistory>, {
+        body: FormData;
+    }>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<ExtractLatestMatchingRoutePerPath<Extract<TRoutes, {
         method: "DELETE";
         path: TAbsolutePath;
     }>, TVersion, TVersionHistory>["~responseType"]>>;
@@ -110,46 +124,56 @@ declare class RESTClientWithoutVersioning<TRoutes extends AnyRouteDef, TRequestC
     private makeRouteHandler;
     get: <TAbsolutePath extends Extract<TRoutes, {
         method: "GET";
-    }>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<Extract<TRoutes, {
+    }>["path"]>(...args: RequestArgs<_t_rest_core.RouteRequestInput<Extract<TRoutes, {
         method: "GET";
         path: TAbsolutePath;
-    }>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
+    }>, {
+        body: FormData;
+    }>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
         method: "GET";
         path: TAbsolutePath;
     }>["~responseType"]>>;
     post: <TAbsolutePath extends Extract<TRoutes, {
         method: "POST";
-    }>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<Extract<TRoutes, {
+    }>["path"]>(...args: RequestArgs<_t_rest_core.RouteRequestInput<Extract<TRoutes, {
         method: "POST";
         path: TAbsolutePath;
-    }>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
+    }>, {
+        body: FormData;
+    }>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
         method: "POST";
         path: TAbsolutePath;
     }>["~responseType"]>>;
     put: <TAbsolutePath extends Extract<TRoutes, {
         method: "PUT";
-    }>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<Extract<TRoutes, {
+    }>["path"]>(...args: RequestArgs<_t_rest_core.RouteRequestInput<Extract<TRoutes, {
         method: "PUT";
         path: TAbsolutePath;
-    }>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
+    }>, {
+        body: FormData;
+    }>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
         method: "PUT";
         path: TAbsolutePath;
     }>["~responseType"]>>;
     patch: <TAbsolutePath extends Extract<TRoutes, {
         method: "PATCH";
-    }>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<Extract<TRoutes, {
+    }>["path"]>(...args: RequestArgs<_t_rest_core.RouteRequestInput<Extract<TRoutes, {
         method: "PATCH";
         path: TAbsolutePath;
-    }>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
+    }>, {
+        body: FormData;
+    }>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
         method: "PATCH";
         path: TAbsolutePath;
     }>["~responseType"]>>;
     delete: <TAbsolutePath extends Extract<TRoutes, {
         method: "DELETE";
-    }>["path"]>(...args: RequestArgs<_t_rest_core.RouteValidationInput<Extract<TRoutes, {
+    }>["path"]>(...args: RequestArgs<_t_rest_core.RouteRequestInput<Extract<TRoutes, {
         method: "DELETE";
         path: TAbsolutePath;
-    }>>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
+    }>, {
+        body: FormData;
+    }>, TAbsolutePath, TRequestContext>) => Promise<HTTPResponse<Extract<TRoutes, {
         method: "DELETE";
         path: TAbsolutePath;
     }>["~responseType"]>>;
@@ -160,7 +184,9 @@ declare abstract class RESTClient<TRoutes extends AnyRouteDef, TVersionHistory e
     static withVersioning<TRoutes extends AnyRouteDef, TVersionHistory extends string[], TVersion extends TVersionHistory[number], TRequestContext>(bagOfRoutes: BagOfRoutes<TRoutes, VersioningRequired, TVersionHistory>, version: TVersion, httpAdapter: HTTPAdapter<TRequestContext>, versionInjectorConstructor: VersionInjectorConstructor): RESTClientWithVersioning<TRoutes, TVersion, TVersionHistory, TRequestContext>;
 }
 
-type RequestInput<TRoute extends AnyRouteDef> = RouteValidationInput<TRoute>;
+type RequestInput<TRoute extends AnyRouteDef> = RouteRequestInput<TRoute, {
+    body: FormData;
+}>;
 
 declare const versionInjectorFrom: (convention: VersionConvention) => VersionInjectorConstructor;
 
