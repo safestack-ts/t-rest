@@ -33,7 +33,7 @@ export class RESTClientWithoutVersioning<
         Extract<
           TRoutes,
           { method: TMethod; path: TAbsolutePath }
-        >['~responseType'],
+        >['~responses'],
         NonNullable<(typeof args)[1]>
       >(method, args[0], args[1])
     }

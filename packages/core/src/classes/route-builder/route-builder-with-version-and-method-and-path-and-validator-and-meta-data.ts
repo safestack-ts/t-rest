@@ -1,5 +1,7 @@
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
+import { ResponseMap } from '../../types/response-descriptor.js'
+import { json } from '../../utils/response-descriptors.js'
 export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
   TVersion extends string,
   TMethod extends HTTPMethod,
@@ -15,14 +17,26 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
     private metaData: TMetaData
   ) {}
 
-  public response<TResponse>() {
+  public responses<TResponses extends ResponseMap>(responses: TResponses) {
     return new RouteDef<
       TVersion,
       TMethod,
       TPath,
       TValidator,
-      TResponse,
+      TResponses,
       TMetaData
-    >(this.version, this.method, this.path, this.validator, this.metaData)
+    >(
+      this.version,
+      this.method,
+      this.path,
+      this.validator,
+      responses,
+      this.metaData
+    )
+  }
+
+  /** Shorthand for `.responses({ 200: json<TResponse>() })`. */
+  public response<TResponse>() {
+    return this.responses({ 200: json<TResponse>() })
   }
 }

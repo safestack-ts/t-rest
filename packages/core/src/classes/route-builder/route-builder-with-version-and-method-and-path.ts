@@ -1,5 +1,7 @@
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
+import { ResponseMap } from '../../types/response-descriptor.js'
+import { json } from '../../utils/response-descriptors.js'
 import { RouteBuilderWithVersionAndMethodAndPathAndValidator } from './route-builder-with-version-and-method-and-path-and-validator.js'
 import { RouteBuilderWithVersionAndMethodAndPathAndMetaData } from './route-builder-with-version-and-method-and-path-and-meta-data.js'
 import { emptyValidation } from '../../utils/empty-validation.js'
@@ -33,14 +35,19 @@ export class RouteBuilderWithVersionAndMethodAndPath<
     >(this.version, this.method, this.path, metaData)
   }
 
-  public response<TResponse>() {
+  public responses<TResponses extends ResponseMap>(responses: TResponses) {
     return new RouteDef<
       TVersion,
       TMethod,
       TPath,
       typeof emptyValidation,
-      TResponse,
+      TResponses,
       unknown
-    >(this.version, this.method, this.path, emptyValidation, null)
+    >(this.version, this.method, this.path, emptyValidation, responses, null)
+  }
+
+  /** Shorthand for `.responses({ 200: json<TResponse>() })`. */
+  public response<TResponse>() {
+    return this.responses({ 200: json<TResponse>() })
   }
 }

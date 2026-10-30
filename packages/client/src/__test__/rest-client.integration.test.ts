@@ -9,6 +9,9 @@ import {
   VersionHistory,
   Versioning,
   ze,
+  ResponseMap,
+  empty,
+  json,
 } from '@t-rest/core'
 import { z } from 'zod'
 import { RESTClient } from '../classes/rest-client.js'
@@ -89,7 +92,7 @@ const itemsBagOfRoutes = BagOfRoutes.withVersioning(
           body: z.object({ reason: z.string() }).optional(),
         })
       )
-      .response<void>()
+      .responses({ 204: empty() })
   )
   .build()
 
@@ -101,7 +104,7 @@ const usersBagOfRoutes = BagOfRoutes.withVersioning(
     Route.version('2024-01-01')
       .post('/api/users')
       .validate(z.object({ body: z.object({ email: z.string() }) }))
-      .response<{ id: number }>()
+      .responses({ 201: json<{ id: number }>() })
   )
   .build()
 
@@ -134,15 +137,19 @@ class RecordingHTTPAdapter implements HTTPAdapter<RecordingContext> {
 
   constructor(private readonly statusCode = 200) {}
 
-  async request<TResponse>(
+  async request<TResponses extends ResponseMap>(
     method: HTTPMethod,
     url: string,
     data: unknown,
+    _responses: TResponses,
     requestConfig?: RequestConfig & RecordingContext
-  ): Promise<HTTPResponse<TResponse>> {
+  ): Promise<HTTPResponse<TResponses>> {
     this.requests.push({ method, url, data, requestConfig })
 
-    return { data: { ok: true } as TResponse, statusCode: this.statusCode }
+    return {
+      data: { ok: true },
+      statusCode: this.statusCode,
+    } as HTTPResponse<TResponses>
   }
 }
 

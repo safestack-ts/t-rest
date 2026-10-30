@@ -35,7 +35,7 @@ export abstract class SupertestAdapterBase<
     this.requestTarget = requestTarget as Parameters<typeof supertest>[0]
   }
 
-  protected async executeRequest<TRequestInput, TResponseType>(
+  protected async executeRequest<TRequestInput, TResponses>(
     method: HTTPMethod,
     path: string,
     context: SupertestConfig & TRequestInput & BaseRequestInput
@@ -77,7 +77,12 @@ export abstract class SupertestAdapterBase<
 
     const response = await request
 
-    return response as SupertestResponse<TResponseType>
+    // superagent keeps text bodies apart from the parsed `body`
+    if (response.type.startsWith('text/')) {
+      response.body = response.text
+    }
+
+    return response as unknown as SupertestResponse<TResponses>
   }
 
   private stringifyBody(body: any, text?: string) {

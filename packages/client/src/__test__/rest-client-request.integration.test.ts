@@ -5,6 +5,7 @@ import {
   Route,
   VersionHistory,
   Versioning,
+  ResponseMap,
 } from '@t-rest/core'
 import { z } from 'zod'
 import { RESTClient } from '../classes/rest-client.js'
@@ -57,15 +58,16 @@ type Recorded = { method: HTTPMethod; url: string; data: unknown }
 class RecordingHTTPAdapter implements HTTPAdapter {
   public readonly requests: Recorded[] = []
 
-  async request<TResponse>(
+  async request<TResponses extends ResponseMap>(
     method: HTTPMethod,
     url: string,
     data: unknown,
+    _responses: TResponses,
     _requestConfig?: RequestConfig
-  ): Promise<HTTPResponse<TResponse>> {
+  ): Promise<HTTPResponse<TResponses>> {
     this.requests.push({ method, url, data })
 
-    return { data: undefined as TResponse, statusCode: 200 }
+    return { data: undefined, statusCode: 200 } as HTTPResponse<TResponses>
   }
 }
 

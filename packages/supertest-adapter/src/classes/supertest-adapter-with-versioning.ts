@@ -39,7 +39,7 @@ export class SupertestAdapterWithVersioning<
     ) => {
       return super.executeRequest<
         RequestInput<AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>>,
-        AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>['~responseType']
+        AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>['~responses']
       >(method, this.versionInjector.modifyUrl(path, version), {
         ...(context as any),
         headers: this.versionInjector.modifyHeaders(

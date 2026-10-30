@@ -45,9 +45,13 @@ Options can be passed to `withMetaData` and per spec to `OpenAPIGenerator.genera
 | `canonicalTypeOwnership`      | `undefined` | Names types re-exported by several public namespaces after a single canonical owner, see [Canonical type ownership](#canonical-type-ownership). Requires `includeTypesNamespaceInName`.             |
 | `deriveRouteNamingContext`    | `undefined` | `(route) => string \| undefined`, the naming context (a namespace path) of a route input or response whose route definition does not reference a namespaced type, e.g. derived from the route path. |
 
+### Responses
+
+Every status declared with `.responses({...})` becomes one entry of the OpenAPI `responses`, with the content type of its descriptor: `json<T>()` as `application/json` with the schema of `T`, `text()` as a string, `binary()` as a string of `format: binary` and `empty()` without content. `.response<T>()` declares a single `200` json response.
+
 ### Naming context
 
-With `includeTypesNamespaceInName`, the namespace of types that are re-exported by several namespaces (e.g. a shared `Checkout` type re-exported by `V2024_01_01.Customer.Checkout` and `V2024_01_01.Admin.Checkout`) is selected by the naming context of the route: the namespace of the type written in `.response<...>()` or within `.validate(...)`. Routes without such a type, e.g. a validator built from imported zod schemas, use `deriveRouteNamingContext`:
+With `includeTypesNamespaceInName`, the namespace of types that are re-exported by several namespaces (e.g. a shared `Checkout` type re-exported by `V2024_01_01.Customer.Checkout` and `V2024_01_01.Admin.Checkout`) is selected by the naming context of the route: the namespace of the type written in `.response<...>()`, within `.responses({...})` or within `.validate(...)`. Routes without such a type, e.g. a validator built from imported zod schemas, use `deriveRouteNamingContext`:
 
 ```ts
 deriveRouteNamingContext: ({ method, path, version, kind, namingContext }) =>

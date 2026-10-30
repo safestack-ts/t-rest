@@ -1,5 +1,11 @@
 import { AssertTrue, IsExact } from 'conditional-type-checks'
-import { BagOfRoutes, Route, VersionHistory, Versioning } from '@t-rest/core'
+import {
+  BagOfRoutes,
+  Route,
+  VersionHistory,
+  Versioning,
+  JsonResponseDescriptor,
+} from '@t-rest/core'
 import { TypedExpressApplication } from '@t-rest/express-server'
 import Express from 'express'
 import { z } from 'zod'
@@ -7,6 +13,10 @@ import { SupertestAdapter } from '../classes/supertest-adapter.js'
 import { SupertestVersionInjector } from '../classes/version-injector.js'
 import { SupertestConfig } from '../types/supertest-config.js'
 import { SupertestResponse } from '../types/supertest-response.js'
+
+type JsonResponse<TBody> = TBody extends unknown
+  ? SupertestResponse<{ 200: JsonResponseDescriptor<TBody> }>
+  : never
 
 const versionHistory = VersionHistory([
   '2024-01-01',
@@ -58,14 +68,14 @@ export const test = async () => {
     query: { page: '1' },
   })
   type _exactFirst = AssertTrue<
-    IsExact<typeof exactFirst, SupertestResponse<{ v: 1 }>>
+    IsExact<typeof exactFirst, JsonResponse<{ v: 1 }>>
   >
 
   const exactLatest = await adapter.get('/items', '2024-03-01', {
     query: { cursor: 'a' },
   })
   type _exactLatest = AssertTrue<
-    IsExact<typeof exactLatest, SupertestResponse<{ v: 3 }>>
+    IsExact<typeof exactLatest, JsonResponse<{ v: 3 }>>
   >
 
   // versions in between resolve to the newest older route
@@ -73,14 +83,14 @@ export const test = async () => {
     query: { page: '1' },
   })
   type _inherited = AssertTrue<
-    IsExact<typeof inherited, SupertestResponse<{ v: 1 }>>
+    IsExact<typeof inherited, JsonResponse<{ v: 1 }>>
   >
 
   // versions newer than the newest route resolve to it
   const newer = await adapter.get('/items', '2024-04-01', {
     query: { cursor: 'a' },
   })
-  type _newer = AssertTrue<IsExact<typeof newer, SupertestResponse<{ v: 3 }>>>
+  type _newer = AssertTrue<IsExact<typeof newer, JsonResponse<{ v: 3 }>>>
 
   // the input is the one of the resolved route
   await adapter.get('/items', '2024-04-01', {
@@ -99,7 +109,7 @@ export const test = async () => {
     body: { name: 'chair' },
   })
   type _order = AssertTrue<
-    IsExact<typeof order, SupertestResponse<{ ordered: true }>>
+    IsExact<typeof order, JsonResponse<{ ordered: true }>>
   >
 }
 
@@ -113,7 +123,7 @@ type _context = AssertTrue<
 type _returnType = AssertTrue<
   IsExact<
     ReturnType<typeof adapter.get<'/items', '2024-03-01'>>,
-    Promise<SupertestResponse<{ v: 3 }>>
+    Promise<JsonResponse<{ v: 3 }>>
   >
 >
 
@@ -124,12 +134,12 @@ export const unionTest = async (
 ) => {
   const mixedResponse = await adapter.get('/items', mixed, {} as any)
   type _mixed = AssertTrue<
-    IsExact<typeof mixedResponse, SupertestResponse<{ v: 1 } | { v: 3 }>>
+    IsExact<typeof mixedResponse, JsonResponse<{ v: 1 } | { v: 3 }>>
   >
 
   const inheritedResponse = await adapter.get('/items', inherited, {} as any)
   type _inherited = AssertTrue<
-    IsExact<typeof inheritedResponse, SupertestResponse<{ v: 1 } | { v: 3 }>>
+    IsExact<typeof inheritedResponse, JsonResponse<{ v: 1 } | { v: 3 }>>
   >
 }
 
@@ -174,15 +184,13 @@ export const renamedTest = async () => {
     params: { id: '1' },
     query: { page: '1' },
   })
-  type _old = AssertTrue<IsExact<typeof old, SupertestResponse<{ v: 1 }>>>
+  type _old = AssertTrue<IsExact<typeof old, JsonResponse<{ v: 1 }>>>
 
   const renamed = await renamedAdapter.get('/users/:userId', '2024-04-01', {
     params: { userId: '1' },
     query: { cursor: 'a' },
   })
-  type _renamed = AssertTrue<
-    IsExact<typeof renamed, SupertestResponse<{ v: 3 }>>
-  >
+  type _renamed = AssertTrue<IsExact<typeof renamed, JsonResponse<{ v: 3 }>>>
 
   await renamedAdapter.get(
     '/users/:id',
@@ -220,6 +228,6 @@ export const suffixTest = async () => {
     params: { id: '1' },
   })
   type _json = AssertTrue<
-    IsExact<typeof json, SupertestResponse<{ format: 'json' }>>
+    IsExact<typeof json, JsonResponse<{ format: 'json' }>>
   >
 }

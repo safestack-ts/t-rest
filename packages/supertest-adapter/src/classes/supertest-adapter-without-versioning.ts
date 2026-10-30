@@ -36,7 +36,7 @@ export class SupertestAdapterWithoutVersioning<
         Extract<
           ApplicationRoutes<TApp>,
           { method: TMethod; path: TAbsolutePath }
-        >['~responseType']
+        >['~responses']
       >(method, path, context)
     }
   }

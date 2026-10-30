@@ -49,7 +49,7 @@ export type OpenAPIParameterSchema = {
 
 export type OpenAPIResponseSchema = {
   description: string
-  content: {
+  content?: {
     [key: string]: any
   }
 }

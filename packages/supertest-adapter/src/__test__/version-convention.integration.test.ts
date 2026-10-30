@@ -1,9 +1,18 @@
 import { describe, expect, test } from 'vitest'
-import { BagOfRoutes, Route, VersionHistory, Versioning } from '@t-rest/core'
+import {
+  BagOfRoutes,
+  HTTPMethod,
+  ResponseMap,
+  Route,
+  VersionHistory,
+  Versioning,
+} from '@t-rest/core'
 import {
   RESTClient,
   versionInjectorFrom as clientVersionInjectorFrom,
   type HTTPAdapter,
+  type HTTPResponse,
+  type RequestConfig,
 } from '@t-rest/client'
 import { TypedExpressApplication } from '@t-rest/express-server'
 import { versionExtractorFrom } from '@t-rest/express-server'
@@ -55,13 +64,22 @@ const makeApplication = () => {
 // sends the requests of the client to the express application in process
 const inProcessAdapter = (target: Parameters<typeof supertest>[0]) =>
   ({
-    async request(method, url, data, requestConfig) {
+    async request<TResponses extends ResponseMap>(
+      method: HTTPMethod,
+      url: string,
+      data: unknown,
+      _responses: TResponses,
+      requestConfig?: RequestConfig
+    ) {
       const response = await supertest(target)
         [method.toLowerCase() as 'get'](url)
         .set((requestConfig?.headers ?? {}) as Record<string, string>)
         .send(data as object | undefined)
 
-      return { data: response.body, statusCode: response.status }
+      return {
+        data: response.body,
+        statusCode: response.status,
+      } as HTTPResponse<TResponses>
     },
   } satisfies HTTPAdapter)
 

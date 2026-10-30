@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { BagOfRoutes, Route, ze } from '@t-rest/core'
+import { BagOfRoutes, Route, ze, json } from '@t-rest/core'
 import { TypedExpressApplication } from '@t-rest/express-server'
 import { User, Basket, Person } from '@t-rest/testing-utilities'
 import { z } from 'zod'
@@ -18,7 +18,7 @@ const bagOfRoutes = BagOfRoutes.withoutVersioning()
       .validate(
         z.object({ body: z.object({ id: z.number(), email: z.string() }) })
       )
-      .response<User>()
+      .responses({ 201: json<User>() })
   )
   .build()
 

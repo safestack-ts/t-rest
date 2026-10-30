@@ -1,4 +1,4 @@
-import { HTTPMethod, AnyRouteDef, Versioning, RouteHashMap, StringReplaceHead, StringStartsWith, WithoutDoubleSlash, WithoutTrailingSlash, JoinPath, RouteValidationOutput, ExtractVersionMatchingRoute, VersioningRequired, BagOfRoutes, PrefixMatchingRoutes } from '@t-rest/core';
+import { HTTPMethod, DeclaredStatus, JsonResponseDescriptor, TextResponseDescriptor, BinaryResponseDescriptor, EmptyResponseDescriptor, ResponseDescriptorOf, AnyRouteDef, Versioning, RouteHashMap, StringReplaceHead, StringStartsWith, WithoutDoubleSlash, WithoutTrailingSlash, JoinPath, RouteValidationOutput, ExtractVersionMatchingRoute, VersioningRequired, BagOfRoutes, PrefixMatchingRoutes } from '@t-rest/core';
 import * as Express from 'express';
 import { VersionConvention } from '@t-rest/protocol';
 
@@ -35,9 +35,37 @@ declare class VersionRegistry {
     static keyOf(method: HTTPMethod, path: string): string;
 }
 
-type HandlerReturnType<TRoute extends AnyRouteDef> = TRoute['~responseType'];
+type AnyTypedRoute = {
+    '~responses': unknown;
+};
+type JsonBodyMethods<TBody> = {
+    json(body: TBody): void;
+};
+type TextBodyMethods = {
+    send(body: string): void;
+};
+type BinaryBodyMethods = {
+    send(body: Uint8Array): void;
+    stream(body: NodeJS.ReadableStream): void;
+    file(path: string): void;
+};
+type EmptyBodyMethods = {
+    end(): void;
+};
+type BodyMethods<TDescriptor> = TDescriptor extends JsonResponseDescriptor<infer TBody> ? JsonBodyMethods<TBody> : TDescriptor extends TextResponseDescriptor<string> ? TextBodyMethods : TDescriptor extends BinaryResponseDescriptor ? BinaryBodyMethods : TDescriptor extends EmptyResponseDescriptor ? EmptyBodyMethods : never;
+type TypedStatusResponse<TRoute extends AnyTypedRoute, TStatus extends number> = BodyMethods<ResponseDescriptorOf<TRoute, TStatus>>;
+/**
+ * The response passed to route handlers, its body methods are typed by the
+ * responses the route declares. `raw` is the native response of the framework.
+ */
+interface TypedResponseBase<TRoute extends AnyTypedRoute> {
+    status<TStatus extends DeclaredStatus<TRoute>>(code: TStatus): TypedStatusResponse<TRoute, TStatus>;
+    header(name: string, value: string): this;
+    raw: ExpressResponse;
+}
+type TypedResponse<TRoute extends AnyTypedRoute> = TypedResponseBase<TRoute> & (200 extends DeclaredStatus<TRoute> ? ResponseDescriptorOf<TRoute, 200> extends JsonResponseDescriptor<infer TBody> ? JsonBodyMethods<TBody> : {} : {});
 
-type TypedRouteHandlerFn<TRoute extends AnyRouteDef, TRequest extends ExpressRequest, TValidationResult> = (request: TRequest, validationOutput: TValidationResult, response: ExpressResponse<HandlerReturnType<TRoute>>) => void | Promise<void>;
+type TypedRouteHandlerFn<TRoute extends AnyRouteDef, TRequest extends ExpressRequest, TValidationResult> = (request: TRequest, validationOutput: TValidationResult, response: TypedResponse<TRoute>) => void | Promise<void>;
 
 type AnyRouteHandlerFn = TypedRouteHandlerFn<AnyRouteDef, ExpressRequest, unknown>;
 
@@ -201,6 +229,8 @@ type BranchedRouter<TAppOrRouter extends TypedRouterBase<any, any, any, any>, TB
 
 type ApplicationRoutes<TApp extends TypedExpressApplicationWithVersioning<any, any, any, any> | TypedExpressApplicationWithoutVersioning<any, any, any>> = TApp extends TypedExpressApplicationWithVersioning<infer TRoutes, any, any, any> ? TRoutes : TApp extends TypedExpressApplicationWithoutVersioning<infer TRoutes, any, any> ? TRoutes : never;
 
+declare const createTypedResponse: <TRoute extends AnyRouteDef>(res: ExpressResponse, route: TRoute, next: ExpressNextFunction) => TypedResponse<TRoute>;
+
 declare const defineMiddleware: <TRequestIn extends ExpressRequest, TRequestOut>(middlewareFn: TypedRequestHandler<TRequestIn>) => TypedMiddleware<TRequestIn, TRequestOut>;
 
 type ContextRequest<TContext> = ExpressRequest & TContext;
@@ -233,5 +263,5 @@ declare function versionExtractorFrom(convention: VersionConvention, options: {
     parseDate: (version: string) => Date;
 }): DateVersionExtractor;
 
-export { RouteSetupError, TypedExpressApplication, TypedExpressApplicationWithVersioning, TypedExpressApplicationWithoutVersioning, TypedRouterWithVersioning, TypedRouterWithoutVersioning, VersionResolutionError, defineMiddleware, defineRouterModule, versionExtractorFrom };
-export type { ApplicationRoutes, BranchedRouter, DateVersionExtractor, ExpressApp, ExpressNextFunction, ExpressRequest, ExpressRequestHandler, ExpressResponse, ExpressRouter, RequestVersion, TypedMiddleware, TypedRequestHandler, TypedRouteHandlerFn, TypedRouterModuleWithVersioning, TypedRouterModuleWithoutVersioning, VersionExtractor };
+export { RouteSetupError, TypedExpressApplication, TypedExpressApplicationWithVersioning, TypedExpressApplicationWithoutVersioning, TypedRouterWithVersioning, TypedRouterWithoutVersioning, VersionResolutionError, createTypedResponse, defineMiddleware, defineRouterModule, versionExtractorFrom };
+export type { ApplicationRoutes, BranchedRouter, DateVersionExtractor, ExpressApp, ExpressNextFunction, ExpressRequest, ExpressRequestHandler, ExpressResponse, ExpressRouter, RequestVersion, TypedMiddleware, TypedRequestHandler, TypedResponse, TypedResponseBase, TypedRouteHandlerFn, TypedRouterModuleWithVersioning, TypedRouterModuleWithoutVersioning, TypedStatusResponse, VersionExtractor };
