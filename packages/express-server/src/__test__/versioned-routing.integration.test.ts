@@ -28,8 +28,8 @@ type HandlerResponse = {
   params: Record<string, string>
 }
 
-describe('path param aliasing', () => {
-  test('aliases work if newer route version is handled first', async () => {
+describe('version specific path params', () => {
+  test('path params keep the names of their version if the newer version is handled first', async () => {
     const bagOfRoutes = BagOfRoutes.withVersioning(
       Versioning.DATE,
       versionHistory
@@ -93,7 +93,7 @@ describe('path param aliasing', () => {
     })
   })
 
-  test('path params containing underscores share a single express route', async () => {
+  test('path params containing underscores keep the names of their version', async () => {
     const bagOfRoutes = BagOfRoutes.withVersioning(
       Versioning.DATE,
       versionHistory
@@ -159,7 +159,7 @@ describe('path param aliasing', () => {
     })
   })
 
-  test('renamed path params containing underscores are aliased', async () => {
+  test('renamed path params containing underscores keep the names of their version', async () => {
     const bagOfRoutes = BagOfRoutes.withVersioning(
       Versioning.DATE,
       versionHistory
@@ -215,7 +215,7 @@ describe('path param aliasing', () => {
     })
   })
 
-  test('swapped path param names are aliased correctly', async () => {
+  test('swapped path param names keep the order of their version', async () => {
     const bagOfRoutes = BagOfRoutes.withVersioning(
       Versioning.DATE,
       versionHistory

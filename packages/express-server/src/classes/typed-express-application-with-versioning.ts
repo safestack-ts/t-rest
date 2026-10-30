@@ -15,8 +15,8 @@ import { TypedRouterWithVersioning } from './typed-router-with-versioning.js'
 export class TypedExpressApplicationWithVersioning<
   TRoutes extends AnyRouteDef,
   TRequest extends ExpressRequest,
-  TVersionHistory extends string[],
-  TMountPath extends string
+  TMountPath extends string,
+  TVersionHistory extends string[]
 > extends TypedRouterWithVersioning<
   TRoutes,
   TRequest,

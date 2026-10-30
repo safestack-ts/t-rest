@@ -57,6 +57,10 @@ jobs:
       - name: Check Packages
         if: matrix.express == '5'
         run: pnpm check:packages
+      # Fails when the built public declarations differ from the committed snapshots in packages/*/api.
+      - name: Check Public API
+        if: matrix.express == '5'
+        run: pnpm api:check
       # Type checks and tests resolve workspace packages through their built dist output, so they run after the build.
       - name: Type Check
         run: pnpm verify

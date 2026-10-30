@@ -29,7 +29,9 @@
     "keywords": [],
     "author": "Yannick Stachelscheid",
     "license": "MIT",
-    "dependencies": {},
+    "dependencies": {
+        "@t-rest/protocol": "workspace:^"
+    },
     "devDependencies": {},
     "publishConfig": {
         "access": "public"

@@ -1,7 +1,7 @@
 import { AnyRouteDef, BagOfRoutes, Versioning, HTTPMethod } from '@t-rest/core'
 import { HTTPAdapter } from '../types/http-adapter.js'
 import { RequestConfig } from '../types/request-config.js'
-import { BaseRequestInput, buildUrl } from '@t-rest/client-utils'
+import { BaseRequestInput, planRequest } from '@t-rest/protocol'
 import { VersionInjector } from './version-injector.js'
 
 export abstract class RESTClientBase<
@@ -29,10 +29,13 @@ export abstract class RESTClientBase<
     TResponse,
     TRequestConfig extends BaseRequestInput & RequestConfig & TRequestContext
   >(method: TMethod, path: string, requestConfig?: TRequestConfig) {
+    const plan = planRequest(method, path, requestConfig)
+
     return this.httpAdapter.request<TResponse>(
       method,
-      this.versionInjector.modifyUrl(buildUrl(path, requestConfig)),
-      this.getBody(method, requestConfig),
+      // the client injects the version into the built url
+      this.versionInjector.modifyUrl(plan.url),
+      plan.body.send ? plan.body.value : undefined,
       {
         ...(requestConfig as TRequestContext),
         headers: this.versionInjector.modifyHeaders(
@@ -40,15 +43,5 @@ export abstract class RESTClientBase<
         ),
       }
     )
-  }
-
-  private getBody = (method: HTTPMethod, requestConfig?: BaseRequestInput) => {
-    switch (method) {
-      case 'GET':
-      case 'DELETE':
-        return undefined
-      default:
-        return requestConfig?.body
-    }
   }
 }

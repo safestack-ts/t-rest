@@ -14,6 +14,21 @@
       },
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./zod": {
+      "types": {
+        "import": "./dist/zod.d.ts",
+        "require": "./dist/zod.d.cts"
+      },
+      "import": "./dist/zod.js",
+      "require": "./dist/zod.cjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "zod": [
+        "./dist/zod.d.ts"
+      ]
     }
   },
   "files": [
@@ -37,6 +52,7 @@
     "zod": "^3.25.0 || ^4.0.0"
   },
   "dependencies": {
+    "@t-rest/protocol": "workspace:^",
     "@standard-schema/spec": "^1.1.0"
   }
 }

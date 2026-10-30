@@ -4,12 +4,14 @@ import { Route } from '../../classes/core/route.js'
 import { Versioning } from '../../enums/versioning.js'
 import { VersionHistory } from '../version-history.js'
 
+/** @deprecated Internal helper, will be removed from the public API in a future major. */
 export const versionHistory = VersionHistory([
   '2024-01-01',
   '2024-02-01',
   '2024-03-01',
 ] as const)
 
+/** @deprecated Internal helper, will be removed from the public API in a future major. */
 export const demoBagOfRoutes = BagOfRoutes.withVersioning(
   Versioning.DATE,
   versionHistory

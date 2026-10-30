@@ -1,0 +1,37 @@
+{
+    "name": "@t-rest/protocol",
+    "version": "0.0.0",
+    "description": "Wire rules of typed-rest: path templates, query encoding, request planning and version headers",
+    "main": "./dist/index.cjs",
+    "types": "./dist/index.d.ts",
+    "type": "module",
+    "sideEffects": false,
+    "exports": {
+        ".": {
+            "types": {
+                "import": "./dist/index.d.ts",
+                "require": "./dist/index.d.cts"
+            },
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "files": [
+        "dist/**/*"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "test": "TZ=UTC vitest run",
+        "test:watch": "TZ=UTC vitest",
+        "test:unit": "TZ=UTC vitest unit",
+        "test:integration": "TZ=UTC vitest integration"
+    },
+    "keywords": [],
+    "author": "Yannick Stachelscheid",
+    "license": "MIT",
+    "dependencies": {},
+    "devDependencies": {},
+    "publishConfig": {
+        "access": "public"
+    }
+}

@@ -1,4 +1,5 @@
 // finds the nearest date in sortedDates which is lower than or equal to needleDate
+/** @deprecated Internal helper, will be removed from the public API in a future major. */
 export function findNearestLowerDate(sortedDates: Date[], needleDate: Date) {
   let lowerDate: Date | null = null
   let lowerDateIndex: number | null = null

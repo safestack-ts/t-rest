@@ -30,13 +30,14 @@
   "author": "Yannick Stachelscheid",
   "license": "MIT",
   "dependencies": {
-    "@t-rest/client-utils": "workspace:*",
-    "@t-rest/core": "workspace:*",
-    "@t-rest/express-server": "workspace:*",
+    "@t-rest/core": "workspace:^",
+    "@t-rest/express-server": "workspace:^",
+    "@t-rest/protocol": "workspace:^",
     "@types/supertest": "^7.2.1",
     "supertest": "^7.3.1"
   },
   "devDependencies": {
+    "@t-rest/client": "workspace:*",
     "@t-rest/testing-utilities": "workspace:*",
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",

@@ -1,8 +1,8 @@
 import { BagOfRoutes } from '../classes/core/bag-of-routes.js'
+import { createRouteHashMap } from '../internal/route-table.js'
 import { AnyRouteDef } from '../types/any-route-def.js'
 import { CombinedBags } from '../types/combined-bags.js'
 import { NonEmptyArray, first } from '../types/non-empty-array.js'
-import { HashMap } from './hash-map.js'
 
 type EnsureSameVersioning<T extends BagOfRoutes<any, any, any>[]> = T extends []
   ? never
@@ -33,8 +33,7 @@ export const combine = <
     TVersioning,
     TVersionHistory
   >(
-    new HashMap(
-      (key) => key.join('-'),
+    createRouteHashMap(
       bags.flatMap((bag) => Array.from(bag.routes.entries()))
     ),
     firstBag.versioning,

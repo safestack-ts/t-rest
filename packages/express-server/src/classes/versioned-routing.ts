@@ -1,105 +1,123 @@
 import {
-  HashMap,
-  HTTPMethod,
   Versioning,
   AnyRouteDef,
   typedLowerCase,
-  resolveDateVersion,
-  resolveVersion,
   ValidationError,
-  normalizePathPattern,
 } from '@t-rest/core'
+import {
+  policyFrom,
+  resolveRequest,
+  VersionPolicy,
+} from '../internal/version-policy.js'
+import { VersionRegistry } from '../internal/version-registry.js'
 import { AnyRouteHandlerFn } from '../types/any-route-handler-fn.js'
 import {
   ExpressNextFunction,
   ExpressRequest,
   ExpressResponse,
 } from '../types/express-type-shortcuts.js'
-import { ParamAlias, RouteBundle } from '../types/route-bundle.js'
 import { TypedMiddleware } from '../types/typed-middleware.js'
 import { VersionExtractor } from '../types/version-extractor.js'
-import { isDateVersionExtractor } from '../utils/is-date-version-extractor.js'
 import { removePrefixFromPath } from '../utils/remove-prefix-from-path.js'
+import { RouteSetupError } from './route-setup-error.js'
 import { TypedRouterBase } from './typed-router-base.js'
 import { VersionResolutionError } from './version-resolution-error.js'
 
 export class VersionedRouting {
-  // mapping http method and path to potential multiple route versions
-  protected readonly routes: HashMap<[HTTPMethod, string], RouteBundle[]> =
-    new HashMap((key) => key.join('-'))
-  // mapping http method and path to the route path which is mounted in express,
-  // i.e. the path of the route version which has been handled first
-  protected readonly mountedPaths: HashMap<[HTTPMethod, string], string> =
-    new HashMap((key) => key.join('-'))
   protected readonly router: TypedRouterBase<any, any, string, string[]>
   protected readonly versionHistory: string[]
   protected readonly versioning: Versioning
   protected readonly versionExtractor: VersionExtractor
+  protected readonly versionRegistry: VersionRegistry
+  private readonly policy: VersionPolicy
 
   constructor(
     router: TypedRouterBase<any, any, string, string[]>,
     versioning: Versioning,
     versionHistory: string[],
-    versionExtractor: VersionExtractor
+    versionExtractor: VersionExtractor,
+    versionRegistry: VersionRegistry = new VersionRegistry()
   ) {
     this.router = router
     this.versioning = versioning
     this.versionHistory = versionHistory
     this.versionExtractor = versionExtractor
+    this.versionRegistry = versionRegistry
+    this.policy = policyFrom(versioning, versionHistory, versionExtractor)
   }
 
+  // registers an express route for this version of the route, so that express
+  // fills the params with the names of this version and the middlewares of the
+  // router are executed in the order in which they have been registered
   public addRoute(
     route: AnyRouteDef,
     handler: AnyRouteHandlerFn,
     middlewares: TypedMiddleware<any, any>[]
   ) {
-    const key = [route.method, normalizePathPattern(route.path)] as [
-      HTTPMethod,
-      string
-    ]
-
-    if (this.routes.has(key)) {
-      const currentRoutes = this.routes.get(key)!
-      this.routes.set(
-        key,
-        this.getRoutesWithPathParamAliases(
-          [...currentRoutes, { route, handler, middlewares, paramAliases: [] }],
-          this.mountedPaths.get(key)!
-        )
+    if (
+      !this.versionRegistry.register(route.method, route.path, route.version)
+    ) {
+      throw new RouteSetupError(
+        route.version === ''
+          ? `Route ${route.method} ${route.path} is already handled`
+          : `Route ${route.method} ${route.path} version ${route.version} is already handled`
       )
-    } else {
-      this.routes.set(key, [{ route, handler, middlewares, paramAliases: [] }])
-      this.mountedPaths.set(key, route.path)
-
-      this.initRouting(route)
     }
-  }
-
-  private initRouting(route: AnyRouteDef) {
-    const moutingPath = removePrefixFromPath(route.path, this.router.fullPath)
 
     this.router.expressRouter[typedLowerCase(route.method)](
-      moutingPath,
-      this.getRouteHandler(route.method, route.path)
+      removePrefixFromPath(route.path, this.router.fullPath),
+      this.getRouteHandler(route, handler, middlewares)
     )
   }
 
-  private getRouteHandler(method: HTTPMethod, path: string) {
+  private getRouteHandler(
+    route: AnyRouteDef,
+    handler: AnyRouteHandlerFn,
+    middlewares: TypedMiddleware<any, any>[]
+  ) {
+    const key = VersionRegistry.keyOf(route.method, route.path)
+
     return async (
       request: ExpressRequest,
       response: ExpressResponse,
       next: ExpressNextFunction
     ) => {
       try {
-        const { routeToExecute, version } = this.getRouteToExecute(
-          method,
-          path,
-          // treat an empty version (e.g. empty header) like a missing version
-          this.versionExtractor.extractVersion(request) ||
-            this.versionHistory.at(-1)
+        const resolution = this.versionRegistry.resolve(request, key, () =>
+          resolveRequest(
+            this.policy,
+            // treat an empty version (e.g. empty header) like a missing version
+            this.versionExtractor.extractVersion(request) ||
+              this.versionHistory.at(-1),
+            this.versionRegistry.handledVersions(key)
+          )
         )
 
-        const { middlewares, handler, route, paramAliases } = routeToExecute
+        if (resolution.kind === 'missing') {
+          throw new VersionResolutionError(
+            'No version specified and no default version found'
+          )
+        }
+
+        if (resolution.kind === 'incompatible') {
+          throw new VersionResolutionError(
+            `No compatible route version found for requested version ${resolution.requested}`
+          )
+        }
+
+        if (
+          resolution.kind === 'resolved' &&
+          resolution.resolved !== route.version
+        ) {
+          // the route of the resolved version is up next, it might be
+          // registered later or on a branch
+          return next()
+        }
+
+        const version =
+          resolution.kind === 'resolved'
+            ? { requested: resolution.requested, resolved: resolution.resolved }
+            : null
 
         // emulate express behavior for executing middlewares
         let i = 0
@@ -115,23 +133,20 @@ export class VersionedRouting {
             if (middleware) {
               await middleware(request, response, nextMiddleware)
             } else {
-              const requestWithParamAliases = this.getRequestWithParamAliases(
-                request,
-                paramAliases
-              )
+              const requestWithVersion = Object.create(request)
 
               const validationOutput = await route.validator[
                 '~standard'
-              ].validate(requestWithParamAliases)
+              ].validate(requestWithVersion)
 
               if (validationOutput.issues) {
                 throw new ValidationError(validationOutput.issues)
               }
 
-              ;(requestWithParamAliases as any).version = version
+              requestWithVersion.version = version
 
               await handler(
-                requestWithParamAliases,
+                requestWithVersion,
                 validationOutput.value,
                 response
               )
@@ -145,149 +160,5 @@ export class VersionedRouting {
         return next(err)
       }
     }
-  }
-
-  protected getRouteToExecute(
-    method: HTTPMethod,
-    path: string,
-    requestedVersion: string | undefined
-  ) {
-    const key = [method, normalizePathPattern(path)] as [HTTPMethod, string]
-    const routes = this.routes.get(key)
-
-    if (!routes) {
-      throw new Error(`No route handler found for method ${method} ${path}`)
-    }
-
-    if (this.versioning === Versioning.NO_VERSIONING) {
-      const firstRoute = routes.at(0)
-
-      if (!firstRoute) {
-        throw new Error(`No route handler found for method ${method} ${path}`)
-      }
-
-      return { routeToExecute: firstRoute, version: null }
-    } else {
-      if (!requestedVersion) {
-        throw new VersionResolutionError(
-          'No version specified and no default version found'
-        )
-      }
-
-      const resolvedVersion = isDateVersionExtractor(this.versionExtractor)
-        ? resolveDateVersion(
-            this.versionHistory,
-            routes.map(({ route }) => route.version),
-            requestedVersion,
-            this.versionExtractor.parseDate
-          )
-        : resolveVersion(
-            this.versionHistory,
-            routes.map(({ route }) => route.version),
-            requestedVersion
-          )
-
-      if (resolvedVersion === null) {
-        throw new VersionResolutionError(
-          `No compatible route version found for requested version ${requestedVersion}`
-        )
-      }
-
-      const routeToExecute = routes.find(
-        ({ route }) => route.version === resolvedVersion
-      )
-
-      if (routeToExecute === undefined) {
-        throw new Error(
-          `No executable route version found for resolved version ${resolvedVersion}`
-        )
-      }
-
-      return {
-        routeToExecute,
-        version: { requested: requestedVersion, resolved: resolvedVersion },
-      }
-    }
-  }
-
-  // param aliases map the param names of the path mounted in express
-  // to the param names of each route version (by position)
-  protected getRoutesWithPathParamAliases(
-    routes: RouteBundle[],
-    mountedPath: string
-  ): RouteBundle[] {
-    const routesSortedByVersion = this.getRoutesSortedByVersion(routes)
-    const mountedParams = mountedPath.match(/:\w+/g) || []
-
-    return routesSortedByVersion.map((route) => {
-      const currentParams = route.route.path.match(/:\w+/g) || []
-
-      const paramAliases = currentParams.reduce((aliases, param, index) => {
-        if (param !== mountedParams[index]) {
-          aliases.push({
-            oldName: mountedParams[index].replace(':', ''),
-            newName: param.replace(':', ''),
-            since: route.route.version,
-          })
-        }
-        return aliases
-      }, [] as ParamAlias[])
-
-      return {
-        ...route,
-        paramAliases,
-      }
-    })
-  }
-
-  protected getRequestWithParamAliases(
-    request: ExpressRequest,
-    paramAliases: ParamAlias[]
-  ): ExpressRequest {
-    const newRequest = Object.create(request)
-    newRequest.params = { ...request.params }
-
-    // remove all old names first so that swapped param names are not lost
-    paramAliases.forEach((alias) => {
-      delete newRequest.params[alias.oldName]
-    })
-    paramAliases.forEach((alias) => {
-      newRequest.params[alias.newName] = request.params[alias.oldName]
-    })
-
-    return newRequest
-  }
-
-  protected getRoutesSortedByVersion(routes: RouteBundle[]): RouteBundle[] {
-    return routes.sort((a, b) => {
-      const versionA = a.route.version
-      const versionB = b.route.version
-
-      if (isDateVersionExtractor(this.versionExtractor)) {
-        // Check if versions are dates using this.versionExtractor.parseDate
-        const timeA = this.versionExtractor.parseDate(versionA).getTime()
-        const timeB = this.versionExtractor.parseDate(versionB).getTime()
-
-        // invalid dates fall through to the comparisons below
-        if (!Number.isNaN(timeA) && !Number.isNaN(timeB)) {
-          return timeA - timeB
-        }
-      }
-
-      // Check if versions are semver
-      const semverRegex = /^\d+\.\d+\.\d+$/
-      const isSemverA = semverRegex.test(versionA)
-      const isSemverB = semverRegex.test(versionB)
-
-      if (isSemverA && isSemverB) {
-        return versionA.localeCompare(versionB, undefined, {
-          numeric: true,
-          sensitivity: 'base',
-        })
-      }
-
-      // Fallback to simple string comparison for no versioning or other cases
-      return versionA.localeCompare(versionB)
-    })
   }
 }

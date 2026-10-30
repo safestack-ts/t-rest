@@ -20,7 +20,9 @@
     "changeset:snapshot:version": "pnpm changeset version --snapshot dev",
     "pub:dev": "pnpm build && pnpm exec ./scripts/publish-dev-version.sh",
     "prepublish": "pnpm clean && pnpm build",
-    "check:packages": "node scripts/check-package-dependencies.mjs && pnpm -r --no-bail --filter \"!@t-rest/playground\" --filter \"!@t-rest/testing-utilities\" exec sh -c \"publint --strict && attw --pack .\""
+    "check:packages": "node scripts/check-package-dependencies.mjs && pnpm -r --no-bail --filter \"!@t-rest/playground\" --filter \"!@t-rest/testing-utilities\" exec sh -c \"publint --strict && attw --pack .\"",
+    "api:check": "node scripts/api-snapshot.mjs check",
+    "api:update": "node scripts/api-snapshot.mjs update"
   },
   "keywords": [],
   "author": "",

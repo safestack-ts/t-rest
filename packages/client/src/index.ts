@@ -9,3 +9,6 @@ export * from './types/http-response.js'
 export * from './types/request-args.js'
 export * from './types/request-config.js'
 export * from './types/request-input.js'
+
+// utils
+export * from './utils/version-injector-from.js'

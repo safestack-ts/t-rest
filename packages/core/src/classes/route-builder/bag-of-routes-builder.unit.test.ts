@@ -67,3 +67,28 @@ describe('BagOfRoutesBuilderWithVersioning', () => {
     expect(bagB.versionHistory).toBe(versionHistory)
   })
 })
+
+describe('route key collisions', () => {
+  // The old hash `key.join('-')` mapped both keys below to 'GET-/x-2024-01-01',
+  // so the second route silently overwrote the first. The JSON hash keeps them apart.
+  const pathWithDashedSuffix = Route.version('01-01')
+    .get('/x-2024')
+    .response<'a'>()
+  const dashedVersion = Route.version('2024-01-01').get('/x').response<'b'>()
+
+  test('routes whose joined key is identical are stored separately', () => {
+    const bag = BagOfRoutes.withVersioning(Versioning.DATE, [
+      '01-01',
+      '2024-01-01',
+    ])
+      .addRoute(pathWithDashedSuffix)
+      .addRoute(dashedVersion)
+      .build()
+
+    expect(bag.routes.size).toBe(2)
+    expect(bag.routes.get(['GET', '/x-2024', '01-01'])).toBe(
+      pathWithDashedSuffix
+    )
+    expect(bag.routes.get(['GET', '/x', '2024-01-01'])).toBe(dashedVersion)
+  })
+})
