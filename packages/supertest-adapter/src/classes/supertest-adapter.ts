@@ -24,6 +24,10 @@ export abstract class SupertestAdapter {
     versionInjector: VersionInjector,
     defaultConfig: DefaultSupertestAdapterConfig = {}
   ): SupertestAdapterWithVersioning<TApp> {
-    return new SupertestAdapterWithVersioning(app, versionInjector, defaultConfig)
+    return new SupertestAdapterWithVersioning(
+      app,
+      versionInjector,
+      defaultConfig
+    )
   }
 }

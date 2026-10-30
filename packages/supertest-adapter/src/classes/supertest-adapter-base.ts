@@ -6,15 +6,32 @@ import supertest from 'supertest'
 import { SupertestResponse } from '../types/supertest-response.js'
 import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config.js'
 
+// express applications and http servers can be listened on, routers cannot
+const isExpressRouter = (target: unknown) =>
+  typeof target === 'function' && 'stack' in target && !('listen' in target)
+
 export abstract class SupertestAdapterBase<
   TApp extends AnyTypedExpressApplication
 > {
   protected app: TApp
   protected defaultConfig: DefaultSupertestAdapterConfig
+  private readonly requestTarget: Parameters<typeof supertest>[0]
 
   constructor(app: TApp, defaultConfig: DefaultSupertestAdapterConfig) {
     this.app = app
     this.defaultConfig = defaultConfig
+    const requestTarget = defaultConfig.expressApp ?? app.expressApp
+
+    // supertest would serve the router alone: requests it does not handle
+    // never complete instead of responding with 404
+    if (isExpressRouter(requestTarget)) {
+      throw new Error(
+        'The typed application is built on an express router, which cannot be served on its own. ' +
+          'Pass the root express application as `expressApp` in the config of the supertest adapter.'
+      )
+    }
+
+    this.requestTarget = requestTarget as Parameters<typeof supertest>[0]
   }
 
   protected async executeRequest<TRequestInput, TResponseType>(
@@ -22,7 +39,7 @@ export abstract class SupertestAdapterBase<
     path: string,
     context: SupertestConfig & TRequestInput & BaseRequestInput
   ) {
-    let request = supertest(this.app.expressApp as any)[typedLowerCase(method)](
+    let request = supertest(this.requestTarget)[typedLowerCase(method)](
       buildUrl(path, context)
     )
 
@@ -40,7 +57,7 @@ export abstract class SupertestAdapterBase<
       request = request
         .expect((res) =>
           res.status !== context.expect?.status
-            ? console.error(this.stringifyBody(res.body))
+            ? console.error(this.stringifyBody(res.body, res.text))
             : 0
         )
         .expect(context.expect.status)
@@ -59,9 +76,20 @@ export abstract class SupertestAdapterBase<
     return response as SupertestResponse<TResponseType>
   }
 
-  private stringifyBody(body: any) {
+  private stringifyBody(body: any, text?: string) {
     if (typeof body === 'string') {
       return body
+    }
+
+    // non-json responses (e.g. express' default html error page) are not
+    // parsed into the body, so their text is logged instead
+    const isEmptyBody =
+      body === undefined ||
+      (typeof body === 'object' &&
+        body !== null &&
+        Object.keys(body).length === 0)
+    if (isEmptyBody && text) {
+      return text
     }
 
     try {
