@@ -51,7 +51,9 @@ const getSymbolTargetId = (symbol: ts.Symbol | undefined) => {
     return undefined
   }
 
-  return `${declaration.getSourceFile().fileName}#${symbol.escapedName.toString()}`
+  return `${
+    declaration.getSourceFile().fileName
+  }#${symbol.escapedName.toString()}`
 }
 
 export const resolveUltimateTypeTargetId = (
@@ -153,7 +155,9 @@ export const buildPublicTypeReExportIndex = (
 
   const addReExport = (targetId: string, reExport: PublicTypeReExport) => {
     const existing = reExportsByTarget.get(targetId) ?? []
-    if (existing.some((entry) => entry.qualifiedName === reExport.qualifiedName)) {
+    if (
+      existing.some((entry) => entry.qualifiedName === reExport.qualifiedName)
+    ) {
       return
     }
     existing.push(reExport)
@@ -165,7 +169,9 @@ export const buildPublicTypeReExportIndex = (
       continue
     }
 
-    const namespacePath = exportedModuleNamespacePaths.get(sourceFile.fileName)?.[0]
+    const namespacePath = exportedModuleNamespacePaths.get(
+      sourceFile.fileName
+    )?.[0]
     if (!namespacePath) {
       continue
     }
@@ -235,9 +241,101 @@ export const selectReExportForContext = (
 
   return matching.sort((left, right) => {
     const segmentDifference =
-      right.namespacePath.split('.').length - left.namespacePath.split('.').length
+      right.namespacePath.split('.').length -
+      left.namespacePath.split('.').length
     return segmentDifference !== 0
       ? segmentDifference
       : left.qualifiedName.localeCompare(right.qualifiedName)
   })[0]
+}
+
+export type PublicNamespaceMatch = {
+  version: string | undefined
+  audience: string | undefined
+}
+
+export const matchPublicNamespace = (
+  namespacePath: string | undefined,
+  namespacePattern: RegExp
+): PublicNamespaceMatch | undefined => {
+  if (namespacePath === undefined) {
+    return undefined
+  }
+
+  // a fresh regex avoids carrying `lastIndex` state of global patterns between calls
+  const match = new RegExp(
+    namespacePattern.source,
+    namespacePattern.flags.replace('g', '')
+  ).exec(namespacePath)
+  return match
+    ? { version: match.groups?.version, audience: match.groups?.audience }
+    : undefined
+}
+
+/**
+ * Selects the single public owner of a type that is re-exported by several
+ * public namespaces: the re-exports of the audience of the naming context
+ * (or of the shared audience) of the earliest version. Throws if several
+ * namespaces of that version re-export the type and none of them uses its
+ * original name.
+ */
+export const selectCanonicalPublicReExport = (
+  candidates: PublicTypeReExport[],
+  typeName: string | undefined,
+  namingContext: string | undefined,
+  namespacePattern: RegExp,
+  sharedAudience: string | undefined
+): PublicTypeReExport | undefined => {
+  const publicCandidates = candidates.flatMap((candidate) => {
+    const match = matchPublicNamespace(
+      candidate.namespacePath,
+      namespacePattern
+    )
+    return match ? [{ candidate, ...match }] : []
+  })
+  const contextAudience = matchPublicNamespace(
+    namingContext,
+    namespacePattern
+  )?.audience
+  const audienceCandidates =
+    contextAudience !== undefined
+      ? publicCandidates.filter(({ audience }) => audience === contextAudience)
+      : []
+  const sharedCandidates =
+    sharedAudience !== undefined
+      ? publicCandidates.filter(({ audience }) => audience === sharedAudience)
+      : []
+  const scopedCandidates =
+    audienceCandidates.length > 0 ? audienceCandidates : sharedCandidates
+
+  const earliestVersion = scopedCandidates
+    .map(({ version }) => version ?? '')
+    .sort()
+    .at(0)
+  const canonicalCandidates = scopedCandidates
+    .filter(({ version }) => (version ?? '') === earliestVersion)
+    .map(({ candidate }) => candidate)
+
+  const exactNameCandidates = canonicalCandidates.filter(
+    (candidate) => candidate.exportName === typeName
+  )
+  if (
+    new Set(exactNameCandidates.map((candidate) => candidate.namespacePath))
+      .size === 1
+  ) {
+    return exactNameCandidates[0]
+  }
+
+  if (
+    new Set(canonicalCandidates.map((candidate) => candidate.namespacePath))
+      .size <= 1
+  ) {
+    return canonicalCandidates[0]
+  }
+
+  throw new Error(
+    `Ambiguous canonical public type ownership: ${canonicalCandidates
+      .map((candidate) => candidate.qualifiedName)
+      .join(', ')}`
+  )
 }

@@ -6,18 +6,22 @@ import { hashOpenAPISchema } from './openapi-schema-normalize.js'
 import { groupBy, isEqual, uniqWith } from 'lodash'
 import path from 'path'
 import {
+  CanonicalTypeOwnershipOptions,
   OpenAPIGeneratorOptions,
   resolveOpenAPIGeneratorOptions,
 } from '../types/open-api-generator-options.js'
 import {
   buildPublicTypeReExportIndex,
+  matchPublicNamespace,
   resolveUltimateTypeTargetId,
+  selectCanonicalPublicReExport,
   selectReExportForContext,
   type PublicTypeReExport,
 } from './public-type-reexports.js'
 import {
   buildRouteNamingContextKey,
   extractRouteNamingContexts,
+  type RouteNamingContext,
 } from './route-naming-context.js'
 
 const parserLog = debug('t-rest:open-api-generator:parser')
@@ -55,6 +59,8 @@ export const parseBagOfRoutes = (
     exportedModuleNamespacePaths
   )
   const routeNamingContexts = extractRouteNamingContexts(rootNode, typeChecker)
+  // canonical owner namespace per type target and audience, shared across routes
+  const canonicalOwnerByTarget = new Map<string, string>()
 
   const results = new HashMap<[string, string, string], RouteTypeInfo>((key) =>
     key.join('-')
@@ -81,9 +87,24 @@ export const parseBagOfRoutes = (
       options: resolvedOptions,
       exportedModuleNamespacePaths,
       publicTypeReExportsByTarget,
+      canonicalOwnerByTarget,
+      expandingTypes: new Map(),
+      recursiveUnionTypes: new Set(),
       namingContext,
     }
   }
+
+  const resolveRouteNamingContext = (
+    route: { method: string; path: string; version: string },
+    kind: keyof RouteNamingContext,
+    namingContext: RouteNamingContext
+  ) =>
+    namingContext[kind] ??
+    resolvedOptions.deriveRouteNamingContext?.({
+      ...route,
+      kind,
+      namingContext,
+    })
 
   for (const routeType of routeTypes) {
     const { method, path, version } = extractRouteMetadata(
@@ -91,9 +112,10 @@ export const parseBagOfRoutes = (
       typeChecker,
       rootNode
     )
-    const routeNamingContext = routeNamingContexts.get(
-      buildRouteNamingContextKey(method, path, version)
-    )
+    const routeNamingContext =
+      routeNamingContexts.get(
+        buildRouteNamingContextKey(method, path, version)
+      ) ?? {}
 
     parserLog('Processing route: %s %s (v%s)', method, path, version)
 
@@ -119,7 +141,14 @@ export const parseBagOfRoutes = (
             validatorType,
             typeChecker,
             rootNode,
-            createTraverseMeta(validatorType, routeNamingContext?.input)
+            createTraverseMeta(
+              validatorType,
+              resolveRouteNamingContext(
+                { method, path, version },
+                'input',
+                routeNamingContext
+              )
+            )
           )
         : undefined,
       output: responseType
@@ -127,7 +156,14 @@ export const parseBagOfRoutes = (
             responseType,
             typeChecker,
             rootNode,
-            createTraverseMeta(responseType, routeNamingContext?.response)
+            createTraverseMeta(
+              responseType,
+              resolveRouteNamingContext(
+                { method, path, version },
+                'response',
+                routeNamingContext
+              )
+            )
           )
         : undefined,
       routeMeta: {
@@ -151,6 +187,11 @@ type TraverseMeta = {
   options: ReturnType<typeof resolveOpenAPIGeneratorOptions>
   exportedModuleNamespacePaths: Map<string, string[]>
   publicTypeReExportsByTarget: Map<string, PublicTypeReExport[]>
+  canonicalOwnerByTarget: Map<string, string>
+  // how often each type is currently expanded, to detect recursion of types without a tracked name
+  expandingTypes: Map<ts.Type, number>
+  // named unions that are referenced by their own members
+  recursiveUnionTypes: Set<ts.Type>
   namingContext?: string
 }
 
@@ -161,11 +202,18 @@ type TypeIdentityMeta = {
   schemaName?: string
 }
 
+// binary data, e.g. `Uint8Array` or `DataView`, is serialized like a `Buffer`
+const isBinaryTypeName = (value: string) =>
+  value === 'DataView' ||
+  /^(Big)?(Int|Uint|Float)(8|16|32|64)(Clamped)?Array$/.test(value)
+
 const isBuiltInTypeName = (value?: string) =>
   Boolean(
     value &&
       (value === 'Date' ||
+        value === 'Array' ||
         value.endsWith('Buffer') ||
+        isBinaryTypeName(value) ||
         value === 'BigInt' ||
         value === 'Symbol' ||
         value === 'Map' ||
@@ -297,7 +345,9 @@ const collectModuleNamespaceExportEdges = (
       }
 
       statement.exportClause.elements.forEach((exportSpecifier) => {
-        const exportSymbol = typeChecker.getSymbolAtLocation(exportSpecifier.name)
+        const exportSymbol = typeChecker.getSymbolAtLocation(
+          exportSpecifier.name
+        )
         addNamespaceExportEdge(
           edges,
           sourceFile.fileName,
@@ -374,13 +424,17 @@ const buildExportedModuleNamespacePathIndex = (
   }
 
   return new Map(
-    [...namespacePathsByFileName.entries()].map(([fileName, namespacePaths]) => [
-      fileName,
-      [...namespacePaths].sort((a, b) => {
-        const segmentDifference = b.split('.').length - a.split('.').length
-        return segmentDifference !== 0 ? segmentDifference : a.localeCompare(b)
-      }),
-    ])
+    [...namespacePathsByFileName.entries()].map(
+      ([fileName, namespacePaths]) => [
+        fileName,
+        [...namespacePaths].sort((a, b) => {
+          const segmentDifference = b.split('.').length - a.split('.').length
+          return segmentDifference !== 0
+            ? segmentDifference
+            : a.localeCompare(b)
+        }),
+      ]
+    )
   )
 }
 
@@ -413,7 +467,9 @@ const resolveExportedModuleNamespaceTypeName = (
     return undefined
   }
 
-  const namespacePath = exportedModuleNamespacePaths.get(sourceFile.fileName)?.[0]
+  const namespacePath = exportedModuleNamespacePaths.get(
+    sourceFile.fileName
+  )?.[0]
   return namespacePath ? `${namespacePath}.${typeName}` : undefined
 }
 
@@ -450,6 +506,7 @@ const resolveTypeIdentityMeta = (
   fallbackName?: string,
   identityOptions?: {
     publicTypeReExportsByTarget?: Map<string, PublicTypeReExport[]>
+    canonicalOwnerByTarget?: Map<string, string>
     namingContext?: string
     usePublicReExports?: boolean
   }
@@ -469,17 +526,51 @@ const resolveTypeIdentityMeta = (
     name
   )
   const declarationNamespaceName = extractNamespaceName(declaration)
-  const exportedModuleNamespaceTypeName = resolveExportedModuleNamespaceTypeName(
-    declaration,
-    name,
-    typeChecker,
-    exportedModuleNamespacePaths
-  )
+  const exportedModuleNamespaceTypeName =
+    resolveExportedModuleNamespaceTypeName(
+      declaration,
+      name,
+      typeChecker,
+      exportedModuleNamespacePaths
+    )
 
   const shouldUsePublicReExports =
     identityOptions?.usePublicReExports !== false &&
     options.includeTypesNamespaceInName &&
     identityOptions?.publicTypeReExportsByTarget !== undefined
+
+  if (
+    shouldUsePublicReExports &&
+    options.canonicalTypeOwnership &&
+    identityOptions.publicTypeReExportsByTarget
+  ) {
+    const canonicalIdentity = resolveCanonicalTypeIdentity({
+      type,
+      typeChecker,
+      name,
+      declaration,
+      typeAccessPath,
+      exportedModuleNamespaceTypeName,
+      declarationNamespaceName,
+      ownershipOptions: options.canonicalTypeOwnership,
+      publicTypeReExportsByTarget: identityOptions.publicTypeReExportsByTarget,
+      canonicalOwnerByTarget: identityOptions.canonicalOwnerByTarget,
+      namingContext: identityOptions.namingContext,
+    })
+    const qualifiedName = canonicalIdentity.namespaceName
+      ? `${canonicalIdentity.namespaceName}.${canonicalIdentity.exportName}`
+      : undefined
+
+    return {
+      name,
+      namespaceName: canonicalIdentity.namespaceName,
+      qualifiedName,
+      schemaName:
+        qualifiedName !== undefined
+          ? toOpenAPIComponentName(qualifiedName) || undefined
+          : undefined,
+    }
+  }
 
   const contextualReExport =
     shouldUsePublicReExports &&
@@ -501,10 +592,10 @@ const resolveTypeIdentityMeta = (
     typeAccessPath !== undefined
       ? typeAccessPath.split('.').slice(0, -1).join('.')
       : exportedModuleNamespaceTypeName !== undefined
-        ? exportedModuleNamespaceTypeName.split('.').slice(0, -1).join('.')
-        : contextualReExport !== undefined
-          ? contextualReExport.namespacePath
-          : declarationNamespaceName
+      ? exportedModuleNamespaceTypeName.split('.').slice(0, -1).join('.')
+      : contextualReExport !== undefined
+      ? contextualReExport.namespacePath
+      : declarationNamespaceName
   const qualifiedName =
     typeAccessPath ??
     exportedModuleNamespaceTypeName ??
@@ -516,14 +607,134 @@ const resolveTypeIdentityMeta = (
       ? toOpenAPIComponentName(qualifiedName) || undefined
       : undefined
     : plainSchemaName !== undefined && plainSchemaName !== name
-      ? plainSchemaName
-      : undefined
+    ? plainSchemaName
+    : undefined
 
   return {
     name,
     namespaceName,
     qualifiedName,
     schemaName,
+  }
+}
+
+const namespaceOfQualifiedName = (qualifiedName: string | undefined) =>
+  qualifiedName?.split('.').slice(0, -1).join('.')
+
+/**
+ * Resolves the namespace of a type when canonical type ownership is enabled:
+ * the canonical public re-export, otherwise a public namespace the type is
+ * accessible from, otherwise (for unowned types, if enabled) the namespace of
+ * the naming context. The first public owner found per type and audience is
+ * kept for later usages, so that a type is not named after several owners.
+ */
+const resolveCanonicalTypeIdentity = ({
+  type,
+  typeChecker,
+  name,
+  declaration,
+  typeAccessPath,
+  exportedModuleNamespaceTypeName,
+  declarationNamespaceName,
+  ownershipOptions,
+  publicTypeReExportsByTarget,
+  canonicalOwnerByTarget,
+  namingContext,
+}: {
+  type: ts.Type
+  typeChecker: ts.TypeChecker
+  name: string
+  declaration: ts.Declaration | undefined
+  typeAccessPath: string | undefined
+  exportedModuleNamespaceTypeName: string | undefined
+  declarationNamespaceName: string | undefined
+  ownershipOptions: CanonicalTypeOwnershipOptions
+  publicTypeReExportsByTarget: Map<string, PublicTypeReExport[]>
+  canonicalOwnerByTarget: Map<string, string> | undefined
+  namingContext: string | undefined
+}): { namespaceName: string | undefined; exportName: string } => {
+  const { namespacePattern, sharedAudience } = ownershipOptions
+  const publicNamespace = (namespacePath: string | undefined) =>
+    matchPublicNamespace(namespacePath, namespacePattern) !== undefined
+      ? namespacePath
+      : undefined
+
+  const targetId = !isBuiltInTypeName(name)
+    ? resolveUltimateTypeTargetId(type, typeChecker)
+    : undefined
+  const isRouteScoped =
+    ownershipOptions.routeScopedTypeModules !== undefined &&
+    declaration !== undefined &&
+    // `search` ignores the `lastIndex` state of global patterns
+    declaration
+      .getSourceFile()
+      .fileName.search(ownershipOptions.routeScopedTypeModules) !== -1
+  const canonicalReExport =
+    !isRouteScoped && targetId
+      ? selectCanonicalPublicReExport(
+          publicTypeReExportsByTarget.get(targetId) ?? [],
+          name,
+          namingContext,
+          namespacePattern,
+          sharedAudience
+        )
+      : undefined
+
+  // anonymous types and primitives always take the namespace of their context,
+  // which is propagated to the types nested within them
+  const shouldInheritNamespace =
+    name !== 'void' &&
+    !(type.flags & ts.TypeFlags.EnumLike) &&
+    (!targetId ||
+      !isTrackableNamedType(name) ||
+      isRouteScoped ||
+      ownershipOptions.inheritRouteNamespaceForUnownedTypes === true)
+  const inheritedNamespace = shouldInheritNamespace
+    ? publicNamespace(namingContext)
+    : undefined
+
+  let namespaceName = isRouteScoped
+    ? inheritedNamespace
+    : canonicalReExport?.namespacePath ??
+      publicNamespace(namespaceOfQualifiedName(typeAccessPath)) ??
+      publicNamespace(
+        namespaceOfQualifiedName(exportedModuleNamespaceTypeName)
+      ) ??
+      inheritedNamespace ??
+      declarationNamespaceName
+
+  const owner = matchPublicNamespace(namespaceName, namespacePattern)
+  if (
+    targetId &&
+    owner &&
+    namespaceName &&
+    !isRouteScoped &&
+    canonicalOwnerByTarget
+  ) {
+    const ownershipKey = `${targetId}#${owner.audience ?? ''}`
+    const existingOwner = canonicalOwnerByTarget.get(ownershipKey)
+
+    if (existingOwner !== undefined && existingOwner !== namespaceName) {
+      // an unowned type used by another version keeps the namespace of its first usage
+      if (
+        canonicalReExport === undefined &&
+        matchPublicNamespace(existingOwner, namespacePattern)?.version !==
+          owner.version
+      ) {
+        namespaceName = existingOwner
+      } else {
+        throw new Error(
+          `Ambiguous canonical public type ownership for ${name}: ${existingOwner}, ${namespaceName}`
+        )
+      }
+    }
+
+    canonicalOwnerByTarget.set(ownershipKey, namespaceName)
+  }
+
+  return {
+    namespaceName,
+    exportName: canonicalReExport?.exportName ?? name,
   }
 }
 
@@ -589,10 +800,23 @@ const resolveTypeIdentityMetaFromTraverse = (
     fallbackName,
     {
       publicTypeReExportsByTarget: metadata.publicTypeReExportsByTarget,
+      canonicalOwnerByTarget: metadata.canonicalOwnerByTarget,
       namingContext: metadata.namingContext,
       usePublicReExports: true,
     }
   )
+
+// with canonical type ownership, the types nested within a type are named in
+// the context of its namespace
+const withPropagatedNamingContext = (
+  metadata: TraverseMeta,
+  typeIdentity: TypeIdentityMeta
+): TraverseMeta =>
+  metadata.options.canonicalTypeOwnership &&
+  typeIdentity.namespaceName &&
+  typeIdentity.namespaceName !== metadata.namingContext
+    ? { ...metadata, namingContext: typeIdentity.namespaceName }
+    : metadata
 
 const identityFields = (typeIdentity: TypeIdentityMeta) => ({
   ...(typeIdentity.namespaceName !== undefined
@@ -616,7 +840,11 @@ const getBuiltInType = (
       kind: 'date' as const,
     }
   }
-  if (builtInTypeName?.endsWith('Buffer') || typeAsString.endsWith('Buffer')) {
+  if (
+    builtInTypeName?.endsWith('Buffer') ||
+    typeAsString.endsWith('Buffer') ||
+    (builtInTypeName !== undefined && isBinaryTypeName(builtInTypeName))
+  ) {
     return {
       kind: 'buffer' as const,
     }
@@ -655,21 +883,65 @@ const getBuiltInType = (
   return null
 }
 
+const getPrimitiveType = (type: ts.Type): TypeDefinition | null => {
+  if (type.flags & ts.TypeFlags.BigIntLike) {
+    return { kind: 'bigint' }
+  }
+  if (type.flags & ts.TypeFlags.ESSymbolLike) {
+    return { kind: 'symbol' }
+  }
+  if (type.flags & ts.TypeFlags.Any) {
+    return { kind: 'any' }
+  }
+  if (type.flags & ts.TypeFlags.Unknown) {
+    return { kind: 'unknown' }
+  }
+  // computed enum members, e.g. `Large = 'large'.length`, are numbers
+  if (
+    type.flags & ts.TypeFlags.EnumLike &&
+    !type.isUnion() &&
+    !type.isLiteral()
+  ) {
+    return { kind: 'number' }
+  }
+
+  return null
+}
+
+// subclasses of node streams, e.g. `Readable`
+const extendsStream = (
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  seen = new Set<ts.Type>()
+): boolean => {
+  if (!type.isClassOrInterface() || seen.has(type)) {
+    return false
+  }
+  seen.add(type)
+
+  return (typeChecker.getBaseTypes(type) ?? []).some(
+    (baseType) =>
+      baseType.getSymbol()?.getName() === 'Stream' ||
+      extendsStream(baseType, typeChecker, seen)
+  )
+}
+
 const transformEnumLiteralsToIntermediate = (
   types: ts.Type[],
   typeChecker: ts.TypeChecker
 ): TypeDefinition | undefined => {
-  if (!types.every((t) => t.flags & ts.TypeFlags.EnumLiteral)) {
+  if (!types.every((t) => t.flags & ts.TypeFlags.EnumLike)) {
     return undefined
   }
 
-  const values: (string | number)[] = []
-  for (const t of types) {
-    if (!t.isStringLiteral() && !t.isNumberLiteral()) {
-      return undefined
-    }
-    values.push(t.value)
+  // enums with computed members only have known values for their literal members
+  if (types.some((t) => !t.isStringLiteral() && !t.isNumberLiteral())) {
+    return { kind: 'number' }
   }
+
+  const values = types.map(
+    (t) => (t as ts.LiteralType).value as string | number
+  )
 
   const enumSymbol = typeChecker.getBaseTypeOfLiteralType(types[0]).getSymbol()
 
@@ -691,6 +963,33 @@ function transformTypeToIntermediate(
 ): TypeDefinition {
   if (!type) throw new Error('Type is undefined')
 
+  // a type reached again while it is expanded is recursive
+  const recursionDepth = metadata.expandingTypes.get(type) ?? 0
+  metadata.expandingTypes.set(type, recursionDepth + 1)
+  try {
+    return transformTypeToIntermediateOnce(
+      type,
+      typeChecker,
+      rootNode,
+      metadata,
+      recursionDepth
+    )
+  } finally {
+    if (recursionDepth === 0) {
+      metadata.expandingTypes.delete(type)
+    } else {
+      metadata.expandingTypes.set(type, recursionDepth)
+    }
+  }
+}
+
+function transformTypeToIntermediateOnce(
+  type: ts.Type,
+  typeChecker: ts.TypeChecker,
+  rootNode: ts.Node,
+  metadata: TraverseMeta,
+  recursionDepth: number
+): TypeDefinition {
   // Get type name and handle generic types
   const symbol = type.getSymbol()
   const typeRef = type as ts.TypeReference
@@ -707,6 +1006,11 @@ function transformTypeToIntermediate(
       !typeChecker.isTupleType(type))
 
   if (typeRef.aliasTypeArguments?.length && isObjectLikeGenericAlias) {
+    // recursive generic aliases are expanded structurally, without a component to reference
+    if (recursionDepth > 1) {
+      return { kind: 'unknown' }
+    }
+
     const baseTypeName =
       typeName || symbol?.getName() || typeChecker.typeToString(type)
 
@@ -750,6 +1054,15 @@ function transformTypeToIntermediate(
 
       // Get the actual type that results from applying Omit/Pick
       const apparentType = typeChecker.getApparentType(originalType)
+      metadata = withPropagatedNamingContext(
+        metadata,
+        resolveTypeIdentityMetaFromTraverse(
+          originalType,
+          typeChecker,
+          rootNode,
+          metadata
+        )
+      )
 
       // Get the keys to keep/remove
       const keys = new Set<string>()
@@ -921,6 +1234,7 @@ function transformTypeToIntermediate(
     metadata,
     typeName
   )
+  metadata = withPropagatedNamingContext(metadata, typeIdentity)
   const visitKey = typeIdentity.qualifiedName ?? typeName
   const typeAsString = typeChecker.typeToString(type)
 
@@ -933,9 +1247,36 @@ function transformTypeToIntermediate(
   typeDiscoveryLog('visitedTypes %s', metadata.visitedTypes)
   typeDiscoveryLog('namingContext %s', metadata.namingContext)
 
-  const builtInType = getBuiltInType(symbol, typeAsString)
+  const builtInType =
+    getBuiltInType(symbol, typeAsString) ??
+    (extendsStream(type, typeChecker) ? { kind: 'stream' as const } : null)
+  if (builtInType?.kind === 'set') {
+    const elementType =
+      (type as ts.ObjectType).objectFlags & ts.ObjectFlags.Reference
+        ? typeChecker.getTypeArguments(type as ts.TypeReference).at(0)
+        : undefined
+    return {
+      kind: 'array',
+      items: elementType
+        ? transformTypeToIntermediate(
+            elementType,
+            typeChecker,
+            rootNode,
+            metadata
+          )
+        : { kind: 'unknown' },
+      uniqueItems: true,
+    }
+  }
   if (builtInType) {
     return builtInType
+  }
+
+  // primitives without properties of their own, which must not be expanded
+  // through the members of their apparent wrapper types
+  const primitiveType = getPrimitiveType(type)
+  if (primitiveType) {
+    return primitiveType
   }
 
   // Check for recursion - but only for named types that aren't basic types
@@ -948,6 +1289,32 @@ function transformTypeToIntermediate(
       name: typeIdentity.name ?? typeName,
       ...identityFields(typeIdentity),
     }
+  }
+
+  // recursive named unions, e.g. `type Json = string | Json[]`, become components
+  if (
+    recursionDepth > 0 &&
+    type.isUnion() &&
+    isTrackableNamedType(typeIdentity.name ?? typeName)
+  ) {
+    metadata.recursiveUnionTypes.add(type)
+    return {
+      kind: 'ref',
+      name: typeIdentity.name ?? typeName,
+      ...identityFields(typeIdentity),
+      ...(type.types.some((t) => t.flags & ts.TypeFlags.Null)
+        ? { nullable: true }
+        : {}),
+    }
+  }
+
+  // anonymous recursive types, e.g. inferred from recursive zod schemas, have no
+  // name to reference, so the recursion is cut off with an unconstrained schema.
+  // Types reached once more are still expanded, since they may lead to a named
+  // recursive type, e.g. `Json[]` within `type Json = string | Json[]`
+  if (recursionDepth > 1) {
+    typeDiscoveryLog('Anonymous recursive type: %s', typeAsString)
+    return { kind: 'unknown' }
   }
 
   // Handle unions first, before array detection
@@ -968,8 +1335,14 @@ function transformTypeToIntermediate(
       return { kind: 'null' }
     }
 
+    const booleanLiteralTypes = nonNullTypes.filter(
+      (t) => t.flags & ts.TypeFlags.BooleanLiteral
+    )
+    // `boolean` is represented as `true | false` within unions
+    const containsBoolean = booleanLiteralTypes.length === 2
+
     // Check if this is a boolean represented as true | false
-    if (nonNullTypes.every((t) => t.flags & ts.TypeFlags.BooleanLiteral)) {
+    if (containsBoolean && nonNullTypes.length === 2) {
       return withNullability({
         kind: 'boolean',
       })
@@ -996,28 +1369,25 @@ function transformTypeToIntermediate(
       return withNullability(enumDefinition)
     }
 
-    // we want to track named union types to not re-visit them again
-    if (
-      isTrackableNamedType(visitKey) &&
-      type.types.some((t) => t.flags & ts.TypeFlags.NonPrimitive)
-    ) {
-      metadata.visitedTypes?.add(visitKey)
-    }
-
-    // `boolean` is represented as `true | false` within unions, collapse it into a single member
-    const unionMemberTypes = nonNullTypes.filter(
-      (t, index) =>
-        !(t.flags & ts.TypeFlags.BooleanLiteral) ||
-        nonNullTypes.findIndex(
-          (other) => other.flags & ts.TypeFlags.BooleanLiteral
-        ) === index
+    // collapse `true | false` into a single `boolean` member
+    const unionTypes = nonNullTypes.flatMap((t): TypeDefinition[] =>
+      containsBoolean && t.flags & ts.TypeFlags.BooleanLiteral
+        ? t === booleanLiteralTypes[0]
+          ? [{ kind: 'boolean' }]
+          : []
+        : [transformTypeToIntermediate(t, typeChecker, rootNode, metadata)]
     )
 
     return withNullability({
       kind: 'union',
-      types: unionMemberTypes.map((t) =>
-        transformTypeToIntermediate(t, typeChecker, rootNode, metadata)
-      ),
+      types: unionTypes,
+      // named after its members referenced it recursively
+      ...(metadata.recursiveUnionTypes.has(type)
+        ? {
+            name: typeIdentity.name ?? typeName,
+            ...identityFields(typeIdentity),
+          }
+        : {}),
     })
   }
 
@@ -1061,157 +1431,37 @@ function transformTypeToIntermediate(
   if (isTuple) {
     typeDiscoveryLog('Found tuple type: %s', typeChecker.typeToString(type))
 
-    const elementTypes: TypeDefinition[] = []
+    const tupleTarget = (
+      objectType.objectFlags & ts.ObjectFlags.Tuple
+        ? objectType
+        : (type as ts.TypeReference).target
+    ) as ts.TupleType
 
-    // Try to extract element types from properties first (more reliable)
-    const properties = type.getProperties()
-    const numericProps = properties.filter((prop) => /^\d+$/.test(prop.name))
-
-    if (numericProps.length > 0) {
-      typeDiscoveryLog(
-        'Extracting tuple elements from properties, found %d numeric properties',
-        numericProps.length
-      )
-
-      // Sort by numeric index
-      numericProps.sort((a, b) => parseInt(a.name) - parseInt(b.name))
-
-      numericProps.forEach((prop, index) => {
-        const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
-
-        typeDiscoveryLog(
-          'Raw tuple element %d from property: %s',
-          index,
-          typeChecker.typeToString(propType)
-        )
-
-        // Check if this element type should be treated as a named type reference
-        const elementSymbol = propType.getSymbol()
-        const elementAliasSymbol = propType.aliasSymbol
-
-        typeDiscoveryLog(
-          'Processing tuple element %d: %s, symbol: %s, aliasSymbol: %s',
-          index,
-          typeChecker.typeToString(propType),
-          elementSymbol?.getName(),
-          elementAliasSymbol?.getName()
-        )
-
-        elementTypes.push(
-          transformTypeToIntermediate(propType, typeChecker, rootNode, metadata)
+    // optional and rest elements are part of the type arguments as well,
+    // e.g. `number` for `number?` and `string` for `...string[]`
+    const elementTypes = typeChecker
+      .getTypeArguments(type as ts.TypeReference)
+      .map((elementType) => {
+        const constraint =
+          elementType.flags & ts.TypeFlags.TypeParameter
+            ? (elementType as ts.TypeParameter).getConstraint()
+            : undefined
+        return transformTypeToIntermediate(
+          constraint ?? elementType,
+          typeChecker,
+          rootNode,
+          metadata
         )
       })
-    } else {
-      // Fallback to type arguments approach
-      let tupleType: ts.TupleType
-      if ((type as ts.ObjectType).objectFlags & ts.ObjectFlags.Tuple) {
-        tupleType = type as ts.TupleType
-      } else {
-        tupleType = (type as ts.ObjectType as ts.TypeReference)
-          .target as ts.TupleType
-      }
-
-      // Get the type arguments which represent the tuple elements
-      if (tupleType.typeArguments) {
-        tupleType.typeArguments.forEach((elementType, index) => {
-          typeDiscoveryLog(
-            'Raw tuple element %d: %s',
-            index,
-            typeChecker.typeToString(elementType)
-          )
-
-          // Try different ways to get the actual type
-          let resolvedElementType = elementType
-
-          // If it's a type reference, try to resolve it
-          if (elementType.flags & ts.TypeFlags.TypeParameter) {
-            // This might be a type parameter, try to get the constraint
-            const typeParam = elementType as ts.TypeParameter
-            const constraint = typeParam.getConstraint()
-            if (constraint) {
-              resolvedElementType = constraint
-            }
-          }
-
-          // Try to get the symbol and type name
-          const elementSymbol =
-            resolvedElementType.getSymbol() || elementType.getSymbol()
-          const elementAliasSymbol =
-            resolvedElementType.aliasSymbol || elementType.aliasSymbol
-
-          typeDiscoveryLog(
-            'Processing tuple element %d: %s, symbol: %s, aliasSymbol: %s',
-            index,
-            typeChecker.typeToString(resolvedElementType),
-            elementSymbol?.getName(),
-            elementAliasSymbol?.getName()
-          )
-
-          elementTypes.push(
-            transformTypeToIntermediate(
-              resolvedElementType,
-              typeChecker,
-              rootNode,
-              metadata
-            )
-          )
-        })
-      } else if ((type as ts.ObjectType as ts.TypeReference).typeArguments) {
-        // Try to get type arguments from the reference
-        const typeArgs = (type as ts.ObjectType as ts.TypeReference)
-          .typeArguments
-        if (typeArgs) {
-          typeArgs.forEach((elementType, index) => {
-            typeDiscoveryLog(
-              'Raw tuple element %d: %s',
-              index,
-              typeChecker.typeToString(elementType)
-            )
-
-            // Try different ways to get the actual type
-            let resolvedElementType = elementType
-
-            // If it's a type reference, try to resolve it
-            if (elementType.flags & ts.TypeFlags.TypeParameter) {
-              // This might be a type parameter, try to get the constraint
-              const typeParam = elementType as ts.TypeParameter
-              const constraint = typeParam.getConstraint()
-              if (constraint) {
-                resolvedElementType = constraint
-              }
-            }
-
-            // Try to get the symbol and type name
-            const elementSymbol =
-              resolvedElementType.getSymbol() || elementType.getSymbol()
-            const elementAliasSymbol =
-              resolvedElementType.aliasSymbol || elementType.aliasSymbol
-
-            typeDiscoveryLog(
-              'Processing tuple element %d: %s, symbol: %s, aliasSymbol: %s',
-              index,
-              typeChecker.typeToString(resolvedElementType),
-              elementSymbol?.getName(),
-              elementAliasSymbol?.getName()
-            )
-
-            elementTypes.push(
-              transformTypeToIntermediate(
-                resolvedElementType,
-                typeChecker,
-                rootNode,
-                metadata
-              )
-            )
-          })
-        }
-      }
-    }
 
     typeDiscoveryLog('Tuple elements: %d', elementTypes.length)
     return {
       kind: 'tuple',
       elementTypes,
+      ...(tupleTarget.minLength !== elementTypes.length
+        ? { minItems: tupleTarget.minLength }
+        : {}),
+      ...(tupleTarget.hasRestElement ? { hasRestElement: true } : {}),
     }
   }
 
@@ -1232,7 +1482,8 @@ function transformTypeToIntermediate(
 
   if (type.flags & ts.TypeFlags.BooleanLiteral) {
     return {
-      kind: 'boolean',
+      kind: 'literal',
+      value: typeAsString === 'true',
     }
   }
 
@@ -1243,93 +1494,8 @@ function transformTypeToIntermediate(
       const typeName = t.aliasSymbol?.escapedName?.toString()
       return !(t.flags & ts.TypeFlags.Never) && typeName !== 'BRAND' // zod branded types should be ignored
     })
-
-    // Special handling for intersections that contain unions
-    // This handles cases like: { id: number } & ({ type: 'bundle', items: Item[] } | { type: 'single', items: [Item] })
-    const objectTypes = validTypes.filter(
-      (t) =>
-        t.isClassOrInterface() ||
-        (t.flags & ts.TypeFlags.Object && !t.isUnion())
-    )
-    const unionTypes = validTypes.filter((t) => t.isUnion())
-
-    if (objectTypes.length > 0 && unionTypes.length > 0) {
-      // We have an intersection of object types and union types
-      // We need to merge each object type with each union member
-      const baseProperties: Record<string, TypeDefinition> = {}
-      const baseRequired = new Set<string>()
-
-      // Collect properties from all object types
-      objectTypes.forEach((objType) => {
-        objType.getProperties().forEach((prop) => {
-          if (isIgnoredSyntheticPropertyName(prop.name)) {
-            return
-          }
-
-          const propType = typeChecker.getTypeOfSymbolAtLocation(prop, rootNode)
-          baseProperties[prop.name] = transformTypeToIntermediate(
-            propType,
-            typeChecker,
-            rootNode,
-            metadata
-          )
-          if (!(prop.flags & ts.SymbolFlags.Optional)) {
-            baseRequired.add(prop.name)
-          }
-        })
-      })
-
-      // For each union type, merge with base properties
-      const resultUnionTypes: TypeDefinition[] = []
-
-      unionTypes.forEach((unionType) => {
-        unionType.types.forEach((unionMember) => {
-          const memberProperties: Record<string, TypeDefinition> = {
-            ...baseProperties,
-          }
-          const memberRequired = new Set(baseRequired)
-
-          // Add properties from the union member
-          if (
-            unionMember.isClassOrInterface() ||
-            unionMember.flags & ts.TypeFlags.Object
-          ) {
-            unionMember.getProperties().forEach((prop) => {
-              if (isIgnoredSyntheticPropertyName(prop.name)) {
-                return
-              }
-
-              const propType = typeChecker.getTypeOfSymbolAtLocation(
-                prop,
-                rootNode
-              )
-              memberProperties[prop.name] = transformTypeToIntermediate(
-                propType,
-                typeChecker,
-                rootNode,
-                metadata
-              )
-              if (!(prop.flags & ts.SymbolFlags.Optional)) {
-                memberRequired.add(prop.name)
-              }
-            })
-          }
-
-          resultUnionTypes.push({
-            kind: 'object',
-            properties: memberProperties,
-            ...(memberRequired.size > 0
-              ? { required: Array.from(memberRequired) }
-              : {}),
-          })
-        })
-      })
-
-      return {
-        kind: 'union',
-        types: resultUnionTypes,
-      }
-    }
+    // intersections with unions, e.g. `Base & (Bundle | Single)`, never reach this point,
+    // since TypeScript distributes them into unions of intersections
 
     const isObjectType = (t: ts.Type) =>
       t.isClassOrInterface() || (t.flags & ts.TypeFlags.Object) !== 0
@@ -1442,43 +1608,6 @@ function transformTypeToIntermediate(
     }
   }
 
-  // Handle objects
-  if (type.isClassOrInterface()) {
-    const result = transformObjectToIntermediate(
-      type,
-      typeChecker,
-      rootNode,
-      metadata
-    )
-
-    // Add type information
-    if (typeName) {
-      result.originalName = typeName
-    }
-
-    return result
-  }
-
-  // Check for enum type
-  if (type.isLiteral() || (symbol && symbol.flags & ts.SymbolFlags.Enum)) {
-    const enumType = typeChecker.getTypeAtLocation(
-      symbol?.declarations?.[0] ?? rootNode
-    )
-    const enumMembers = typeChecker.getPropertiesOfType(enumType)
-    const values = enumMembers.map((member) => {
-      const memberType = typeChecker.getTypeOfSymbolAtLocation(member, rootNode)
-      if (memberType.isStringLiteral()) return memberType.value
-      if (memberType.isNumberLiteral()) return memberType.value
-      throw new Error('Unsupported enum member type')
-    })
-    return {
-      kind: 'enum',
-      values,
-      type: typeof values[0] === 'string' ? 'string' : 'number',
-      name: symbol?.name ?? '',
-    }
-  }
-
   const basicTypeMap: Record<string, TypeDefinition> = {
     string: { kind: 'string' },
     number: { kind: 'number' },
@@ -1552,10 +1681,25 @@ function transformObjectToIntermediate(
     }
   })
 
+  // index signatures, e.g. `{ [key: string]: Json }`, describe the remaining properties
+  const indexInfo =
+    typeChecker.getIndexInfoOfType(type, ts.IndexKind.String) ??
+    typeChecker.getIndexInfoOfType(type, ts.IndexKind.Number)
+
   return {
     kind: 'object',
     properties,
     ...(required.size > 0 ? { required: Array.from(required) } : {}),
+    ...(indexInfo
+      ? {
+          additionalProperties: transformTypeToIntermediate(
+            indexInfo.type,
+            typeChecker,
+            rootNode,
+            metadata
+          ),
+        }
+      : {}),
     ...(shouldTrackType
       ? {
           name: typeIdentity.name ?? typeName,
@@ -1705,7 +1849,7 @@ function resolveTypeToOpenAPI3({
     }
     case 'tuple': {
       // OpenAPI 3.0 does not support positional `items`, so tuples become
-      // fixed-length arrays whose items match any of the element schemas.
+      // arrays of bounded length whose items match any of the element schemas.
       // Element schemas may overlap (e.g. `[number, 1]`), hence `anyOf` over `oneOf`
       const items = uniqWith(
         type.elementTypes.map((t) =>
@@ -1719,10 +1863,10 @@ function resolveTypeToOpenAPI3({
           items.length === 0
             ? {}
             : items.length === 1
-              ? items[0]
-              : { anyOf: items },
-        minItems: type.elementTypes.length,
-        maxItems: type.elementTypes.length,
+            ? items[0]
+            : { anyOf: items },
+        minItems: type.minItems ?? type.elementTypes.length,
+        ...(!type.hasRestElement ? { maxItems: type.elementTypes.length } : {}),
         ...(nullable ? { nullable: true } : {}),
       }
     }
@@ -1736,6 +1880,18 @@ function resolveTypeToOpenAPI3({
           ])
         ),
         ...(type.required ? { required: type.required } : {}),
+        ...(type.additionalProperties !== undefined
+          ? {
+              additionalProperties:
+                typeof type.additionalProperties === 'boolean'
+                  ? type.additionalProperties
+                  : resolveTypeToOpenAPI3({
+                      type: type.additionalProperties,
+                      components,
+                      replaceRefs,
+                    }),
+            }
+          : {}),
       }
 
       if (type.name) {
@@ -1775,6 +1931,33 @@ function resolveTypeToOpenAPI3({
       if (nonNullType === null) {
         return NULL_SCHEMA
       }
+      if (type.name) {
+        // recursive unions are components, references to them accept null instead
+        const componentKey = type.schemaName ?? type.name
+        const {
+          name: _name,
+          namespaceName: _namespaceName,
+          qualifiedName: _qualifiedName,
+          schemaName: _schemaName,
+          ...componentType
+        } = nonNullType
+        registerComponent(
+          components,
+          componentKey,
+          resolveTypeToOpenAPI3({
+            type: componentType as TypeDefinition,
+            components,
+            replaceRefs,
+          })
+        )
+
+        if (replaceRefs) {
+          return withNullAlternative(
+            { $ref: `#/components/schemas/${componentKey}` },
+            isNullable
+          )
+        }
+      }
       if (nonNullType.kind !== 'union') {
         return resolveTypeToOpenAPI3({
           type: { ...nonNullType, nullable: isNullable },
@@ -1790,6 +1973,10 @@ function resolveTypeToOpenAPI3({
         ),
         isEqual
       )
+      // an unconstrained member accepts every value, and would make `oneOf` ambiguous
+      if (unionTypes.some((t) => isEqual(t, {}))) {
+        return {}
+      }
       if (unionTypes.every((t) => t.enum)) {
         return resolveEnumToOpenAPI3(
           unionTypes.flatMap((t) => t.enum),
@@ -1872,10 +2059,8 @@ function resolveTypeToOpenAPI3({
     }
     case 'any':
     case 'unknown':
-      return {
-        type: 'object',
-        ...(nullable ? { nullable: true } : {}),
-      }
+      // any JSON value, including null
+      return {}
   }
 }
 
@@ -1887,8 +2072,8 @@ const resolveEnumToOpenAPI3 = (
     typeof value === 'boolean'
       ? 'boolean'
       : typeof value === 'string'
-        ? 'string'
-        : 'number'
+      ? 'string'
+      : 'number'
   )
   const enumSchemas = Object.entries(valuesByType).map(
     ([type, typeValues]) => ({ type, enum: typeValues })
@@ -2028,56 +2213,16 @@ function extractValidatorType(
       return undefined
     }
 
-    const typesType = typeChecker.getTypeOfSymbolAtLocation(
-      typesProperty,
-      rootNode
+    // `types` is optional for Standard Schema validators, e.g. `{ input, output } | undefined`
+    const typesType = typeChecker.getNonNullableType(
+      typeChecker.getTypeOfSymbolAtLocation(typesProperty, rootNode)
     )
-
-    // Check if typesType is a union type
-    if (typesType.isUnion()) {
-      parserLog('Found union type with', typesType.types.length, 'types')
-
-      // In a union type, the second element is typically the output
-      if (typesType.types.length >= 2) {
-        // Get the second type from the union (index 1)
-        const outputType = typesType.types[1]
-
-        // Check if this is a tuple type that contains both input and output
-        if (outputType.flags & ts.TypeFlags.Object) {
-          const outputObjectType = outputType as ts.ObjectType
-
-          // If it's a tuple, we need to extract just the output part
-          if (outputObjectType.objectFlags & ts.ObjectFlags.Tuple) {
-            parserLog('Second union element is a tuple, extracting output')
-            const outputTupleType = outputObjectType as ts.TupleType
-            if (
-              outputTupleType.typeArguments &&
-              outputTupleType.typeArguments.length > 0
-            ) {
-              // For output, we want just the first element of this tuple
-              return outputTupleType.typeArguments[0]
-            }
-          }
-
-          // If it has an 'output' property, extract that
-          const outputProp = outputType.getProperty('output')
-          if (outputProp) {
-            parserLog('Found output property on second union element')
-            return typeChecker.getTypeOfSymbolAtLocation(outputProp, rootNode)
-          }
-        }
-
-        // If we couldn't extract a specific output part, return the whole second element
-        parserLog('Returning second union element as output type')
-        return outputType
-      }
-    }
-
-    // Try to access the output type through type arguments if it's a type reference
-    const typeRef = typesType as ts.TypeReference
-    if (typeRef.typeArguments && typeRef.typeArguments.length > 1) {
-      parserLog('Found output type through type arguments')
-      return typeRef.typeArguments[1]
+    const typesOutputProperty = typesType.getProperty('output')
+    if (typesOutputProperty) {
+      return typeChecker.getTypeOfSymbolAtLocation(
+        typesOutputProperty,
+        rootNode
+      )
     }
 
     parserLog('Could not extract output type')

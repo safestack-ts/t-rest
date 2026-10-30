@@ -60,8 +60,11 @@ export const expectedResult = [
                     ],
                   },
                   provider: { kind: 'literal', value: 'DATATRANS' },
-                  supportsAlias: { kind: 'boolean' },
-                  supportsRegistrationAndPayment: { kind: 'boolean' },
+                  supportsAlias: { kind: 'literal', value: true },
+                  supportsRegistrationAndPayment: {
+                    kind: 'literal',
+                    value: true,
+                  },
                 },
                 required: [
                   'type',
@@ -75,8 +78,11 @@ export const expectedResult = [
                 properties: {
                   type: { kind: 'literal', value: 'TWI' },
                   provider: { kind: 'literal', value: 'DATATRANS' },
-                  supportsAlias: { kind: 'boolean' },
-                  supportsRegistrationAndPayment: { kind: 'boolean' },
+                  supportsAlias: { kind: 'literal', value: true },
+                  supportsRegistrationAndPayment: {
+                    kind: 'literal',
+                    value: false,
+                  },
                 },
                 required: [
                   'type',
