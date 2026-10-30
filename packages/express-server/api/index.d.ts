@@ -229,7 +229,7 @@ type BranchedRouter<TAppOrRouter extends TypedRouterBase<any, any, any, any>, TB
 
 type ApplicationRoutes<TApp extends TypedExpressApplicationWithVersioning<any, any, any, any> | TypedExpressApplicationWithoutVersioning<any, any, any>> = TApp extends TypedExpressApplicationWithVersioning<infer TRoutes, any, any, any> ? TRoutes : TApp extends TypedExpressApplicationWithoutVersioning<infer TRoutes, any, any> ? TRoutes : never;
 
-declare const createTypedResponse: <TRoute extends AnyRouteDef>(res: ExpressResponse, route: TRoute) => TypedResponse<TRoute>;
+declare const createTypedResponse: <TRoute extends AnyRouteDef>(res: ExpressResponse, route: TRoute, next: ExpressNextFunction) => TypedResponse<TRoute>;
 
 declare const defineMiddleware: <TRequestIn extends ExpressRequest, TRequestOut>(middlewareFn: TypedRequestHandler<TRequestIn>) => TypedMiddleware<TRequestIn, TRequestOut>;
 

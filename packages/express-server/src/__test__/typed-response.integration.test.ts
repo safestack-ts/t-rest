@@ -1,8 +1,11 @@
 import { createReadStream, promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { Readable } from 'node:stream'
-import { afterAll, beforeAll, expect, test } from 'vitest'
+import http from 'node:http'
+import { AddressInfo } from 'node:net'
+import { once } from 'node:events'
+import { PassThrough, Readable } from 'node:stream'
+import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 import { BagOfRoutes, binary, empty, json, Route, text } from '@t-rest/core'
 import Express from 'express'
 import { StatusCodes } from 'http-status-codes'
@@ -37,6 +40,7 @@ const bagOfRoutes = BagOfRoutes.withoutVersioning()
   .build()
 
 let pdfFile: string
+let endlessStream: PassThrough | undefined
 
 const makeApp = () => {
   const expressApp = Express()
@@ -62,6 +66,21 @@ const makeApp = () => {
         return response.status(200).file(pdfFile)
       case 'file-missing':
         return response.status(200).file(`${pdfFile}.missing`)
+      case 'stream-interrupted':
+        return response.status(200).stream(
+          Readable.from(
+            (async function* () {
+              yield pdf
+              // lets the first chunk reach the client
+              await new Promise((resolve) => setTimeout(resolve, 10))
+              throw new Error('interrupted')
+            })()
+          )
+        )
+      case 'stream-endless':
+        endlessStream = new PassThrough()
+        endlessStream.write(pdf)
+        return response.status(200).stream(endlessStream)
       case 'stream-failing':
         return response
           .status(200)
@@ -141,10 +160,61 @@ test('a missing file reaches the error handling of the application', async () =>
   expect(response.status).toBe(404)
 })
 
-test('a failing stream aborts the response', async () => {
-  await expect(
-    supertest(makeApp()).get('/pdf/stream-failing')
-  ).rejects.toThrow()
+const withErrorHandler = (app: Express.Application) => {
+  const errors: Error[] = []
+
+  app.use(
+    (
+      error: Error,
+      _request: Express.Request,
+      response: Express.Response,
+      _next: Express.NextFunction
+    ) => {
+      errors.push(error)
+      response.status(500).json({ error: 'stream failed' })
+    }
+  )
+
+  return { app, errors }
+}
+
+test('a stream failing before the first byte reaches the error handlers', async () => {
+  const { app, errors } = withErrorHandler(makeApp())
+
+  const response = await supertest(app).get('/pdf/stream-failing')
+
+  expect(response.status).toBe(500)
+  expect(response.headers['content-type']).toMatch(/^application\/json/)
+  expect(response.body).toEqual({ error: 'stream failed' })
+  expect(errors).toHaveLength(1)
+  expect(errors[0]).toMatchObject({ code: 'ENOENT' })
+})
+
+test('a stream failing after the first byte aborts the response and reaches the error handlers', async () => {
+  const { app, errors } = withErrorHandler(makeApp())
+
+  await expect(supertest(app).get('/pdf/stream-interrupted')).rejects.toThrow()
+
+  await vi.waitFor(() => expect(errors).toHaveLength(1))
+  expect(errors[0].message).toBe('interrupted')
+})
+
+test('a client closing the connection destroys the stream without an error', async () => {
+  const { app, errors } = withErrorHandler(makeApp())
+  const server = app.listen(0)
+  await once(server, 'listening')
+
+  const request = http.get({
+    port: (server.address() as AddressInfo).port,
+    path: '/pdf/stream-endless',
+  })
+  request.on('error', () => {})
+  request.on('response', (response) => response.destroy())
+
+  await vi.waitFor(() => expect(endlessStream?.destroyed).toBe(true))
+  server.close()
+
+  expect(errors).toEqual([])
 })
 
 test('json bodies are sent by status', async () => {

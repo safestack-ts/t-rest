@@ -47,7 +47,7 @@ app.get('/invoices/:id/pdf').handle(async (_request, { params }, response) => {
 })
 ```
 
-`response.json(body)` answers with `200` and is available when `200` is declared as json. `stream` destroys the response when the stream fails, as an error handler cannot answer anymore at that point.
+`response.json(body)` answers with `200` and is available when `200` is declared as json. When a stream fails, the error is forwarded to the error handlers of the application. Before the first byte they can still answer, afterwards the connection is closed and they can only observe the error.
 
 `response.raw` is the native express response for everything else, e.g. `response.raw.redirect(302, '/elsewhere')`. It is untyped and does not check the declared responses. Middlewares keep receiving the native response.
 

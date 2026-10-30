@@ -1,7 +1,10 @@
 import { resolve } from 'node:path'
-import { pipeline } from 'node:stream'
+import { PassThrough, pipeline } from 'node:stream'
 import { AnyResponseDescriptor, AnyRouteDef } from '@t-rest/core'
-import { ExpressResponse } from '../types/express-type-shortcuts.js'
+import {
+  ExpressNextFunction,
+  ExpressResponse,
+} from '../types/express-type-shortcuts.js'
 import { TypedResponse } from '../types/typed-response.js'
 
 const toBuffer = (body: Uint8Array) =>
@@ -12,7 +15,8 @@ const toBuffer = (body: Uint8Array) =>
 
 export const createTypedResponse = <TRoute extends AnyRouteDef>(
   res: ExpressResponse,
-  route: TRoute
+  route: TRoute,
+  next: ExpressNextFunction
 ): TypedResponse<TRoute> => {
   const statusResponse = (code: number) => {
     res.status(code)
@@ -37,9 +41,26 @@ export const createTypedResponse = <TRoute extends AnyRouteDef>(
       },
       stream: (body: NodeJS.ReadableStream) => {
         setContentType()
-        // pipeline destroys the response when the stream fails, an error
-        // handler cannot answer anymore once the headers have been sent
-        pipeline(body, res, () => {})
+        // the pass through keeps pipeline from destroying the response, so
+        // that error handlers can answer a stream failing before the first byte
+        const passThrough = new PassThrough()
+
+        pipeline(body, passThrough, (error) => {
+          // a client closing the connection is not an application error
+          if (!error || res.destroyed) {
+            return
+          }
+
+          if (res.headersSent) {
+            res.destroy(error)
+          } else {
+            res.removeHeader('Content-Type')
+          }
+
+          next(error)
+        })
+        passThrough.pipe(res)
+        res.once('close', () => passThrough.destroy())
       },
       file: (path: string) => {
         setContentType()

@@ -149,7 +149,7 @@ export class VersionedRouting {
               await handler(
                 requestWithVersion,
                 validationOutput.value,
-                createTypedResponse(response, route)
+                createTypedResponse(response, route, next)
               )
             }
           } catch (err) {
