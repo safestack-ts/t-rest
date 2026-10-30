@@ -18,6 +18,7 @@ import {
 } from '../types/express-type-shortcuts.js'
 import { TypedMiddleware } from '../types/typed-middleware.js'
 import { VersionExtractor } from '../types/version-extractor.js'
+import { createTypedResponse } from '../utils/create-typed-response.js'
 import { removePrefixFromPath } from '../utils/remove-prefix-from-path.js'
 import { RouteSetupError } from './route-setup-error.js'
 import { TypedRouterBase } from './typed-router-base.js'
@@ -148,7 +149,7 @@ export class VersionedRouting {
               await handler(
                 requestWithVersion,
                 validationOutput.value,
-                response
+                createTypedResponse(response, route)
               )
             }
           } catch (err) {

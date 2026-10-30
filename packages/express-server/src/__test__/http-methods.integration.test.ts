@@ -8,6 +8,7 @@ import {
   VersionHistory,
   Versioning,
   ze,
+  empty,
 } from '@t-rest/core'
 import { z } from 'zod'
 import { TypedExpressApplication } from '../classes/typed-express-application.js'
@@ -56,7 +57,7 @@ describe('without versioning', () => {
     .addRoute(
       Route.delete('/api/items/:itemId')
         .validate(itemIdValidator)
-        .response<void>()
+        .responses({ 204: empty() })
     )
     .build()
 
