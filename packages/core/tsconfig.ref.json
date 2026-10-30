@@ -4,5 +4,5 @@
   "compilerOptions": {
     "composite": true
   },
-  "references": []
+  "references": [{ "path": "../protocol/tsconfig.ref.json" }]
 }

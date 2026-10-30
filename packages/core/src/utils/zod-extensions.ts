@@ -1,3 +1,4 @@
+import { decodeStructuredQueryValue } from '@t-rest/protocol'
 import { z } from 'zod'
 
 const integerRegex = /^[+-]?\d+$/
@@ -13,11 +14,10 @@ const isFloatingString = (value: string) =>
 const tryParseJSON = (
   value: string
 ): { success: true; data: any } | { success: false } => {
-  try {
-    return { success: true, data: JSON.parse(value) }
-  } catch {
-    return { success: false }
-  }
+  // a JSON string never decodes to itself, so an unchanged string is invalid JSON
+  const data = decodeStructuredQueryValue(value)
+
+  return data === value ? { success: false } : { success: true, data }
 }
 
 export namespace ze {

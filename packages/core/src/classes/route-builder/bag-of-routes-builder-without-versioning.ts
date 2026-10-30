@@ -1,22 +1,16 @@
 import { Versioning } from '../../enums/versioning.js'
+import { createRouteHashMap, storageKeyOf } from '../../internal/route-table.js'
 import { AnyRouteDef } from '../../types/any-route-def.js'
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteHashMap } from '../../types/route-hash-map.js'
-import { HashMap } from '../../utils/hash-map.js'
 import { BagOfRoutes } from '../core/bag-of-routes.js'
 import { RouteDef } from '../core/route-def.js'
-
-const createRouteHashMap = (routes?: RouteHashMap): RouteHashMap =>
-  new HashMap<[HTTPMethod, string, string], AnyRouteDef>(
-    (key) => key.join('-'),
-    Array.from(routes?.entries() ?? [])
-  )
 
 export class BagOfRoutesBuilderWithoutVersioning<TRoutes extends AnyRouteDef> {
   protected readonly routes: RouteHashMap
 
   constructor(routes?: RouteHashMap) {
-    this.routes = createRouteHashMap(routes)
+    this.routes = createRouteHashMap(routes?.entries())
   }
 
   public addRoute<
@@ -27,14 +21,14 @@ export class BagOfRoutesBuilderWithoutVersioning<TRoutes extends AnyRouteDef> {
     const builder = new BagOfRoutesBuilderWithoutVersioning<
       TRoutes | TRouteDef
     >(this.routes)
-    builder.routes.set([route.method, route.path, ''], route)
+    builder.routes.set(storageKeyOf(route, false), route)
 
     return builder
   }
 
   public build() {
     return new BagOfRoutes<TRoutes, Versioning.NO_VERSIONING, never>(
-      createRouteHashMap(this.routes),
+      createRouteHashMap(this.routes.entries()),
       Versioning.NO_VERSIONING,
       null as never
     )

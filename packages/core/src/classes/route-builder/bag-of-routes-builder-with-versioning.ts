@@ -1,16 +1,10 @@
+import { createRouteHashMap, storageKeyOf } from '../../internal/route-table.js'
 import { AnyRouteDef } from '../../types/any-route-def.js'
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteHashMap } from '../../types/route-hash-map.js'
 import { VersioningRequired } from '../../types/versioning-required.js'
-import { HashMap } from '../../utils/hash-map.js'
 import { BagOfRoutes } from '../core/bag-of-routes.js'
 import { RouteDef } from '../core/route-def.js'
-
-const createRouteHashMap = (routes?: RouteHashMap): RouteHashMap =>
-  new HashMap<[HTTPMethod, string, string], AnyRouteDef>(
-    (key) => key.join('-'),
-    Array.from(routes?.entries() ?? [])
-  )
 
 export class BagOfRoutesBuilderWithVersioning<
   TRoutes extends AnyRouteDef,
@@ -28,7 +22,7 @@ export class BagOfRoutesBuilderWithVersioning<
   ) {
     this.versioning = versioning
     this.versionHistory = versionHistory
-    this.routes = createRouteHashMap(routes)
+    this.routes = createRouteHashMap(routes?.entries())
   }
 
   public addRoute<
@@ -46,14 +40,14 @@ export class BagOfRoutesBuilderWithVersioning<
       TVersioning,
       TVersionHistory
     >(this.versioning, this.versionHistory, this.routes)
-    builder.routes.set([route.method, route.path, route.version], route)
+    builder.routes.set(storageKeyOf(route, true), route)
 
     return builder
   }
 
   public build() {
     return new BagOfRoutes<TRoutes, TVersioning, TVersionHistory>(
-      createRouteHashMap(this.routes),
+      createRouteHashMap(this.routes.entries()),
       this.versioning,
       this.versionHistory
     )

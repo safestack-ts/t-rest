@@ -12,7 +12,7 @@ export const emptyValidation: EmptySchema = {
     validate(value) {
       return typeof value === 'object' && !!value
         ? { value }
-        : { issues: [{ message: 'Received an non-object reuqest type input' }] }
+        : { issues: [{ message: 'Received a non-object request type input' }] }
     },
   },
 }

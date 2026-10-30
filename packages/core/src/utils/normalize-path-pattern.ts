@@ -1,4 +1,4 @@
-export const normalizePathPattern = (path: string) => {
-  // express path param names may contain any word character, e.g. `:user_id`
-  return path.replace(/:\w+/g, '%s')
-}
+import { pathShape } from '@t-rest/protocol'
+
+/** @deprecated Use `pathShape` from `@t-rest/protocol`. */
+export const normalizePathPattern = (path: string): string => pathShape(path)

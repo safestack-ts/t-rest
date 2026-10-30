@@ -1,5 +1,6 @@
 type HashFunction<TKey> = (input: TKey) => string
 
+/** @deprecated Internal helper, will be removed from the public API in a future major. */
 export class HashMap<TKey, TValue> {
   // internal map representing the hash map
   private readonly _map = new Map<string, TValue>()
@@ -18,8 +19,6 @@ export class HashMap<TKey, TValue> {
     entries?: readonly (readonly [TKey, TValue])[]
   ) {
     this.hashFunc = hashFunc
-
-    this._map.entries
 
     Array.from(entries ?? []).forEach(([key, value]) => this.set(key, value))
   }
@@ -68,36 +67,15 @@ export class HashMap<TKey, TValue> {
   }
 
   entries(): IterableIterator<[TKey, TValue]> {
+    // snapshot at call time, so mutations while iterating do not affect it
     const entries = Array.from(this._map.entries())
-    let nextIndex = 0
+    const keys = this._keys
 
-    const it = {
-      [Symbol.iterator]: () => it, // @todo find out how to properly solve this
-      next: () => {
-        if (nextIndex < entries.length) {
-          const [stringKey, value] = entries[nextIndex++]
-          const key = this._keys.get(stringKey)
-
-          if (!key) {
-            throw new Error(
-              `Could not map back string key ${stringKey} to original key`
-            )
-          }
-
-          return {
-            done: false as const,
-            value: [key, value] as [TKey, TValue],
-          }
-        } else {
-          return {
-            done: true as const,
-            value: undefined,
-          }
-        }
-      },
-    }
-
-    return it
+    return (function* (): Generator<[TKey, TValue], undefined> {
+      for (const [stringKey, value] of entries) {
+        yield [keys.get(stringKey) as TKey, value]
+      }
+    })()
   }
 
   toJSON() {

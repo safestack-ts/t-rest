@@ -1,1 +1,3 @@
-export type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' // @todo add remaining types
+import type { HttpMethod } from '@t-rest/protocol'
+
+export type HTTPMethod = HttpMethod
