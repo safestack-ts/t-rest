@@ -15,6 +15,7 @@ export * from './types/typed-request-handler.js'
 export * from './types/typed-route-handler-fn.js'
 export * from './types/branched-router.js'
 export * from './types/application-routes.js'
+export * from './types/request-version.js'
 export * from './types/typed-router-module.js'
 
 // utils

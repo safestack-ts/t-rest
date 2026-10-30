@@ -108,26 +108,42 @@ test('query with null values are omitted from url', () => {
   ).toBe('/items?search=test&page=1')
 })
 
-test('query arrays are serialized as repeated keys', () => {
+test('query arrays are serialized as json', () => {
   expect(
-    buildUrl('/items', {
-      query: { tags: ['a', 'b c'], ids: [1, 2], empty: [], page: 1 },
-    })
-  ).toBe('/items?tags=a&tags=b+c&ids=1&ids=2&page=1')
+    decodeURIComponent(
+      buildUrl('/items', {
+        query: { tags: ['a', 'b c'], ids: [1, 2], empty: [], page: 1 },
+      })
+    )
+  ).toBe('/items?tags=["a","b+c"]&ids=[1,2]&empty=[]&page=1')
 })
 
-test('null and undefined array items are omitted', () => {
-  expect(
-    buildUrl('/items', { query: { tags: ['a', null, undefined, 'b'] } })
-  ).toBe('/items?tags=a&tags=b')
+test('query arrays round trip through URLSearchParams as json', () => {
+  const query = { ids: [1, 2], tags: ['a&b', 'c=d'], nested: [[1], { a: 1 }] }
+  const searchParams = new URL(
+    buildUrl('/items', { query }),
+    'http://localhost'
+  ).searchParams
+
+  expect(JSON.parse(searchParams.get('ids')!)).toEqual(query.ids)
+  expect(JSON.parse(searchParams.get('tags')!)).toEqual(query.tags)
+  expect(JSON.parse(searchParams.get('nested')!)).toEqual(query.nested)
 })
 
-test('object and date array items are serialized like top-level values', () => {
+test('null and undefined array items are serialized as json null', () => {
+  expect(
+    decodeURIComponent(
+      buildUrl('/items', { query: { tags: ['a', null, undefined, 'b'] } })
+    )
+  ).toBe('/items?tags=["a",null,null,"b"]')
+})
+
+test('object and date array items are serialized as json', () => {
   const date = new Date('2024-01-02T03:04:05.000Z')
 
   expect(
     decodeURIComponent(
       buildUrl('/items', { query: { items: [{ key: 'value' }, date] } })
     )
-  ).toBe('/items?items={"key":"value"}&items=2024-01-02T03:04:05.000Z')
+  ).toBe('/items?items=[{"key":"value"},"2024-01-02T03:04:05.000Z"]')
 })

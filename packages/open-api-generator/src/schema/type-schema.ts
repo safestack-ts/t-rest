@@ -141,7 +141,10 @@ export const validateObjectType: z.ZodType<ObjectType> = validateBaseType.and(
   z.object({
     kind: z.literal('object'),
     originalName: z.string().optional(),
-    properties: z.record(z.string(), z.lazy(() => validateTypeDefinition)),
+    properties: z.record(
+      z.string(),
+      z.lazy(() => validateTypeDefinition)
+    ),
     required: z.array(z.string()).optional(),
     additionalProperties: z
       .union([z.boolean(), z.lazy(() => validateTypeDefinition)])
@@ -369,11 +372,17 @@ export const validateTupleType: z.ZodType<TupleType> = validateBaseType.and(
   z.object({
     kind: z.literal('tuple'),
     elementTypes: z.array(z.lazy(() => validateTypeDefinition)),
+    minItems: z.number().optional(),
+    hasRestElement: z.boolean().optional(),
   })
 )
 export interface TupleType extends BaseType {
   kind: 'tuple'
   elementTypes: TypeDefinition[]
+  // number of required elements, defaults to the number of element types
+  minItems?: number
+  // the last element type (or the first, for leading rest elements) may repeat
+  hasRestElement?: boolean
 }
 
 export const TupleType = (args: Omit<TupleType, 'kind'>): TupleType => ({
@@ -389,7 +398,10 @@ export const validateTypeDefinition: z.ZodType<TypeDefinition> = z
     schemaName: z.string().optional(),
     nullable: z.boolean().optional(),
     typeParameters: z
-      .record(z.string(), z.lazy(() => validateTypeDefinition))
+      .record(
+        z.string(),
+        z.lazy(() => validateTypeDefinition)
+      )
       .optional(),
   })
   .and(

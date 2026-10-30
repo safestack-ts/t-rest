@@ -28,17 +28,11 @@ export const expectedResult = [
           properties: {
             anyMap: {
               kind: 'record',
-              value: {
-                kind: 'object',
-                properties: {},
-              },
+              value: { kind: 'any' },
             },
             unknownMap: {
               kind: 'record',
-              value: {
-                kind: 'object',
-                properties: {},
-              },
+              value: { kind: 'unknown' },
             },
           },
           required: ['anyMap', 'unknownMap'],

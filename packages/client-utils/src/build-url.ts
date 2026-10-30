@@ -31,12 +31,10 @@ const stringifyQueryValue = (value: unknown): string => {
  * Serializes a query object into a URL search string.
  *
  * - `undefined` and `null` values are omitted.
- * - Arrays are serialized as repeated keys (`tags=a&tags=b`), which Express's
- *   default query parser decodes back into an array. `undefined` and `null`
- *   items are omitted, so an empty array omits the key entirely. Note that a
- *   single-item array arrives at the server as a plain string.
  * - Objects with a `toJSON` method (e.g. `Date`) are serialized via `toJSON()`,
- *   other objects (also as array items) as JSON strings.
+ *   other objects and arrays as JSON strings (`ids=[1,2]`), which servers
+ *   parse back with a JSON query validator (e.g. `ze.jsonObject`). An empty
+ *   array is kept as `[]`.
  * - Everything else is serialized via `String(value)`.
  */
 const stringifyQuery = (query: unknown | undefined) => {
@@ -45,13 +43,9 @@ const stringifyQuery = (query: unknown | undefined) => {
   const searchQuery = new URLSearchParams()
 
   for (const [key, value] of Object.entries(query)) {
-    const values: unknown[] = Array.isArray(value) ? value : [value]
+    if (value === undefined || value === null) continue
 
-    for (const item of values) {
-      if (item === undefined || item === null) continue
-
-      searchQuery.append(key, stringifyQueryValue(item))
-    }
+    searchQuery.append(key, stringifyQueryValue(value))
   }
 
   return searchQuery.toString()

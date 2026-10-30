@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import path from 'path'
-import { getOpenAPI3Spec, parseBagOfRoutes } from '../../utils/parse-bag-of-routes.js'
+import {
+  getOpenAPI3Spec,
+  parseBagOfRoutes,
+} from '../../utils/parse-bag-of-routes.js'
 
 const tsConfigPath = path.join(__dirname, '../../../', 'tsconfig.json')
 
@@ -29,14 +32,9 @@ describe('OpenAPI Generation for pseudo-primitive object-like types', () => {
     const unknownMapAdditionalProperties =
       inputSpec.spec.properties.body.properties.unknownMap.additionalProperties
 
-    expect(anyMapAdditionalProperties).toEqual({
-      type: 'object',
-      properties: {},
-    })
-    expect(unknownMapAdditionalProperties).toEqual({
-      type: 'object',
-      properties: {},
-    })
+    // any and unknown accept every JSON value, not only objects
+    expect(anyMapAdditionalProperties).toEqual({})
+    expect(unknownMapAdditionalProperties).toEqual({})
     expect(outputSpec.spec).toEqual({
       type: 'object',
       properties: {},

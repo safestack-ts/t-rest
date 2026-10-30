@@ -116,6 +116,25 @@ app.branch('/admin').mount(AdminModule)
 In this example, `withClientId` is available to `UsersModule`, but it does not
 affect `AdminModule`.
 
+The isolation only holds for branches of different paths. Each branch is an
+express router mounted on its path, so branches of the same path (e.g. several
+`branch('/')` with different middlewares) are passed one after another: a
+request for a route of a later branch also runs the middlewares of all earlier
+branches, and a middleware ending the request (e.g. rejecting a missing token)
+blocks the routes of all later branches.
+
+```ts
+const publicBranch = app.branch('/').use(withChannelId)
+const privateBranch = app.branch('/').use(withChannelId).use(withAuthentication)
+
+// GET of a private route runs withChannelId (public branch),
+// withChannelId and withAuthentication (private branch)
+```
+
+To isolate the middlewares of routes sharing a path, use separate typed
+applications on separate express routers mounted on the same path, and mount
+the router with the least restrictive middlewares first.
+
 ## Versioned Routes
 
 `defineRouterModule` also supports versioned bags. Versioned modules receive a
@@ -155,4 +174,3 @@ usersRouter.get('/me').handle((request, _validation, response) => {
 ```
 
 Router modules are only a new composition option for larger applications.
-
