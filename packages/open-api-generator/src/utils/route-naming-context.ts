@@ -125,10 +125,11 @@ export type RouteNamingContext = {
 
 /**
  * Extracts the naming context of explicitly written types inside a validator
- * expression, e.g. `z.custom<V2026_06_09.Customer.Checkout.Body>()`. Only type
- * nodes are considered so that value accessors like `z.object` are ignored.
+ * or responses expression, e.g. `z.custom<V2026_06_09.Customer.Checkout.Body>()`
+ * or `json<V2026_06_09.Customer.Checkout.Response>()`. Only type nodes are
+ * considered so that value accessors like `z.object` are ignored.
  */
-const extractNamingContextFromValidator = (
+const extractNamingContextFromCallTypes = (
   call: ts.CallExpression,
   sourceFile: ts.SourceFile
 ) => {
@@ -434,11 +435,19 @@ export const extractRouteNamingContexts = (
         )
       }
 
+      if (callName === 'responses') {
+        setNamingContext(
+          node,
+          'response',
+          extractNamingContextFromCallTypes(node, sourceFile)
+        )
+      }
+
       if (callName === 'validate') {
         setNamingContext(
           node,
           'input',
-          extractNamingContextFromValidator(node, sourceFile)
+          extractNamingContextFromCallTypes(node, sourceFile)
         )
       }
     }

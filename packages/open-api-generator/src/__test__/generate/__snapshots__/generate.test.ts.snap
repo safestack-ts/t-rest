@@ -1,0 +1,142 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`OpenAPIGenerator.generate > emits one response per declared status and content type 1`] = `
+{
+  "/invoices": {
+    "delete": {
+      "parameters": [],
+      "responses": {
+        "204": {
+          "description": "Successful response",
+        },
+      },
+    },
+    "get": {
+      "parameters": [],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Invoice",
+              },
+            },
+          },
+          "description": "Successful response",
+        },
+        "404": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Failure",
+              },
+            },
+          },
+          "description": "Error response",
+        },
+      },
+    },
+  },
+  "/invoices/csv": {
+    "get": {
+      "parameters": [],
+      "responses": {
+        "200": {
+          "content": {
+            "text/csv": {
+              "schema": {
+                "type": "string",
+              },
+            },
+          },
+          "description": "Successful response",
+        },
+        "201": {
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string",
+              },
+            },
+          },
+          "description": "Successful response",
+        },
+      },
+    },
+  },
+  "/invoices/pdf": {
+    "get": {
+      "parameters": [],
+      "responses": {
+        "200": {
+          "content": {
+            "application/pdf": {
+              "schema": {
+                "format": "binary",
+                "type": "string",
+              },
+            },
+          },
+          "description": "Successful response",
+        },
+        "404": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Failure",
+              },
+            },
+          },
+          "description": "Error response",
+        },
+      },
+    },
+  },
+  "/shorthand": {
+    "get": {
+      "parameters": [],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Invoice",
+              },
+            },
+          },
+          "description": "Successful response",
+        },
+      },
+    },
+  },
+}
+`;
+
+exports[`OpenAPIGenerator.generate > emits one response per declared status and content type 2`] = `
+{
+  "schemas": {
+    "Failure": {
+      "properties": {
+        "error": {
+          "type": "string",
+        },
+      },
+      "required": [
+        "error",
+      ],
+      "type": "object",
+    },
+    "Invoice": {
+      "properties": {
+        "id": {
+          "type": "number",
+        },
+      },
+      "required": [
+        "id",
+      ],
+      "type": "object",
+    },
+  },
+}
+`;

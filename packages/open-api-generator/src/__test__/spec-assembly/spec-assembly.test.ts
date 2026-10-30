@@ -10,6 +10,7 @@ import sameNameAcrossBodyAndResponseBagOfRoutes from './scenarios/same-name-acro
 import equivalentTemplatedPathsBagOfRoutes from './scenarios/equivalent-templated-paths'
 import reexportUnversionedBagOfRoutes from './scenarios/reexport-unversioned'
 import reexportMultipleBagsBagOfRoutes from './scenarios/reexport-multiple-bags'
+import reexportResponsesDeclarationBagOfRoutes from './scenarios/reexport-responses-declaration'
 import reexportValidatorContextBagOfRoutes from './scenarios/reexport-validator-context'
 import reexportObjectMemberBagOfRoutes from './scenarios/reexport-object-member'
 import reexportObjectMemberCustomerFirstBagOfRoutes from './scenarios/reexport-object-member-customer-first'
@@ -180,6 +181,18 @@ describe('spec assembly', () => {
           'V2026_06_09_Customer_Checkout_DiscountCardRequirement',
         ])
       )
+      expect(componentKeys).not.toContain('V2026_06_09_Admin_Checkout_Checkout')
+    })
+
+    test('selects the namespace from types within .responses()', () => {
+      const schema = getSchemaFromBag(
+        reexportResponsesDeclarationBagOfRoutes,
+        'reexport-responses-declaration.ts',
+        { includeTypesNamespaceInName: true }
+      )
+      const componentKeys = Object.keys(schema.components)
+
+      expect(componentKeys).toContain('V2026_06_09_Customer_Checkout_Checkout')
       expect(componentKeys).not.toContain('V2026_06_09_Admin_Checkout_Checkout')
     })
 

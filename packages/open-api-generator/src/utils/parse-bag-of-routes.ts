@@ -27,9 +27,17 @@ import {
 const parserLog = debug('t-rest:open-api-generator:parser')
 const typeDiscoveryLog = debug('t-rest:open-api-generator:type-discovery')
 
+export type RouteResponseInfo = {
+  status: string
+  kind: string
+  contentType: string | undefined
+  // only json responses have a body type of their own
+  body: TypeDefinition | undefined
+}
+
 export type RouteTypeInfo = {
   input: TypeDefinition | undefined
-  output: TypeDefinition | undefined
+  responses: RouteResponseInfo[]
   routeMeta: {
     originalPath: string
   }
@@ -133,7 +141,7 @@ export const parseBagOfRoutes = (
       path,
       version
     )
-    const responseType = extractResponseType(routeType, typeChecker, rootNode)
+    const responses = extractResponses(routeType, typeChecker, rootNode)
 
     const inputOutputIntermediate = {
       input: validatorType
@@ -151,21 +159,24 @@ export const parseBagOfRoutes = (
             )
           )
         : undefined,
-      output: responseType
-        ? transformTypeToIntermediate(
-            responseType,
-            typeChecker,
-            rootNode,
-            createTraverseMeta(
-              responseType,
-              resolveRouteNamingContext(
-                { method, path, version },
-                'response',
-                routeNamingContext
+      responses: responses.map(({ body, ...response }) => ({
+        ...response,
+        body: body
+          ? transformTypeToIntermediate(
+              body,
+              typeChecker,
+              rootNode,
+              createTraverseMeta(
+                body,
+                resolveRouteNamingContext(
+                  { method, path, version },
+                  'response',
+                  routeNamingContext
+                )
               )
             )
-          )
-        : undefined,
+          : undefined,
+      })),
       routeMeta: {
         originalPath: path,
       },
@@ -2266,14 +2277,33 @@ function extractValidatorType(
   return undefined
 }
 
-function extractResponseType(
+function extractResponses(
   routeType: ts.Type,
   typeChecker: ts.TypeChecker,
   rootNode: ts.Node
 ) {
-  const responseSymbol = routeType.getProperty('~responseType')
-  return (
-    responseSymbol &&
-    typeChecker.getTypeOfSymbolAtLocation(responseSymbol, rootNode)
-  )
+  const typeOfProperty = (type: ts.Type, name: string) => {
+    const symbol = type.getProperty(name)
+
+    return symbol && typeChecker.getTypeOfSymbolAtLocation(symbol, rootNode)
+  }
+  const literalOfProperty = (type: ts.Type, name: string) => {
+    const propertyType = typeOfProperty(type, name)
+
+    return propertyType?.isStringLiteral() ? propertyType.value : undefined
+  }
+
+  const responsesType = typeOfProperty(routeType, '~responses')
+
+  return (responsesType?.getProperties() ?? []).map((symbol) => {
+    const descriptor = typeChecker.getTypeOfSymbolAtLocation(symbol, rootNode)
+    const kind = literalOfProperty(descriptor, 'kind') ?? 'json'
+
+    return {
+      status: symbol.getName(),
+      kind,
+      contentType: literalOfProperty(descriptor, 'contentType'),
+      body: kind === 'json' ? typeOfProperty(descriptor, '~body') : undefined,
+    }
+  })
 }
