@@ -934,16 +934,34 @@ const transformEnumLiteralsToIntermediate = (
     return undefined
   }
 
-  // enums with computed members only have known values for their literal members
+  const enumSymbol = typeChecker.getBaseTypeOfLiteralType(types[0]).getSymbol()
+
+  // enums with computed members only have known values for their literal members.
+  // Computed members are numbers, so the numeric members widen to `number`,
+  // while the string members of heterogeneous enums remain known
   if (types.some((t) => !t.isStringLiteral() && !t.isNumberLiteral())) {
-    return { kind: 'number' }
+    const stringValues = types.flatMap((t) =>
+      t.isStringLiteral() ? [t.value] : []
+    )
+    return stringValues.length > 0
+      ? {
+          kind: 'union',
+          types: [
+            {
+              kind: 'enum',
+              values: stringValues,
+              type: 'string',
+              name: enumSymbol?.name ?? '',
+            },
+            { kind: 'number' },
+          ],
+        }
+      : { kind: 'number' }
   }
 
   const values = types.map(
     (t) => (t as ts.LiteralType).value as string | number
   )
-
-  const enumSymbol = typeChecker.getBaseTypeOfLiteralType(types[0]).getSymbol()
 
   return {
     kind: 'enum',
@@ -1350,13 +1368,24 @@ function transformTypeToIntermediateOnce(
 
     // A single remaining member (e.g. `T | null` or `T | undefined`) is unwrapped
     if (nonNullTypes.length === 1) {
+      const memberDefinition = transformTypeToIntermediate(
+        nonNullTypes[0],
+        typeChecker,
+        rootNode,
+        metadata
+      )
+
+      // unless the member referenced the union recursively, e.g.
+      // `type Tree = { child: Tree } | null`, which then needs its component
       return withNullability(
-        transformTypeToIntermediate(
-          nonNullTypes[0],
-          typeChecker,
-          rootNode,
-          metadata
-        )
+        metadata.recursiveUnionTypes.has(type)
+          ? {
+              kind: 'union',
+              types: [memberDefinition],
+              name: typeIdentity.name ?? typeName,
+              ...identityFields(typeIdentity),
+            }
+          : memberDefinition
       )
     }
 
@@ -1941,11 +1970,16 @@ function resolveTypeToOpenAPI3({
           schemaName: _schemaName,
           ...componentType
         } = nonNullType
+        // a single non-null member keeps its own name, e.g. an interface of its own
+        const isSingleMember =
+          nonNullType.kind !== 'union' || nonNullType.name !== type.name
         registerComponent(
           components,
           componentKey,
           resolveTypeToOpenAPI3({
-            type: componentType as TypeDefinition,
+            type: isSingleMember
+              ? nonNullType
+              : (componentType as TypeDefinition),
             components,
             replaceRefs,
           })

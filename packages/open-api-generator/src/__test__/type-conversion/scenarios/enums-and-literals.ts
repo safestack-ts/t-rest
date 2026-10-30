@@ -13,6 +13,11 @@ enum OnlyComputed {
   Length = 'length'.length,
 }
 
+enum HeterogeneousComputed {
+  Text = 'text',
+  Count = 'count'.length,
+}
+
 const enum Direction {
   Up = 'up',
   Down = 'down',
@@ -24,6 +29,7 @@ export default BagOfRoutes.withoutVersioning()
       single: Single
       computed: Computed
       onlyComputed: OnlyComputed
+      heterogeneousComputed: HeterogeneousComputed
       direction: Direction
       maybeDirection: Direction | null
       literalTrue: true

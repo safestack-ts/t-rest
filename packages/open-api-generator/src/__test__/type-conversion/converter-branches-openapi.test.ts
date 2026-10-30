@@ -306,6 +306,9 @@ describe('OpenAPI conversion of less common types', () => {
       single: { type: 'string', enum: ['only'] },
       computed: { type: 'number' },
       onlyComputed: { type: 'number' },
+      heterogeneousComputed: {
+        oneOf: [{ type: 'string', enum: ['text'] }, { type: 'number' }],
+      },
       direction: { type: 'string', enum: ['up', 'down'] },
       maybeDirection: {
         type: 'string',
@@ -324,6 +327,15 @@ describe('OpenAPI conversion of less common types', () => {
       nullableLiteral: { type: 'string', enum: ['a', null], nullable: true },
     })
     expect(accepts(schema, response.properties.mixed, false)).toBe(false)
+    expect(
+      accepts(schema, response.properties.heterogeneousComputed, 'text')
+    ).toBe(true)
+    expect(accepts(schema, response.properties.heterogeneousComputed, 5)).toBe(
+      true
+    )
+    expect(
+      accepts(schema, response.properties.heterogeneousComputed, 'other')
+    ).toBe(false)
     expect(Object.keys(schema.components)).toEqual([])
   })
 
@@ -479,5 +491,51 @@ describe('OpenAPI conversion of less common types', () => {
       },
       required: ['value', 'children'],
     })
+  })
+
+  test('nullable recursive aliases with a single non-null member', async () => {
+    const schema = await scenario('nullable-recursive-aliases')
+    const response = responseSchema(schema, '/nullable-recursive-aliases')
+    const nullableRef = (name: string) => ({
+      oneOf: [{ $ref: `#/components/schemas/${name}` }, NULL_SCHEMA],
+    })
+
+    expect(response.properties).toEqual({
+      tree: nullableRef('Tree'),
+      array: nullableRef('NestedArray'),
+      list: nullableRef('LinkedList'),
+    })
+    expect(schema.components.Tree).toEqual({
+      type: 'object',
+      properties: { value: { type: 'string' }, child: nullableRef('Tree') },
+      required: ['value', 'child'],
+    })
+    expect(schema.components.NestedArray).toEqual({
+      type: 'array',
+      items: nullableRef('NestedArray'),
+    })
+    expect(schema.components.LinkedList).toEqual({
+      $ref: '#/components/schemas/LinkedNode',
+    })
+    expect(schema.components.LinkedNode.properties.next).toEqual(
+      nullableRef('LinkedList')
+    )
+
+    expect(
+      accepts(schema, response.properties.tree, {
+        value: 'a',
+        child: { value: 'b', child: null },
+      })
+    ).toBe(true)
+    expect(accepts(schema, response.properties.tree, null)).toBe(true)
+    expect(accepts(schema, response.properties.array, [[], [null, [[]]]])).toBe(
+      true
+    )
+    expect(
+      accepts(schema, response.properties.list, {
+        value: 'a',
+        next: { value: 'b', next: null },
+      })
+    ).toBe(true)
   })
 })

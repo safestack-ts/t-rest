@@ -14,6 +14,7 @@ import type {
 import canonicalBagOfRoutes from './scenarios/canonical/entry'
 import ambiguousBagOfRoutes from './scenarios/ambiguous/entry'
 import crossAudienceBagOfRoutes from './scenarios/cross-audience/entry'
+import multipleBarrelsBagOfRoutes from './scenarios/multiple-barrels/entry'
 import missingOwnerBagOfRoutes from './scenarios/missing-owner/entry'
 import inheritedAcrossVersionsBagOfRoutes from './scenarios/inherited-across-versions/entry'
 import routeScopedUtilitiesBagOfRoutes from './scenarios/route-scoped-utilities/entry'
@@ -215,6 +216,21 @@ describe('canonical type ownership', () => {
 
     expect(names).toContain('V2025_02_18_Admin_Account_Person')
     expect(names).not.toContain('V2024_01_01_Customer_Account_Person')
+  })
+
+  test('considers every public barrel path of a re-exporting module', async () => {
+    const document = await generate(
+      multipleBarrelsBagOfRoutes,
+      'multiple-barrels/entry.ts',
+      '2026-06-09',
+      publicOptions
+    )
+    const names = schemaNames(document)
+
+    expect(names).toContain('V2025_02_18_Admin_Account_Person')
+    expect(names).not.toContain('Person')
+    expect(names).not.toContain('V2024_01_01_Customer_Account_Person')
+    expect(unresolvedRefs(document)).toEqual([])
   })
 
   test('does not fabricate consumer ownership for a named type without a public owner', async () => {

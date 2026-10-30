@@ -169,10 +169,10 @@ export const buildPublicTypeReExportIndex = (
       continue
     }
 
-    const namespacePath = exportedModuleNamespacePaths.get(
-      sourceFile.fileName
-    )?.[0]
-    if (!namespacePath) {
+    // a module exposed by several barrels is owned by each of their public paths
+    const namespacePaths =
+      exportedModuleNamespacePaths.get(sourceFile.fileName) ?? []
+    if (namespacePaths.length === 0) {
       continue
     }
 
@@ -191,11 +191,13 @@ export const buildPublicTypeReExportIndex = (
         continue
       }
 
-      addReExport(transparentReExport.targetId, {
-        namespacePath,
-        exportName: transparentReExport.exportName,
-        qualifiedName: `${namespacePath}.${transparentReExport.exportName}`,
-      })
+      namespacePaths.forEach((namespacePath) =>
+        addReExport(transparentReExport.targetId, {
+          namespacePath,
+          exportName: transparentReExport.exportName,
+          qualifiedName: `${namespacePath}.${transparentReExport.exportName}`,
+        })
+      )
     }
   }
 
