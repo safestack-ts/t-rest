@@ -22,13 +22,30 @@ type AppRoutesFor<
   TPath extends string
 > = Extract<ApplicationRoutes<TApp>, { method: TMethod; path: TPath }>
 
-type DropParamName<TRest extends string> =
-  TRest extends `${string}/${infer TTail}` ? `/${TTail}` : ''
+type CharsOf<
+  TValue extends string,
+  TChars extends string = never
+> = TValue extends `${infer TChar}${infer TRest}`
+  ? CharsOf<TRest, TChars | TChar>
+  : TChars
 
-// type level `pathShape` of @t-rest/protocol: `/users/:id` -> `/users/%s`
+// `\w` of the path param token of @t-rest/protocol
+type WordChar =
+  CharsOf<'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_'>
+
+type DropParamName<TRest extends string> =
+  TRest extends `${infer TChar}${infer TTail}`
+    ? TChar extends WordChar
+      ? DropParamName<TTail>
+      : TRest
+    : ''
+
+// type level `pathShape` of @t-rest/protocol: `/users/:id.json` -> `/users/%s.json`
 type PathShape<TPath extends string> =
   TPath extends `${infer THead}:${infer TRest}`
-    ? `${THead}%s${PathShape<DropParamName<TRest>>}`
+    ? TRest extends `${WordChar}${string}`
+      ? `${THead}%s${PathShape<DropParamName<TRest>>}`
+      : `${THead}:${PathShape<TRest>}`
     : TPath
 
 // the routes the server resolves a request to the path against: all routes of

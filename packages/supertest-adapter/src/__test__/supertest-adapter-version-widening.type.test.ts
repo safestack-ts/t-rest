@@ -191,3 +191,35 @@ export const renamedTest = async () => {
     { params: { id: '1' }, query: { page: '1' } }
   )
 }
+
+const suffixBag = BagOfRoutes.withVersioning(Versioning.DATE, versionHistory)
+  .addRoute(
+    Route.version('2024-01-01')
+      .get('/files/:id.json')
+      .validate(z.object({ params: z.object({ id: z.string() }) }))
+      .response<{ format: 'json' }>()
+  )
+  .addRoute(
+    Route.version('2024-03-01')
+      .get('/files/:id.xml')
+      .validate(z.object({ params: z.object({ id: z.string() }) }))
+      .response<{ format: 'xml' }>()
+  )
+  .build()
+
+const suffixAdapter = SupertestAdapter.withVersioning(
+  TypedExpressApplication.withVersioning(Express(), suffixBag, versionHistory, {
+    extractVersion: () => undefined,
+  }),
+  new (class extends SupertestVersionInjector {})()
+)
+
+// literal suffixes after a path param keep templates apart
+export const suffixTest = async () => {
+  const json = await suffixAdapter.get('/files/:id.json', '2024-04-01', {
+    params: { id: '1' },
+  })
+  type _json = AssertTrue<
+    IsExact<typeof json, SupertestResponse<{ format: 'json' }>>
+  >
+}

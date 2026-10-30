@@ -111,8 +111,10 @@ type AppRoutesFor<TApp extends TypedExpressApplicationWithVersioning<any, any, a
     method: TMethod;
     path: TPath;
 }>;
-type DropParamName<TRest extends string> = TRest extends `${string}/${infer TTail}` ? `/${TTail}` : '';
-type PathShape<TPath extends string> = TPath extends `${infer THead}:${infer TRest}` ? `${THead}%s${PathShape<DropParamName<TRest>>}` : TPath;
+type CharsOf<TValue extends string, TChars extends string = never> = TValue extends `${infer TChar}${infer TRest}` ? CharsOf<TRest, TChars | TChar> : TChars;
+type WordChar = CharsOf<'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_'>;
+type DropParamName<TRest extends string> = TRest extends `${infer TChar}${infer TTail}` ? TChar extends WordChar ? DropParamName<TTail> : TRest : '';
+type PathShape<TPath extends string> = TPath extends `${infer THead}:${infer TRest}` ? TRest extends `${WordChar}${string}` ? `${THead}%s${PathShape<DropParamName<TRest>>}` : `${THead}:${PathShape<TRest>}` : TPath;
 type AppRoutesOfShape<TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>, TMethod extends HTTPMethod, TPath extends string> = Extract<ApplicationRoutes<TApp>, {
     method: TMethod;
 }> extends infer TRoute ? TRoute extends {
