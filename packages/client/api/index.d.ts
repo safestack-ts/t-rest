@@ -7,14 +7,26 @@ type RequestConfig = {
     headers?: Record<string, string | number | boolean>;
 };
 
+/** Response headers with lower-case keys. Headers sent multiple times, e.g. `set-cookie`, are arrays. */
+type HTTPResponseHeaders = Record<string, string | string[] | undefined>;
 type ResponseOfStatus<TResponses, TStatus extends keyof TResponses & number> = {
     data: DecodedBody<TResponses[TStatus], ArrayBuffer, undefined>;
     statusCode: TStatus;
+    /**
+     * Optional so that existing custom `HTTPAdapter` implementations keep working,
+     * but they should return it. Always set by `AxiosHTTPAdapter`.
+     */
+    headers?: HTTPResponseHeaders;
 };
 /** Any response of any route, e.g. for helpers which handle every route. */
 type AnyHTTPResponse = {
     data: any;
     statusCode: number;
+    /**
+     * Optional so that existing custom `HTTPAdapter` implementations keep working,
+     * but they should return it. Always set by `AxiosHTTPAdapter`.
+     */
+    headers?: HTTPResponseHeaders;
 };
 /**
  * Discriminated union of the responses a route declares, by `statusCode`.
@@ -45,7 +57,9 @@ interface HTTPAdapter<TRequestContext = {}> {
 declare class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
     private readonly axiosInstance;
     constructor(axiosInstance: AxiosInstance);
-    request<TResponses extends ResponseMap>(method: HTTPMethod, url: string, data: unknown, requestConfig: (RequestConfig & AxiosRequestConfig) | undefined, responses: TResponses, bodyEncoding?: RequestBodyEncoding): Promise<HTTPResponse<TResponses>>;
+    request<TResponses extends ResponseMap>(method: HTTPMethod, url: string, data: unknown, requestConfig: (RequestConfig & AxiosRequestConfig) | undefined, responses: TResponses, bodyEncoding?: RequestBodyEncoding): Promise<HTTPResponse<TResponses> & {
+        headers: HTTPResponseHeaders;
+    }>;
 }
 
 declare abstract class VersionInjector {
@@ -240,4 +254,4 @@ declare const isDeclaredStatus: (responses: ResponseMap, status: number) => bool
 declare const decodeBody: (body: string | ArrayBuffer | ArrayBufferView, descriptor: AnyResponseDescriptor | undefined) => unknown;
 
 export { AxiosHTTPAdapter, NoVersionInjector, RESTClient, RESTClientWithVersioning, RESTClientWithoutVersioning, VersionInjector, decodeBody, isDeclaredStatus, versionInjectorFrom };
-export type { AnyHTTPResponse, HTTPAdapter, HTTPResponse, RequestArgs, RequestBodyEncoding, RequestConfig, RequestInput, VersionInjectorConstructor };
+export type { AnyHTTPResponse, HTTPAdapter, HTTPResponse, HTTPResponseHeaders, RequestArgs, RequestBodyEncoding, RequestConfig, RequestInput, VersionInjectorConstructor };
