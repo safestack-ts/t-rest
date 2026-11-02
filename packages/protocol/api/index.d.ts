@@ -29,7 +29,7 @@ declare const pathShape: (path: string) => string;
  * name, so `:id` never matches inside `:idx`. Placeholders without a param
  * are left untouched.
  */
-declare const fillPathParams: (path: string, params?: Record<string, unknown>) => string;
+declare const fillPathParams: (path: string, params?: Record<string, unknown> | null) => string;
 /**
  * Joins a prefix and a path to one absolute path: duplicate slashes are
  * collapsed (except in `://`) and the trailing slash is removed unless the
