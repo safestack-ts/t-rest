@@ -103,6 +103,19 @@ export const test = async () => {
   // @ts-expect-error the path has no route of this method
   await unversioned.invalid.put('/users/:userId', {})
 
+  await unversioned.invalid.post('/users/:userId', {
+    multipart: {
+      fields: { email: 42, extra: ['x'] },
+      files: [{ field: 'any', buffer: Buffer.from(''), filename: 'a.txt' }],
+    },
+  })
+
+  // @ts-expect-error a request sends either a body or a multipart form
+  await unversioned.invalid.post('/users/:userId', {
+    body: {},
+    multipart: {},
+  })
+
   // @ts-expect-error a typo in the input is still rejected
   await unversioned.invalid.post('/users/:userId', { bdy: {} })
 

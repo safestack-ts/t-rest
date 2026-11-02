@@ -46,8 +46,15 @@ type RequestInput<TRoute extends AnyRouteDef> = RouteRequestInput<TRoute, {
 /**
  * The input of a request that is meant to fail validation: `params`, `query`
  * and `body` are not tied to the validator of the route and may be left out.
+ * A form can be sent as untyped `multipart` instead of a `body`.
  */
-type InvalidRequestInput = BaseRequestInput;
+type InvalidRequestInput = Omit<BaseRequestInput, 'body'> & ({
+    body?: unknown;
+    multipart?: undefined;
+} | {
+    body?: undefined;
+    multipart: MultipartBody;
+});
 
 type AnyTypedExpressApplication = TypedExpressApplicationWithoutVersioning<any, any, any> | TypedExpressApplicationWithVersioning<any, any, any, any>;
 

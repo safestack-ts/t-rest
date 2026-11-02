@@ -36,7 +36,7 @@ If the resolved version is handled on a router the request never reaches, expres
 
 A route declared with `.multipart()` takes `multipart/form-data`: `RouteDef.bodyEncoding` is `'multipart'`, and the OpenAPI generator emits that media type. Parsing stays with a route middleware such as multer, so the validator keeps describing the parsed request. Because that is not what a caller sends, `RouteRequestInput` replaces `body`, `file` and `files` of such routes: the client takes `body: FormData` and passes it to its `HTTPAdapter` unserialized, the supertest adapter takes `multipart: { fields, files }` and maps it to `.field()` and `.attach()`. Array and object fields are flattened into the bracketed names multer parses back (`tags[0]`, `meta[label]`), and a request without parts still sends an empty multipart body.
 
-`adapter.invalid.<method>` is the supertest adapter's escape hatch for testing validation failures: it takes the same path and version and returns the same response type as the regular handler, but leaves `params`, `query` and `body` unknown.
+`adapter.invalid.<method>` is the supertest adapter's escape hatch for testing validation failures: it takes the same path and version and returns the same response type as the regular handler, but leaves `params`, `query` and `body` unknown, and takes an untyped `multipart` form instead of a `body` to send invalid form fields or files.
 
 The version header convention can be declared once with `versionHeader('x-api-version')` and turned into each side's adapter with `versionExtractorFrom` (server) and `versionInjectorFrom` (client, supertest).
 

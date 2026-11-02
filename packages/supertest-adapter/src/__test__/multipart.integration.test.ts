@@ -326,6 +326,42 @@ describe('multipart requests through the supertest adapter', () => {
       expect.objectContaining({ path: ['file'] }),
     ])
   })
+
+  test('sends invalid fields through the invalid handler', async () => {
+    const response = await adapter.invalid.post(
+      '/lists/:listId/uploads',
+      '2024-01-01',
+      {
+        params: { listId: '1' },
+        multipart: { fields: { name: 42, tags: 'not json' } },
+        expect: { status: 400 },
+      }
+    )
+
+    expect((response.body as unknown as ErrorBody).issues).toEqual([
+      expect.objectContaining({ path: ['body', 'tags'] }),
+    ])
+  })
+
+  test('sends a form missing its file through the invalid handler', async () => {
+    const response = await adapter.invalid.put('/avatar', '2024-01-01', {
+      multipart: {
+        files: [
+          { field: 'avatar', buffer: Buffer.from('png'), filename: 'me.png' },
+        ],
+      },
+      expect: { status: 200 },
+    })
+    expect(response.body).toEqual({ name: 'me.png' })
+
+    const missing = await adapter.invalid.put('/avatar', '2024-01-01', {
+      multipart: {},
+      expect: { status: 400 },
+    })
+    expect((missing.body as unknown as ErrorBody).issues).toEqual([
+      expect.objectContaining({ path: ['file'] }),
+    ])
+  })
 })
 
 describe('multipart requests through the rest client', () => {
