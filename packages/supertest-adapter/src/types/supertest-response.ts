@@ -1,33 +1,31 @@
-import {
-  BinaryResponseDescriptor,
-  EmptyResponseDescriptor,
-  JsonResponseDescriptor,
-  TextResponseDescriptor,
-} from '@t-rest/core'
+import { DecodedBody } from '@t-rest/core'
 import supertest from 'supertest'
 
-type SupertestBody<TDescriptor> = TDescriptor extends JsonResponseDescriptor<
-  infer TBody
->
-  ? TBody
-  : TDescriptor extends TextResponseDescriptor<string>
-  ? string
-  : TDescriptor extends BinaryResponseDescriptor
-  ? Buffer
-  : TDescriptor extends EmptyResponseDescriptor
-  ? Record<string, never>
-  : never
+type ResponseOfStatus<TBody, TStatus extends number> = Omit<
+  supertest.Response,
+  'body' | 'status' | 'statusCode'
+> & {
+  body: TBody
+  status: TStatus
+  statusCode: TStatus
+}
 
-/** Discriminated union of the responses a route declares, by `status`. */
-export type SupertestResponse<TResponses> = TResponses extends unknown
+/** Any response of any route, e.g. for helpers which handle every route. */
+export type AnySupertestResponse = ResponseOfStatus<any, number>
+
+/**
+ * Discriminated union of the responses a route declares, by `status`. Unknown
+ * responses (`unknown`, `any` or `ResponseMap`) are `AnySupertestResponse`.
+ */
+export type SupertestResponse<TResponses> = unknown extends TResponses
+  ? AnySupertestResponse
+  : number extends keyof TResponses
+  ? AnySupertestResponse
+  : TResponses extends unknown
   ? {
-      [TStatus in keyof TResponses & number]: Omit<
-        supertest.Response,
-        'body' | 'status' | 'statusCode'
-      > & {
-        body: SupertestBody<TResponses[TStatus]>
-        status: TStatus
-        statusCode: TStatus
-      }
+      [TStatus in keyof TResponses & number]: ResponseOfStatus<
+        DecodedBody<TResponses[TStatus], Buffer, Record<string, never>>,
+        TStatus
+      >
     }[keyof TResponses & number]
   : never

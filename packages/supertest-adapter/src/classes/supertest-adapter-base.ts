@@ -1,9 +1,9 @@
 import { BaseRequestInput, planRequest } from '@t-rest/protocol'
 import { AnyTypedExpressApplication } from '../types/any-typed-express-application.js'
 import {
+  createRouteResolver,
   HTTPMethod,
   ResponseMap,
-  resolveVersion,
   typedLowerCase,
 } from '@t-rest/core'
 import { SupertestConfig } from '../types/supertest-config.js'
@@ -43,6 +43,19 @@ export abstract class SupertestAdapterBase<
     this.requestTarget = requestTarget as Parameters<typeof supertest>[0]
   }
 
+  private resolveRoute?: ReturnType<typeof createRouteResolver>
+
+  /**
+   * The history and the date parsing the server resolves versions with,
+   * unversioned applications have neither.
+   */
+  protected versionResolution(): {
+    versionHistory: readonly string[]
+    parseDate?: (version: string) => Date
+  } {
+    return { versionHistory: [] }
+  }
+
   /**
    * The responses of the route the server executes for the request: the route
    * declared for the version, else the newest route of an older version.
@@ -50,18 +63,20 @@ export abstract class SupertestAdapterBase<
   protected responsesOf(
     method: HTTPMethod,
     path: string,
-    version: string,
-    versionHistory: string[] = []
+    version: string
   ): ResponseMap {
-    const declaredVersions = Array.from(this.app.routes.keys())
-      .filter(
-        ([keyMethod, keyPath]) => keyMethod === method && keyPath === path
-      )
-      .map(([, , keyVersion]) => keyVersion)
-    const resolvedVersion =
-      resolveVersion(versionHistory, declaredVersions, version) ?? version
+    // indexed on the first request, once the routes of the application exist
+    if (!this.resolveRoute) {
+      const { versionHistory, parseDate } = this.versionResolution()
 
-    return this.app.routes.get([method, path, resolvedVersion])?.responses ?? {}
+      this.resolveRoute = createRouteResolver(
+        this.app.routes,
+        versionHistory,
+        parseDate
+      )
+    }
+
+    return this.resolveRoute(method, path, version)?.responses ?? {}
   }
 
   protected async executeRequest<TRequestInput, TResponses>(

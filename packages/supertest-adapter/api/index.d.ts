@@ -1,6 +1,6 @@
 import { TypedExpressApplicationWithoutVersioning, TypedExpressApplicationWithVersioning, ApplicationRoutes } from '@t-rest/express-server';
 import * as _t_rest_core from '@t-rest/core';
-import { AnyRouteDef, RouteValidationInput, JsonResponseDescriptor, TextResponseDescriptor, BinaryResponseDescriptor, EmptyResponseDescriptor, HTTPMethod, ResponseMap, ExtractVersionMatchingRoute } from '@t-rest/core';
+import { AnyRouteDef, RouteValidationInput, DecodedBody, HTTPMethod, ResponseMap, ExtractVersionMatchingRoute } from '@t-rest/core';
 import { BaseRequestInput, VersionConvention } from '@t-rest/protocol';
 import supertest from 'supertest';
 
@@ -16,14 +16,19 @@ type RequestInput<TRoute extends AnyRouteDef> = RouteValidationInput<TRoute>;
 
 type AnyTypedExpressApplication = TypedExpressApplicationWithoutVersioning<any, any, any> | TypedExpressApplicationWithVersioning<any, any, any, any>;
 
-type SupertestBody<TDescriptor> = TDescriptor extends JsonResponseDescriptor<infer TBody> ? TBody : TDescriptor extends TextResponseDescriptor<string> ? string : TDescriptor extends BinaryResponseDescriptor ? Buffer : TDescriptor extends EmptyResponseDescriptor ? Record<string, never> : never;
-/** Discriminated union of the responses a route declares, by `status`. */
-type SupertestResponse<TResponses> = TResponses extends unknown ? {
-    [TStatus in keyof TResponses & number]: Omit<supertest.Response, 'body' | 'status' | 'statusCode'> & {
-        body: SupertestBody<TResponses[TStatus]>;
-        status: TStatus;
-        statusCode: TStatus;
-    };
+type ResponseOfStatus<TBody, TStatus extends number> = Omit<supertest.Response, 'body' | 'status' | 'statusCode'> & {
+    body: TBody;
+    status: TStatus;
+    statusCode: TStatus;
+};
+/** Any response of any route, e.g. for helpers which handle every route. */
+type AnySupertestResponse = ResponseOfStatus<any, number>;
+/**
+ * Discriminated union of the responses a route declares, by `status`. Unknown
+ * responses (`unknown`, `any` or `ResponseMap`) are `AnySupertestResponse`.
+ */
+type SupertestResponse<TResponses> = unknown extends TResponses ? AnySupertestResponse : number extends keyof TResponses ? AnySupertestResponse : TResponses extends unknown ? {
+    [TStatus in keyof TResponses & number]: ResponseOfStatus<DecodedBody<TResponses[TStatus], Buffer, Record<string, never>>, TStatus>;
 }[keyof TResponses & number] : never;
 
 type DefaultSupertestAdapterConfig = {
@@ -42,11 +47,20 @@ declare abstract class SupertestAdapterBase<TApp extends AnyTypedExpressApplicat
     protected defaultConfig: DefaultSupertestAdapterConfig;
     private readonly requestTarget;
     constructor(app: TApp, defaultConfig: DefaultSupertestAdapterConfig);
+    private resolveRoute?;
+    /**
+     * The history and the date parsing the server resolves versions with,
+     * unversioned applications have neither.
+     */
+    protected versionResolution(): {
+        versionHistory: readonly string[];
+        parseDate?: (version: string) => Date;
+    };
     /**
      * The responses of the route the server executes for the request: the route
      * declared for the version, else the newest route of an older version.
      */
-    protected responsesOf(method: HTTPMethod, path: string, version: string, versionHistory?: string[]): ResponseMap;
+    protected responsesOf(method: HTTPMethod, path: string, version: string): ResponseMap;
     protected executeRequest<TRequestInput, TResponses>(method: HTTPMethod, path: string, responses: ResponseMap, context: SupertestConfig & TRequestInput & BaseRequestInput): Promise<SupertestResponse<TResponses>>;
     private stringifyBody;
 }
@@ -164,7 +178,10 @@ type AppRouteAt<TApp extends TypedExpressApplicationWithVersioning<any, any, any
 declare class SupertestAdapterWithVersioning<TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>> extends SupertestAdapterBase<TApp> {
     private readonly versionInjector;
     constructor(app: TApp, versionInjector: SupertestVersionInjector, defaultConfig: DefaultSupertestAdapterConfig);
-    private get versionHistory();
+    protected versionResolution(): {
+        versionHistory: string[];
+        parseDate: ((version: string) => Date) | undefined;
+    };
     protected makeRouteHandler<TMethod extends HTTPMethod>(method: TMethod): <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: TMethod;
     }>["path"], TVersion extends CallableVersions<TApp, TMethod, TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & RequestInput<AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>>) => Promise<SupertestResponse<AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>["~responses"]>>;
@@ -199,4 +216,4 @@ declare class SupertestTargetError extends Error {
 declare const versionInjectorFrom: (convention: VersionConvention) => SupertestVersionInjector;
 
 export { SupertestAdapter, SupertestAdapterWithVersioning, SupertestAdapterWithoutVersioning, SupertestTargetError, SupertestVersionInjector, VersionInjector, versionInjectorFrom };
-export type { AnyTypedExpressApplication, DefaultSupertestAdapterConfig, RequestInput, SupertestConfig, SupertestResponse };
+export type { AnySupertestResponse, AnyTypedExpressApplication, DefaultSupertestAdapterConfig, RequestInput, SupertestConfig, SupertestResponse };

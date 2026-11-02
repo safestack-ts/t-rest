@@ -68,8 +68,8 @@ const inProcessAdapter = (target: Parameters<typeof supertest>[0]) =>
       method: HTTPMethod,
       url: string,
       data: unknown,
-      _responses: TResponses,
-      requestConfig?: RequestConfig
+      requestConfig: RequestConfig | undefined,
+      _responses: TResponses
     ) {
       const response = await supertest(target)
         [method.toLowerCase() as 'get'](url)

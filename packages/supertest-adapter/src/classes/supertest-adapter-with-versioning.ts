@@ -1,5 +1,6 @@
 import {
   ApplicationRoutes,
+  DateVersionExtractor,
   TypedExpressApplicationWithVersioning,
 } from '@t-rest/express-server'
 import { HTTPMethod } from '@t-rest/core'
@@ -24,10 +25,21 @@ export class SupertestAdapterWithVersioning<
     this.versionInjector = versionInjector
   }
 
-  // the history the server resolves versions against, not part of the public
-  // surface of the application
-  private get versionHistory(): string[] {
-    return (this.app as unknown as { versionHistory: string[] }).versionHistory
+  // resolves like the server: by date only with a date version extractor.
+  // Neither is part of the public surface of the application.
+  protected versionResolution() {
+    const { versionHistory, versionExtractor } = this.app as unknown as {
+      versionHistory: string[]
+      versionExtractor: Partial<DateVersionExtractor>
+    }
+
+    return {
+      versionHistory,
+      parseDate:
+        typeof versionExtractor.parseDate === 'function'
+          ? versionExtractor.parseDate.bind(versionExtractor)
+          : undefined,
+    }
   }
 
   protected makeRouteHandler<TMethod extends HTTPMethod>(method: TMethod) {
@@ -49,7 +61,7 @@ export class SupertestAdapterWithVersioning<
       >(
         method,
         this.versionInjector.modifyUrl(path, version),
-        this.responsesOf(method, path, version, this.versionHistory),
+        this.responsesOf(method, path, version),
         {
           ...(context as any),
           headers: this.versionInjector.modifyHeaders(
