@@ -121,6 +121,9 @@ export const buildRouteNamingContextKey = (
 export type RouteNamingContext = {
   input?: string
   response?: string
+  // the naming context of each declared response body by status, so that the
+  // bodies of different statuses keep their own namespace
+  responseByStatus?: Record<string, string>
 }
 
 /**
@@ -129,8 +132,8 @@ export type RouteNamingContext = {
  * or `json<V2026_06_09.Customer.Checkout.Response>()`. Only type nodes are
  * considered so that value accessors like `z.object` are ignored.
  */
-const extractNamingContextFromCallTypes = (
-  call: ts.CallExpression,
+const extractNamingContextFromTypeNodes = (
+  nodes: readonly ts.Node[],
   sourceFile: ts.SourceFile
 ) => {
   let namingContext: string | undefined
@@ -148,10 +151,76 @@ const extractNamingContextFromCallTypes = (
     ts.forEachChild(node, visit)
   }
 
-  call.typeArguments?.forEach(visit)
-  call.arguments.forEach(visit)
+  nodes.forEach(visit)
 
   return namingContext
+}
+
+const extractNamingContextFromCallTypes = (
+  call: ts.CallExpression,
+  sourceFile: ts.SourceFile
+) =>
+  extractNamingContextFromTypeNodes(
+    [...(call.typeArguments ?? []), ...call.arguments],
+    sourceFile
+  )
+
+/**
+ * The status a property of a responses object literal is declared for, e.g.
+ * `404` of `404: json<...>()` or of `[StatusCodes.NOT_FOUND]: json<...>()`.
+ */
+const getStatusOfResponseProperty = (
+  name: ts.PropertyName,
+  typeChecker: ts.TypeChecker
+) => {
+  if (ts.isNumericLiteral(name) || ts.isStringLiteral(name)) {
+    return name.text
+  }
+
+  if (ts.isComputedPropertyName(name)) {
+    const type = typeChecker.getTypeAtLocation(name.expression)
+
+    return type.isNumberLiteral() || type.isStringLiteral()
+      ? String(type.value)
+      : undefined
+  }
+
+  return undefined
+}
+
+/**
+ * Extracts the naming context of each response body declared in an object
+ * literal passed to `.responses()`, keyed by status.
+ */
+const extractNamingContextByStatus = (
+  call: ts.CallExpression,
+  sourceFile: ts.SourceFile,
+  typeChecker: ts.TypeChecker
+) => {
+  const responses = call.arguments.at(0)
+  if (!responses || !ts.isObjectLiteralExpression(responses)) {
+    return undefined
+  }
+
+  const byStatus: Record<string, string> = {}
+
+  for (const property of responses.properties) {
+    if (!ts.isPropertyAssignment(property)) {
+      continue
+    }
+
+    const status = getStatusOfResponseProperty(property.name, typeChecker)
+    const namingContext = extractNamingContextFromTypeNodes(
+      [property.initializer],
+      sourceFile
+    )
+
+    if (status !== undefined && namingContext) {
+      byStatus[status] = namingContext
+    }
+  }
+
+  return Object.keys(byStatus).length > 0 ? byStatus : undefined
 }
 
 const getDeclarationsToFollow = (
@@ -343,10 +412,10 @@ export const extractRouteNamingContexts = (
   const namingContexts = new Map<string, RouteNamingContext>()
   const visitedDeclarations = new Set<ts.Node>()
 
-  const setNamingContext = (
+  const setNamingContext = <TKind extends keyof RouteNamingContext>(
     call: ts.CallExpression,
-    kind: keyof RouteNamingContext,
-    namingContext: string | undefined
+    kind: TKind,
+    namingContext: RouteNamingContext[TKind] | undefined
   ) => {
     const routeMeta = extractMethodPathVersionFromCallChain(
       collectCallChain(call)
@@ -440,6 +509,11 @@ export const extractRouteNamingContexts = (
           node,
           'response',
           extractNamingContextFromCallTypes(node, sourceFile)
+        )
+        setNamingContext(
+          node,
+          'responseByStatus',
+          extractNamingContextByStatus(node, sourceFile, typeChecker)
         )
       }
 

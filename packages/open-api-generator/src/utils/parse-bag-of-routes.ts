@@ -104,14 +104,14 @@ export const parseBagOfRoutes = (
 
   const resolveRouteNamingContext = (
     route: { method: string; path: string; version: string },
-    kind: keyof RouteNamingContext,
-    namingContext: RouteNamingContext
+    kind: 'input' | 'response',
+    { input, response }: RouteNamingContext
   ) =>
-    namingContext[kind] ??
+    (kind === 'input' ? input : response) ??
     resolvedOptions.deriveRouteNamingContext?.({
       ...route,
       kind,
-      namingContext,
+      namingContext: { input, response },
     })
 
   for (const routeType of routeTypes) {
@@ -168,11 +168,14 @@ export const parseBagOfRoutes = (
               rootNode,
               createTraverseMeta(
                 body,
-                resolveRouteNamingContext(
-                  { method, path, version },
-                  'response',
-                  routeNamingContext
-                )
+                // a body declaring its own namespace keeps it, others fall
+                // back to the namespace of the responses of the route
+                routeNamingContext.responseByStatus?.[response.status] ??
+                  resolveRouteNamingContext(
+                    { method, path, version },
+                    'response',
+                    routeNamingContext
+                  )
               )
             )
           : undefined,

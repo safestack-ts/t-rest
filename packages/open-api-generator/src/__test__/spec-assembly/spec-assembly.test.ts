@@ -11,6 +11,7 @@ import equivalentTemplatedPathsBagOfRoutes from './scenarios/equivalent-template
 import reexportUnversionedBagOfRoutes from './scenarios/reexport-unversioned'
 import reexportMultipleBagsBagOfRoutes from './scenarios/reexport-multiple-bags'
 import reexportResponsesDeclarationBagOfRoutes from './scenarios/reexport-responses-declaration'
+import reexportResponsesPerStatusBagOfRoutes from './scenarios/reexport-responses-per-status'
 import reexportValidatorContextBagOfRoutes from './scenarios/reexport-validator-context'
 import reexportObjectMemberBagOfRoutes from './scenarios/reexport-object-member'
 import reexportObjectMemberCustomerFirstBagOfRoutes from './scenarios/reexport-object-member-customer-first'
@@ -194,6 +195,22 @@ describe('spec assembly', () => {
 
       expect(componentKeys).toContain('V2026_06_09_Customer_Checkout_Checkout')
       expect(componentKeys).not.toContain('V2026_06_09_Admin_Checkout_Checkout')
+    })
+
+    test('selects the namespace of each status from its own body', () => {
+      const schema = getSchemaFromBag(
+        reexportResponsesPerStatusBagOfRoutes,
+        'reexport-responses-per-status.ts',
+        { includeTypesNamespaceInName: true }
+      )
+      const { responses } = schema.paths['/checkouts/{checkoutId}'].get
+
+      expect(
+        responses['200'].content['application/json'].schema.properties.data.$ref
+      ).toBe('#/components/schemas/V2026_06_09_Customer_Checkout_Checkout')
+      expect(
+        responses['404'].content['application/json'].schema.properties.data.$ref
+      ).toBe('#/components/schemas/V2026_06_09_Admin_Checkout_Checkout')
     })
 
     test('does not apply the response naming context to the validator input', () => {
