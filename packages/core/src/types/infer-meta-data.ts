@@ -7,7 +7,8 @@ export type InferMetaData<T extends AnyRouteDef> = T extends RouteDef<
   any,
   any,
   any,
-  infer TMetaData
+  infer TMetaData,
+  any
 >
   ? TMetaData
   : never

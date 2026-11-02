@@ -1,3 +1,5 @@
+import { BodyEncoding } from '../../types/body-encoding.js'
+import { MultipartFileParts } from '../../types/multipart-options.js'
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
 import {
@@ -14,14 +16,17 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
   TMethod extends HTTPMethod,
   TPath extends string,
   TValidator,
-  TMetaData
+  TMetaData,
+  TBodyEncoding extends BodyEncoding = 'json'
 > {
   constructor(
     private version: TVersion,
     private method: TMethod,
     private path: TPath,
     private validator: TValidator,
-    private metaData: TMetaData
+    private metaData: TMetaData,
+    private bodyEncoding?: TBodyEncoding,
+    private multipartFiles?: MultipartFileParts
   ) {}
 
   public responses<TResponses extends StrictResponseMap<TResponses>>(
@@ -33,14 +38,17 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
       TPath,
       TValidator,
       TResponses,
-      TMetaData
+      TMetaData,
+      TBodyEncoding
     >(
       this.version,
       this.method,
       this.path,
       this.validator,
       responses,
-      this.metaData
+      this.metaData,
+      this.bodyEncoding,
+      this.multipartFiles
     )
   }
 
@@ -56,7 +64,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
     TPath,
     TValidator,
     { 200: JsonResponseDescriptor<TResponse> },
-    TMetaData
+    TMetaData,
+    TBodyEncoding
   >
   public response<TResponse>(
     status: 201
@@ -66,7 +75,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
     TPath,
     TValidator,
     { 201: JsonResponseDescriptor<TResponse> },
-    TMetaData
+    TMetaData,
+    TBodyEncoding
   >
   public response<TResponse>(
     status: 202
@@ -76,7 +86,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
     TPath,
     TValidator,
     { 202: JsonResponseDescriptor<TResponse> },
-    TMetaData
+    TMetaData,
+    TBodyEncoding
   >
   public response(
     status: 204
@@ -86,7 +97,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
     TPath,
     TValidator,
     { 204: EmptyResponseDescriptor },
-    TMetaData
+    TMetaData,
+    TBodyEncoding
   >
   public response(status: ShorthandStatus = 200) {
     return this.responses(shorthandResponses(status))

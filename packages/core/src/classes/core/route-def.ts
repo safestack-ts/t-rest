@@ -1,3 +1,5 @@
+import { BodyEncoding } from '../../types/body-encoding.js'
+import { MultipartFileParts } from '../../types/multipart-options.js'
 import { HTTPMethod } from '../../types/http-method.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { StrictResponseMap } from '../../types/response-descriptor.js'
@@ -8,7 +10,9 @@ export class RouteDef<
   TPath extends string,
   TValidator,
   TResponses extends StrictResponseMap<TResponses>,
-  TMetaData
+  TMetaData,
+  // a hand-written annotation without it describes a json route
+  TBodyEncoding extends BodyEncoding = 'json'
 > {
   public readonly version: TVersion
   public readonly method: TMethod
@@ -20,6 +24,8 @@ export class RouteDef<
     ? StandardSchemaV1.InferOutput<TValidator>
     : never
   public readonly metaData: TMetaData
+  public readonly bodyEncoding: TBodyEncoding
+  public readonly multipartFiles: MultipartFileParts | undefined
 
   constructor(
     version: TVersion,
@@ -27,7 +33,9 @@ export class RouteDef<
     path: TPath,
     validator: TValidator,
     responses: TResponses,
-    metaData: TMetaData
+    metaData: TMetaData,
+    bodyEncoding: TBodyEncoding = 'json' as TBodyEncoding,
+    multipartFiles?: MultipartFileParts
   ) {
     this.version = version
     this.method = method
@@ -37,5 +45,7 @@ export class RouteDef<
     this['~responses'] = null as any
     this['~validatorOutputType'] = null as any
     this.metaData = metaData
+    this.bodyEncoding = bodyEncoding
+    this.multipartFiles = multipartFiles
   }
 }

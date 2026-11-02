@@ -6,10 +6,12 @@ import {
   ResponseMap,
   typedLowerCase,
 } from '@t-rest/core'
+import { MultipartBody } from '../types/multipart.js'
 import { SupertestConfig } from '../types/supertest-config.js'
 import supertest from 'supertest'
 import { SupertestResponse } from '../types/supertest-response.js'
 import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config.js'
+import { encodeMultipart } from '../utils/encode-multipart.js'
 import { SupertestTargetError } from './supertest-target-error.js'
 import { descriptorParser } from '../utils/descriptor-parser.js'
 
@@ -87,7 +89,9 @@ export abstract class SupertestAdapterBase<
     method: HTTPMethod,
     path: string,
     responses: ResponseMap,
-    context: SupertestConfig & TRequestInput & BaseRequestInput
+    context: SupertestConfig &
+      TRequestInput &
+      BaseRequestInput & { multipart?: MultipartBody }
   ) {
     // the version injector already modified the path template, before its
     // params and query are put into it
@@ -101,16 +105,37 @@ export abstract class SupertestAdapterBase<
       // incoming message
       .parse(descriptorParser(responses) as unknown as SuperagentParser)
 
-    if (plan.body.send) {
+    const isMultipart = context.multipart !== undefined && plan.body.send
+    const headers: Record<string, string | number | boolean> = {
+      ...this.defaultConfig.headers,
+      ...context.headers,
+    }
+
+    if (isMultipart) {
+      const form = await encodeMultipart(context.multipart as MultipartBody)
+      // a content type of the call is kept, e.g. to test its rejection, the
+      // default headers usually describe json
+      const callContentType = Object.entries(context.headers ?? {}).find(
+        ([name]) => name.toLowerCase() === 'content-type'
+      )?.[1]
+
+      for (const name of Object.keys(headers)) {
+        if (name.toLowerCase() === 'content-type') {
+          delete headers[name]
+        }
+      }
+
+      request = request
+        .set('Content-Type', String(callContentType ?? form.contentType))
+        .send(form.body)
+    } else if (plan.body.send) {
       request = isJsonPrimitive(plan.body.value)
         ? request.type('json').send(JSON.stringify(plan.body.value))
         : request.send(plan.body.value as string | object | undefined)
     }
 
-    const headers = { ...this.defaultConfig.headers, ...context.headers }
-
     if (Object.entries(headers).length > 0) {
-      request = request.set(headers)
+      request = request.set(headers as Record<string, string>)
     }
 
     if (context.expect?.status !== undefined) {

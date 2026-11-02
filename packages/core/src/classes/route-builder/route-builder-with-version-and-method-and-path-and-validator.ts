@@ -1,3 +1,5 @@
+import { BodyEncoding } from '../../types/body-encoding.js'
+import { MultipartFileParts } from '../../types/multipart-options.js'
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
 import {
@@ -15,13 +17,16 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
   TVersion extends string,
   TMethod extends HTTPMethod,
   TPath extends string,
-  TValidator
+  TValidator,
+  TBodyEncoding extends BodyEncoding = 'json'
 > {
   constructor(
     private version: TVersion,
     private method: TMethod,
     private path: TPath,
-    private validator: TValidator
+    private validator: TValidator,
+    private bodyEncoding?: TBodyEncoding,
+    private multipartFiles?: MultipartFileParts
   ) {}
 
   public metaData<TMetaData>(metaData: TMetaData) {
@@ -30,8 +35,17 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
       TMethod,
       TPath,
       TValidator,
-      TMetaData
-    >(this.version, this.method, this.path, this.validator, metaData)
+      TMetaData,
+      TBodyEncoding
+    >(
+      this.version,
+      this.method,
+      this.path,
+      this.validator,
+      metaData,
+      this.bodyEncoding,
+      this.multipartFiles
+    )
   }
 
   public responses<TResponses extends StrictResponseMap<TResponses>>(
@@ -43,8 +57,18 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
       TPath,
       TValidator,
       TResponses,
-      unknown
-    >(this.version, this.method, this.path, this.validator, responses, null)
+      unknown,
+      TBodyEncoding
+    >(
+      this.version,
+      this.method,
+      this.path,
+      this.validator,
+      responses,
+      null,
+      this.bodyEncoding,
+      this.multipartFiles
+    )
   }
 
   /**
@@ -59,7 +83,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
     TPath,
     TValidator,
     { 200: JsonResponseDescriptor<TResponse> },
-    unknown
+    unknown,
+    TBodyEncoding
   >
   public response<TResponse>(
     status: 201
@@ -69,7 +94,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
     TPath,
     TValidator,
     { 201: JsonResponseDescriptor<TResponse> },
-    unknown
+    unknown,
+    TBodyEncoding
   >
   public response<TResponse>(
     status: 202
@@ -79,7 +105,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
     TPath,
     TValidator,
     { 202: JsonResponseDescriptor<TResponse> },
-    unknown
+    unknown,
+    TBodyEncoding
   >
   public response(
     status: 204
@@ -89,7 +116,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
     TPath,
     TValidator,
     { 204: EmptyResponseDescriptor },
-    unknown
+    unknown,
+    TBodyEncoding
   >
   public response(status: ShorthandStatus = 200) {
     return this.responses(shorthandResponses(status))

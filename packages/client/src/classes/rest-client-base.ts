@@ -6,7 +6,8 @@ import {
   HTTPMethod,
   ResponseMap,
 } from '@t-rest/core'
-import { HTTPAdapter } from '../types/http-adapter.js'
+import { isFormDataLike } from '../utils/is-form-data-like.js'
+import { HTTPAdapter, RequestBodyEncoding } from '../types/http-adapter.js'
 import { RequestConfig } from '../types/request-config.js'
 import { BaseRequestInput, planRequest } from '@t-rest/protocol'
 import { VersionInjector } from './version-injector.js'
@@ -58,6 +59,22 @@ export abstract class RESTClientBase<
     return ''
   }
 
+  private bodyEncodingOf(
+    method: HTTPMethod,
+    path: string,
+    body: unknown
+  ): RequestBodyEncoding {
+    switch (this.routeOf(method, path).bodyEncoding) {
+      case 'multipart':
+        return 'multipart'
+      case 'json':
+        return 'json'
+      default:
+        // a route taking either encoding is sent as what the body is
+        return isFormDataLike(body) ? 'multipart' : 'json'
+    }
+  }
+
   // http method implementations
   protected async request<
     TMethod extends HTTPMethod,
@@ -78,7 +95,10 @@ export abstract class RESTClientBase<
           requestConfig?.headers ?? {}
         ),
       },
-      this.routeOf(method, path).responses as TResponses
+      this.routeOf(method, path).responses as TResponses,
+      plan.body.send
+        ? this.bodyEncodingOf(method, path, plan.body.value)
+        : 'json'
     )
   }
 }

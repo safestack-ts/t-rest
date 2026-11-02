@@ -10,8 +10,10 @@ import { OpenAPISpecWithMetaData } from './open-api-spec-with-meta-data.js'
 import {
   BagOfRoutes,
   HashMap,
+  BodyEncoding,
   HTTPMethod,
   isDefined,
+  MultipartFileParts,
   resolveDateVersion,
   resolveVersion,
   Versioning,
@@ -22,6 +24,7 @@ import {
   getOpenAPI3Spec,
 } from '../utils/parse-bag-of-routes.js'
 import { hashOpenAPISchema } from '../utils/openapi-schema-normalize.js'
+import { multipartRequestSchema } from '../utils/multipart-request-schema.js'
 import { groupBy, merge, uniqBy } from 'lodash'
 import { validateRouteMeta } from '../schema/route-meta.js'
 import {
@@ -69,6 +72,27 @@ const toOpenAPIResponse = (
         content: { 'application/json': { schema: schema?.spec } },
       }
   }
+}
+
+const requestBodyOf = (
+  bodyEncoding: BodyEncoding,
+  bodySpec: Record<string, any> | undefined,
+  multipartFiles: MultipartFileParts | undefined,
+  components: Record<string, any> | undefined
+) => {
+  const content = {
+    ...(bodyEncoding !== 'multipart' &&
+      bodySpec !== undefined && {
+        'application/json': { schema: bodySpec },
+      }),
+    ...(bodyEncoding !== 'json' && {
+      'multipart/form-data': {
+        schema: multipartRequestSchema(bodySpec, multipartFiles, components),
+      },
+    }),
+  }
+
+  return Object.keys(content).length > 0 ? { content } : undefined
 }
 
 type SpecFilterRoute = {
@@ -392,15 +416,12 @@ export abstract class OpenAPIGenerator {
                       }))
                     : []),
                 ],
-                requestBody: bodySchema
-                  ? {
-                      content: {
-                        'application/json': {
-                          schema: bodySchema.spec,
-                        },
-                      },
-                    }
-                  : undefined,
+                requestBody: requestBodyOf(
+                  routeDefinition?.bodyEncoding ?? 'json',
+                  bodySchema?.spec,
+                  routeDefinition?.multipartFiles,
+                  bodySchema?.components
+                ),
                 responses: Object.fromEntries(
                   responses.map(({ status, ...response }) => [
                     status,

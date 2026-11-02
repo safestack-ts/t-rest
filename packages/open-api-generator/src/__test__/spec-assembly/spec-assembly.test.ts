@@ -1,3 +1,4 @@
+import Ajv from 'ajv'
 import { describe, expect, test, vi } from 'vitest'
 import path from 'path'
 import { OpenAPIGenerator } from '../../classes/open-api-generator'
@@ -11,6 +12,7 @@ import type { OpenAPISchema } from '../../types/open-api-schema'
 import sameNameWithinResponseBagOfRoutes from './scenarios/same-name-within-response'
 import sameNameAcrossBodyAndResponseBagOfRoutes from './scenarios/same-name-across-body-and-response'
 import equivalentTemplatedPathsBagOfRoutes from './scenarios/equivalent-templated-paths'
+import multipartBagOfRoutes from './scenarios/multipart'
 import reexportUnversionedBagOfRoutes from './scenarios/reexport-unversioned'
 import reexportMultipleBagsBagOfRoutes from './scenarios/reexport-multiple-bags'
 import reexportResponsesDeclarationBagOfRoutes from './scenarios/reexport-responses-declaration'
@@ -118,6 +120,105 @@ describe('spec assembly', () => {
           'same-name-across-body-and-response.ts'
         )
       ).toThrow('Ambiguous type(s): User.')
+    })
+  })
+
+  describe('multipart routes', () => {
+    test('declare their body as multipart/form-data', () => {
+      const schema = getSchemaFromBag(multipartBagOfRoutes, 'multipart.ts')
+
+      expect(schema.paths['/uploads'].post.requestBody.content).toEqual({
+        'multipart/form-data': {
+          schema: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+          },
+        },
+      })
+    })
+
+    test('declare a request body even without a validated body', () => {
+      const schema = getSchemaFromBag(multipartBagOfRoutes, 'multipart.ts')
+
+      expect(schema.paths['/avatar'].post.requestBody.content).toEqual({
+        'multipart/form-data': { schema: { type: 'object' } },
+      })
+    })
+
+    test('declare both media types when they also take json', () => {
+      const schema = getSchemaFromBag(multipartBagOfRoutes, 'multipart.ts')
+      const bodySchema = {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      }
+
+      expect(schema.paths['/uploads'].patch.requestBody.content).toEqual({
+        'application/json': { schema: bodySchema },
+        'multipart/form-data': { schema: bodySchema },
+      })
+    })
+
+    test('document declared file fields as binary parts', () => {
+      const schema = getSchemaFromBag(multipartBagOfRoutes, 'multipart.ts')
+      const binary = { type: 'string', format: 'binary' }
+
+      expect(schema.paths['/documents'].post.requestBody.content).toEqual({
+        'multipart/form-data': {
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              document: binary,
+              attachments: { type: 'array', items: binary },
+            },
+            required: ['name', 'document'],
+          },
+        },
+      })
+      expect(schema.paths['/avatar'].put.requestBody.content).toEqual({
+        'multipart/form-data': {
+          schema: {
+            type: 'object',
+            properties: { avatar: binary },
+            required: ['avatar'],
+          },
+        },
+      })
+    })
+
+    test('keep a referenced text body from constraining the files', () => {
+      const schema = getSchemaFromBag(multipartBagOfRoutes, 'multipart.ts')
+      const ajv = new Ajv({ validateFormats: false })
+      ajv.addKeyword('components')
+      const validate = ajv.compile({
+        ...schema.paths['/galleries'].post.requestBody.content[
+          'multipart/form-data'
+        ].schema,
+        components: { schemas: schema.components },
+      })
+
+      expect(validate({ name: 'winter', attachments: ['file-bytes'] })).toBe(
+        true
+      )
+      expect(validate({ name: 'winter' })).toBe(false)
+      expect(validate({ name: 1, attachments: ['file-bytes'] })).toBe(false)
+      // the component keeps constraining its other uses
+      expect(schema.components.TextFields).toMatchObject({
+        type: 'object',
+        additionalProperties: { type: 'string' },
+      })
+    })
+
+    test('require a name shared by a text field and a file once', () => {
+      const schema = getSchemaFromBag(multipartBagOfRoutes, 'multipart.ts')
+
+      expect(
+        schema.paths['/profiles'].post.requestBody.content[
+          'multipart/form-data'
+        ].schema.required
+      ).toEqual(['avatar'])
     })
   })
 

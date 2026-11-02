@@ -1,3 +1,8 @@
+import { BodyEncoding } from '../../types/body-encoding.js'
+import {
+  MultipartFileParts,
+  MultipartOptions,
+} from '../../types/multipart-options.js'
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
 import {
@@ -13,24 +18,72 @@ import { RouteBuilderWithVersionAndMethodAndPathAndValidator } from './route-bui
 import { RouteBuilderWithVersionAndMethodAndPathAndMetaData } from './route-builder-with-version-and-method-and-path-and-meta-data.js'
 import { emptyValidation } from '../../utils/empty-validation.js'
 
+type BodyMethod = Exclude<HTTPMethod, 'GET' | 'DELETE'>
+
 export class RouteBuilderWithVersionAndMethodAndPath<
   TVersion extends string,
   TMethod extends HTTPMethod,
-  TPath extends string
+  TPath extends string,
+  TBodyEncoding extends BodyEncoding = 'json'
 > {
   constructor(
     private version: TVersion,
     private method: TMethod,
-    private path: TPath
+    private path: TPath,
+    private bodyEncoding?: TBodyEncoding,
+    private multipartFiles?: MultipartFileParts
   ) {}
+
+  /**
+   * Declares that the route takes `multipart/form-data`. Parsing the upload
+   * stays up to a route middleware, the validator describes its result.
+   * GET and DELETE never send a body and are rejected.
+   *
+   * `json: true` keeps accepting the body as JSON too, `files` names the file
+   * fields so OpenAPI documents them.
+   */
+  public multipart<const TOptions extends MultipartOptions = {}>(
+    this: RouteBuilderWithVersionAndMethodAndPath<
+      TVersion,
+      TMethod & BodyMethod,
+      TPath,
+      TBodyEncoding
+    >,
+    options?: TOptions
+  ) {
+    type TMultipartEncoding = TOptions extends { json: true }
+      ? 'json-or-multipart'
+      : 'multipart'
+
+    return new RouteBuilderWithVersionAndMethodAndPath<
+      TVersion,
+      TMethod,
+      TPath,
+      TMultipartEncoding
+    >(
+      this.version,
+      this.method as TMethod,
+      this.path,
+      (options?.json ? 'json-or-multipart' : 'multipart') as TMultipartEncoding,
+      options?.files
+    )
+  }
 
   public validate<TValidator>(validator: TValidator) {
     return new RouteBuilderWithVersionAndMethodAndPathAndValidator<
       TVersion,
       TMethod,
       TPath,
-      TValidator
-    >(this.version, this.method, this.path, validator)
+      TValidator,
+      TBodyEncoding
+    >(
+      this.version,
+      this.method,
+      this.path,
+      validator,
+      this.bodyEncoding,
+      this.multipartFiles
+    )
   }
 
   public metaData<TMetaData>(metaData: TMetaData) {
@@ -38,8 +91,16 @@ export class RouteBuilderWithVersionAndMethodAndPath<
       TVersion,
       TMethod,
       TPath,
-      TMetaData
-    >(this.version, this.method, this.path, metaData)
+      TMetaData,
+      TBodyEncoding
+    >(
+      this.version,
+      this.method,
+      this.path,
+      metaData,
+      this.bodyEncoding,
+      this.multipartFiles
+    )
   }
 
   public responses<TResponses extends StrictResponseMap<TResponses>>(
@@ -51,8 +112,18 @@ export class RouteBuilderWithVersionAndMethodAndPath<
       TPath,
       typeof emptyValidation,
       TResponses,
-      unknown
-    >(this.version, this.method, this.path, emptyValidation, responses, null)
+      unknown,
+      TBodyEncoding
+    >(
+      this.version,
+      this.method,
+      this.path,
+      emptyValidation,
+      responses,
+      null,
+      this.bodyEncoding,
+      this.multipartFiles
+    )
   }
 
   /**
@@ -67,7 +138,8 @@ export class RouteBuilderWithVersionAndMethodAndPath<
     TPath,
     typeof emptyValidation,
     { 200: JsonResponseDescriptor<TResponse> },
-    unknown
+    unknown,
+    TBodyEncoding
   >
   public response<TResponse>(
     status: 201
@@ -77,7 +149,8 @@ export class RouteBuilderWithVersionAndMethodAndPath<
     TPath,
     typeof emptyValidation,
     { 201: JsonResponseDescriptor<TResponse> },
-    unknown
+    unknown,
+    TBodyEncoding
   >
   public response<TResponse>(
     status: 202
@@ -87,7 +160,8 @@ export class RouteBuilderWithVersionAndMethodAndPath<
     TPath,
     typeof emptyValidation,
     { 202: JsonResponseDescriptor<TResponse> },
-    unknown
+    unknown,
+    TBodyEncoding
   >
   public response(
     status: 204
@@ -97,7 +171,8 @@ export class RouteBuilderWithVersionAndMethodAndPath<
     TPath,
     typeof emptyValidation,
     { 204: EmptyResponseDescriptor },
-    unknown
+    unknown,
+    TBodyEncoding
   >
   public response(status: ShorthandStatus = 200) {
     return this.responses(shorthandResponses(status))
