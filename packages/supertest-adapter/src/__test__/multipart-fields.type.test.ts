@@ -15,6 +15,8 @@ const fields = z.object({
   tags: z.array(z.string()),
   optionalTags: z.array(z.string()).optional(),
   meta: z.object({ sizes: z.array(z.coerce.number()) }).optional(),
+  pair: z.tuple([z.string(), z.enum(['small', 'large'])]).optional(),
+  sized: z.tuple([z.string()]).rest(z.coerce.number()).optional(),
 })
 
 const bagOfRoutes = BagOfRoutes.withoutVersioning()
@@ -83,6 +85,34 @@ export const typedCalls = () => {
   adapter.post('/fields', {
     // @ts-expect-error null arrives as an empty string
     multipart: { fields: { tags: ['a'], nullableNumber: null } },
+  })
+
+  adapter.post('/fields', {
+    multipart: { fields: { tags: ['a'], pair: ['a', 'small'] } },
+  })
+
+  adapter.post('/fields', {
+    // @ts-expect-error a tuple keeps its length
+    multipart: { fields: { tags: ['a'], pair: ['a'] } },
+  })
+
+  adapter.post('/fields', {
+    // @ts-expect-error a tuple keeps its positions
+    multipart: { fields: { tags: ['a'], pair: ['a', 'invalid'] } },
+  })
+
+  adapter.post('/fields', {
+    // @ts-expect-error a tuple keeps its length
+    multipart: { fields: { tags: ['a'], pair: ['a', 'small', 'extra'] } },
+  })
+
+  adapter.post('/fields', {
+    multipart: { fields: { tags: ['a'], sized: ['a', 1, 2] } },
+  })
+
+  adapter.post('/fields', {
+    // @ts-expect-error a tuple keeps its leading element
+    multipart: { fields: { tags: ['a'], sized: [1, 2] } },
   })
 
   // @ts-expect-error an empty array is left out, a required one is missing then

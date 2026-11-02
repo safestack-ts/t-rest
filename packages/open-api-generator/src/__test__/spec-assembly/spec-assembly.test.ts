@@ -1,3 +1,4 @@
+import Ajv from 'ajv'
 import { describe, expect, test, vi } from 'vitest'
 import path from 'path'
 import { OpenAPIGenerator } from '../../classes/open-api-generator'
@@ -185,6 +186,39 @@ describe('spec assembly', () => {
           },
         },
       })
+    })
+
+    test('keep a referenced text body from constraining the files', () => {
+      const schema = getSchemaFromBag(multipartBagOfRoutes, 'multipart.ts')
+      const ajv = new Ajv({ validateFormats: false })
+      ajv.addKeyword('components')
+      const validate = ajv.compile({
+        ...schema.paths['/galleries'].post.requestBody.content[
+          'multipart/form-data'
+        ].schema,
+        components: { schemas: schema.components },
+      })
+
+      expect(validate({ name: 'winter', attachments: ['file-bytes'] })).toBe(
+        true
+      )
+      expect(validate({ name: 'winter' })).toBe(false)
+      expect(validate({ name: 1, attachments: ['file-bytes'] })).toBe(false)
+      // the component keeps constraining its other uses
+      expect(schema.components.TextFields).toMatchObject({
+        type: 'object',
+        additionalProperties: { type: 'string' },
+      })
+    })
+
+    test('require a name shared by a text field and a file once', () => {
+      const schema = getSchemaFromBag(multipartBagOfRoutes, 'multipart.ts')
+
+      expect(
+        schema.paths['/profiles'].post.requestBody.content[
+          'multipart/form-data'
+        ].schema.required
+      ).toEqual(['avatar'])
     })
   })
 

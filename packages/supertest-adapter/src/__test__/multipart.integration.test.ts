@@ -400,15 +400,18 @@ describe('multipart requests through the supertest adapter', () => {
   })
 
   test('keeps the content type of the call', async () => {
-    const response = await adapter.invalid.post('/structured', '2024-01-01', {
-      multipart: { fields: { name: 'winter' } },
+    const response = await adapter.invalid.patch('/documents', '2024-01-01', {
+      multipart: { fields: { name: 'contract' } },
       headers: { 'Content-Type': 'text/plain' },
       expect: { status: 400 },
     })
 
-    // multer skips the body that is not declared as multipart
+    // multer skips the body that is not declared as multipart, which leaves
+    // no body in Express 5 and an empty one in Express 4
     expect((response.body as unknown as ErrorBody).issues).toEqual([
-      expect.objectContaining({ path: ['body'] }),
+      expect.objectContaining({
+        path: expect.arrayContaining(['body']),
+      }),
     ])
   })
 

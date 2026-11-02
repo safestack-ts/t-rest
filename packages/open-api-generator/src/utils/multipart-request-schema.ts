@@ -1,15 +1,40 @@
 import { MultipartFileParts } from '@t-rest/core'
 
 const binary = { type: 'string', format: 'binary' }
+const componentRefPrefix = '#/components/schemas/'
+
+/**
+ * A body referencing an object component is inlined: within `allOf` the
+ * constraints of the component, e.g. `additionalProperties`, would apply to the
+ * file parts as well. The component itself stays as it is for other uses.
+ */
+const resolveBodySpec = (
+  bodySpec: Record<string, any>,
+  components: Record<string, any>
+): Record<string, any> => {
+  if (
+    typeof bodySpec.$ref !== 'string' ||
+    !bodySpec.$ref.startsWith(componentRefPrefix)
+  ) {
+    return bodySpec
+  }
+
+  const component = components[bodySpec.$ref.slice(componentRefPrefix.length)]
+
+  return component?.type === 'object' && component.$ref === undefined
+    ? component
+    : bodySpec
+}
 
 /**
  * The schema of a multipart body: the validated text fields plus the declared
- * file fields as binary parts. A body referencing a component keeps its
- * reference and gets the files through `allOf`.
+ * file fields as binary parts. A body that is no object, e.g. a union, gets the
+ * files through `allOf`.
  */
 export const multipartRequestSchema = (
   bodySpec: Record<string, any> | undefined,
-  files: MultipartFileParts | undefined
+  files: MultipartFileParts | undefined,
+  components: Record<string, any> = {}
 ): Record<string, any> => {
   const fileEntries = Object.entries(files ?? {})
 
@@ -38,12 +63,17 @@ export const multipartRequestSchema = (
     return fileSchema
   }
 
-  if (bodySpec.type === 'object' && bodySpec.$ref === undefined) {
-    const required = [...(bodySpec.required ?? []), ...requiredFiles]
+  const textSchema = resolveBodySpec(bodySpec, components)
+
+  if (textSchema.type === 'object' && textSchema.$ref === undefined) {
+    // a text field and a file part may share a name
+    const required = [
+      ...new Set([...(textSchema.required ?? []), ...requiredFiles]),
+    ]
 
     return {
-      ...bodySpec,
-      properties: { ...bodySpec.properties, ...fileProperties },
+      ...textSchema,
+      properties: { ...textSchema.properties, ...fileProperties },
       ...(required.length > 0 && { required }),
     }
   }

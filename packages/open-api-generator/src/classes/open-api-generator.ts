@@ -77,7 +77,8 @@ const toOpenAPIResponse = (
 const requestBodyOf = (
   bodyEncoding: BodyEncoding,
   bodySpec: Record<string, any> | undefined,
-  multipartFiles: MultipartFileParts | undefined
+  multipartFiles: MultipartFileParts | undefined,
+  components: Record<string, any> | undefined
 ) => {
   const content = {
     ...(bodyEncoding !== 'multipart' &&
@@ -86,7 +87,7 @@ const requestBodyOf = (
       }),
     ...(bodyEncoding !== 'json' && {
       'multipart/form-data': {
-        schema: multipartRequestSchema(bodySpec, multipartFiles),
+        schema: multipartRequestSchema(bodySpec, multipartFiles, components),
       },
     }),
   }
@@ -418,7 +419,8 @@ export abstract class OpenAPIGenerator {
                 requestBody: requestBodyOf(
                   routeDefinition?.bodyEncoding ?? 'json',
                   bodySchema?.spec,
-                  routeDefinition?.multipartFiles
+                  routeDefinition?.multipartFiles,
+                  bodySchema?.components
                 ),
                 responses: Object.fromEntries(
                   responses.map(({ status, ...response }) => [

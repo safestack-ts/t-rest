@@ -25,10 +25,13 @@ type MultipartFieldMember<TMember, TField> = TMember extends undefined
   : TMember extends string
   ? TMember
   : TMember extends readonly (infer TItem)[]
-  ? // an empty array is left out, which only an optional field accepts
-    undefined extends TField
-    ? readonly MultipartFieldValue<TItem>[]
-    : readonly [MultipartFieldValue<TItem>, ...MultipartFieldValue<TItem>[]]
+  ? TItem[] extends TMember
+    ? // an empty array is left out, which only an optional field accepts
+      undefined extends TField
+      ? readonly MultipartFieldValue<TItem>[]
+      : readonly [MultipartFieldValue<TItem>, ...MultipartFieldValue<TItem>[]]
+    : // a tuple keeps its positions and length
+      { readonly [TKey in keyof TMember]: MultipartFieldValue<TMember[TKey]> }
   : TMember extends number | bigint | boolean | null | Date
   ? FieldText<TMember> extends TField
     ? TMember
