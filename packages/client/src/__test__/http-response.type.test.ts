@@ -1,5 +1,6 @@
 import {
   BagOfRoutes,
+  HTTPMethod,
   binary,
   empty,
   json,
@@ -9,8 +10,14 @@ import {
 } from '@t-rest/core'
 import { AssertTrue, IsExact } from 'conditional-type-checks'
 import { z } from 'zod'
+import { AxiosHTTPAdapter } from '../classes/axios-http-adapter.js'
 import { RESTClient } from '../classes/rest-client.js'
-import { AnyHTTPResponse, HTTPResponse } from '../types/http-response.js'
+import { HTTPAdapter } from '../types/http-adapter.js'
+import {
+  AnyHTTPResponse,
+  HTTPResponse,
+  HTTPResponseHeaders,
+} from '../types/http-response.js'
 
 type Invoice = { id: number }
 type Failure = { error: string }
@@ -74,7 +81,14 @@ export const test = async () => {
   const single = await client.get('/single')
 
   type _single = AssertTrue<
-    IsExact<typeof single, { data: Invoice; statusCode: 200 }>
+    IsExact<
+      typeof single,
+      { data: Invoice; statusCode: 200; headers?: HTTPResponseHeaders }
+    >
+  >
+
+  type _headers = AssertTrue<
+    IsExact<typeof pdf.headers, HTTPResponseHeaders | undefined>
   >
 
   // @ts-expect-error status is not declared
@@ -93,3 +107,22 @@ type _responseMap = AssertTrue<
 // the response of every route is an AnyHTTPResponse
 export const anyResponse = async (): Promise<AnyHTTPResponse> =>
   client.get('/pdf')
+
+// axios responses always carry headers
+type _headersOnAxiosAdapter = AssertTrue<
+  IsExact<
+    Awaited<ReturnType<AxiosHTTPAdapter['request']>>['headers'],
+    HTTPResponseHeaders
+  >
+>
+
+// custom adapters returning no headers stay valid
+export class AdapterWithoutHeaders implements HTTPAdapter {
+  async request<TResponses extends ResponseMap>(
+    _method: HTTPMethod,
+    _url: string,
+    data: unknown
+  ): Promise<HTTPResponse<TResponses>> {
+    return { data, statusCode: 200 } as HTTPResponse<TResponses>
+  }
+}

@@ -162,7 +162,10 @@ describe('client against the server', () => {
       params: { id: 'missing' },
     })
 
-    expect(response).toEqual({ data: { error: 'not found' }, statusCode: 404 })
+    expect(response).toMatchObject({
+      data: { error: 'not found' },
+      statusCode: 404,
+    })
   })
 
   test('a declared 404 of a binary route resolves as json', async () => {
@@ -170,7 +173,10 @@ describe('client against the server', () => {
       params: { id: 'missing' },
     })
 
-    expect(response).toEqual({ data: { error: 'not found' }, statusCode: 404 })
+    expect(response).toMatchObject({
+      data: { error: 'not found' },
+      statusCode: 404,
+    })
   })
 })
 

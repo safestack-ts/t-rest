@@ -1,15 +1,27 @@
 import { DecodedBody } from '@t-rest/core'
 
+/** Response headers with lower-case keys. Headers sent multiple times, e.g. `set-cookie`, are arrays. */
+export type HTTPResponseHeaders = Record<string, string | string[] | undefined>
+
 type ResponseOfStatus<TResponses, TStatus extends keyof TResponses & number> = {
   data: DecodedBody<TResponses[TStatus], ArrayBuffer, undefined>
   statusCode: TStatus
-  // @todo add more
+  /**
+   * Optional so that existing custom `HTTPAdapter` implementations keep working,
+   * but they should return it. Always set by `AxiosHTTPAdapter`.
+   */
+  headers?: HTTPResponseHeaders
 }
 
 /** Any response of any route, e.g. for helpers which handle every route. */
 export type AnyHTTPResponse = {
   data: any
   statusCode: number
+  /**
+   * Optional so that existing custom `HTTPAdapter` implementations keep working,
+   * but they should return it. Always set by `AxiosHTTPAdapter`.
+   */
+  headers?: HTTPResponseHeaders
 }
 
 /**

@@ -7,7 +7,7 @@ import {
   ResponseType,
 } from 'axios'
 import { HTTPAdapter, RequestBodyEncoding } from '../types/http-adapter.js'
-import { HTTPResponse } from '../types/http-response.js'
+import { HTTPResponse, HTTPResponseHeaders } from '../types/http-response.js'
 import { isFormDataLike } from '../utils/is-form-data-like.js'
 import { HTTPMethod, ResponseMap } from '@t-rest/core'
 import { RequestConfig } from '../types/request-config.js'
@@ -28,6 +28,23 @@ const transportFor = (responses: ResponseMap): ResponseType | undefined => {
 
   return kinds.includes('text') ? 'text' : undefined
 }
+
+// axios' own adapters already lower-case the keys, custom ones or interceptors might not.
+// `headers` can be missing in mocked responses, e.g. of axios-mock-adapter.
+// `false` is the sentinel of axios for a disabled header, which it omits as well.
+const normalizeHeaders = (
+  headers: AxiosResponse['headers'] | undefined
+): HTTPResponseHeaders =>
+  Object.fromEntries(
+    Object.entries(headers ?? {})
+      .filter(
+        ([, value]) => value !== null && value !== undefined && value !== false
+      )
+      .map(([name, value]) => [
+        name.toLowerCase(),
+        Array.isArray(value) ? value : String(value),
+      ])
+  )
 
 const decode = (
   response: AxiosResponse,
@@ -115,6 +132,7 @@ export class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
         ? response.data
         : decode(response, responses, transport, isEmptyBody),
       statusCode: response.status,
-    } as HTTPResponse<TResponses>
+      headers: normalizeHeaders(response.headers),
+    } as HTTPResponse<TResponses> & { headers: HTTPResponseHeaders }
   }
 }

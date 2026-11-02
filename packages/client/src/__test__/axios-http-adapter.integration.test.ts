@@ -57,7 +57,7 @@ afterEach(() => {
 test('a declared error status resolves', async () => {
   nock('http://localhost').get('/invoices').reply(404, { error: 'not found' })
 
-  await expect(client.get('/invoices')).resolves.toEqual({
+  await expect(client.get('/invoices')).resolves.toMatchObject({
     data: { error: 'not found' },
     statusCode: 404,
   })
@@ -93,7 +93,7 @@ test('binary bodies are received as array buffer', async () => {
 test('json statuses of binary routes are decoded', async () => {
   nock('http://localhost').get('/pdf').reply(404, { error: 'not found' })
 
-  await expect(client.get('/pdf')).resolves.toEqual({
+  await expect(client.get('/pdf')).resolves.toMatchObject({
     data: { error: 'not found' },
     statusCode: 404,
   })
@@ -102,7 +102,7 @@ test('json statuses of binary routes are decoded', async () => {
 test('text statuses of binary routes are decoded', async () => {
   nock('http://localhost').get('/pdf').reply(201, 'a,b')
 
-  await expect(client.get('/pdf')).resolves.toEqual({
+  await expect(client.get('/pdf')).resolves.toMatchObject({
     data: 'a,b',
     statusCode: 201,
   })
@@ -111,7 +111,7 @@ test('text statuses of binary routes are decoded', async () => {
 test('empty statuses have no data', async () => {
   nock('http://localhost').get('/pdf').reply(204)
 
-  await expect(client.get('/pdf')).resolves.toEqual({
+  await expect(client.get('/pdf')).resolves.toMatchObject({
     data: undefined,
     statusCode: 204,
   })
@@ -120,7 +120,7 @@ test('empty statuses have no data', async () => {
 test('text bodies stay text, even when they look like json', async () => {
   nock('http://localhost').get('/csv').reply(200, '123')
 
-  await expect(client.get('/csv')).resolves.toEqual({
+  await expect(client.get('/csv')).resolves.toMatchObject({
     data: '123',
     statusCode: 200,
   })
@@ -129,7 +129,7 @@ test('text bodies stay text, even when they look like json', async () => {
 test('json statuses of text routes are decoded', async () => {
   nock('http://localhost').get('/csv').reply(404, { error: 'not found' })
 
-  await expect(client.get('/csv')).resolves.toEqual({
+  await expect(client.get('/csv')).resolves.toMatchObject({
     data: { error: 'not found' },
     statusCode: 404,
   })
@@ -143,7 +143,7 @@ test('the request config overrides the status and response handling', async () =
       validateStatus: () => true,
       responseType: 'text',
     })
-  ).resolves.toEqual({ data: 'failed', statusCode: 500 })
+  ).resolves.toMatchObject({ data: 'failed', statusCode: 500 })
 })
 
 test('versioned clients use the responses of the resolved route version', async () => {
@@ -185,7 +185,7 @@ test('versioned clients use the responses of the resolved route version', async 
   await expect(inherited.get('/invoices')).rejects.toBeInstanceOf(AxiosError)
   await expect(
     inherited.withVersion('2024-03-01').get('/invoices')
-  ).resolves.toEqual({ data: { error: 'not found' }, statusCode: 404 })
+  ).resolves.toMatchObject({ data: { error: 'not found' }, statusCode: 404 })
   scope.done()
 })
 
@@ -217,7 +217,7 @@ test('an undeclared status of a binary route rejects with the status error', asy
 test('an empty json body is undefined on json routes', async () => {
   nock('http://localhost').get('/invoices').reply(200)
 
-  await expect(client.get('/invoices')).resolves.toEqual({
+  await expect(client.get('/invoices')).resolves.toMatchObject({
     data: undefined,
     statusCode: 200,
   })
@@ -228,7 +228,7 @@ test('the json encoding of an empty string stays a string on json routes', async
     .get('/invoices')
     .reply(200, '""', { 'Content-Type': 'application/json' })
 
-  await expect(client.get('/invoices')).resolves.toEqual({
+  await expect(client.get('/invoices')).resolves.toMatchObject({
     data: '',
     statusCode: 200,
   })
@@ -239,7 +239,7 @@ test('the json encoding of an empty string stays a string on routes mixing kinds
     .get('/pdf')
     .reply(404, '""', { 'Content-Type': 'application/json' })
 
-  await expect(client.get('/pdf')).resolves.toEqual({
+  await expect(client.get('/pdf')).resolves.toMatchObject({
     data: '',
     statusCode: 404,
   })
@@ -248,7 +248,7 @@ test('the json encoding of an empty string stays a string on routes mixing kinds
 test('an empty json body is undefined on routes mixing kinds', async () => {
   nock('http://localhost').get('/pdf').reply(404)
 
-  await expect(client.get('/pdf')).resolves.toEqual({
+  await expect(client.get('/pdf')).resolves.toMatchObject({
     data: undefined,
     statusCode: 404,
   })

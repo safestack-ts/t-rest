@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'vitest'
-import axios, { AxiosError, AxiosRequestConfig } from 'axios'
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
 import nock from 'nock'
 import {
   BagOfRoutes,
@@ -10,6 +10,7 @@ import {
   Versioning,
   ze,
   ResponseMap,
+  binary,
   empty,
   json,
 } from '@t-rest/core'
@@ -94,6 +95,12 @@ const itemsBagOfRoutes = BagOfRoutes.withVersioning(
       )
       .responses({ 204: empty() })
   )
+  .addRoute(
+    Route.version('2024-01-01')
+      .get('/api/items/:itemId/attachment')
+      .validate(z.object({ params: z.object({ itemId: ze.parseInteger() }) }))
+      .responses({ 200: binary('application/pdf') })
+  )
   .build()
 
 const usersBagOfRoutes = BagOfRoutes.withVersioning(
@@ -177,7 +184,7 @@ describe('requests through the axios adapter', () => {
       body: { name: 'chair' },
     })
 
-    expect(response).toEqual({
+    expect(response).toMatchObject({
       data: { id: 3, name: 'chair' },
       statusCode: 200,
     })
@@ -227,7 +234,7 @@ describe('requests through the axios adapter', () => {
       body: { email: 'jon@doe.com' },
     })
 
-    expect(response).toEqual({ data: { id: 1 }, statusCode: 201 })
+    expect(response).toMatchObject({ data: { id: 1 }, statusCode: 201 })
     scope.done()
   })
 
@@ -353,6 +360,84 @@ describe('requests through the axios adapter', () => {
       params: { token: 'guest' },
     })
     expect(JSON.parse(configs[0].data)).toEqual({ name: 'chair' })
+  })
+
+  test('returns the headers of a json response', async () => {
+    const scope = nock('http://localhost')
+      .get('/api/items')
+      .reply(200, [], {
+        'Content-Type': 'application/json',
+        'Set-Cookie': ['a=1', 'b=2'],
+      })
+
+    const response = await makeAxiosClient().get('/api/items', { query: {} })
+
+    expect(response.headers).toMatchObject({
+      'content-type': 'application/json',
+      'set-cookie': ['a=1', 'b=2'],
+    })
+    scope.done()
+  })
+
+  test('returns the data and headers of a binary download', async () => {
+    const scope = nock('http://localhost')
+      .get('/api/items/3/attachment')
+      .reply(200, '%PDF', {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="item-3.pdf"',
+      })
+
+    const response = await makeAxiosClient().get(
+      '/api/items/:itemId/attachment',
+      { params: { itemId: '3' } }
+    )
+
+    expect(response.data).toBeInstanceOf(ArrayBuffer)
+    expect(Array.from(new Uint8Array(response.data))).toEqual([
+      0x25, 0x50, 0x44, 0x46,
+    ])
+    expect(response.headers).toMatchObject({
+      'content-type': 'application/pdf',
+      'content-disposition': 'attachment; filename="item-3.pdf"',
+    })
+    scope.done()
+  })
+
+  test('normalizes headers of custom axios adapters', async () => {
+    const respondWith = (headers: Record<string, unknown> | undefined) =>
+      RESTClient.withVersioning(
+        bagOfRoutes,
+        '2024-01-01',
+        new AxiosHTTPAdapter(
+          axios.create({
+            baseURL: 'http://localhost',
+            adapter: async (config) => ({
+              data: [],
+              status: 200,
+              statusText: 'OK',
+              headers: headers as AxiosResponse['headers'],
+              config,
+            }),
+          })
+        ),
+        HeaderVersionInjector
+      ).get('/api/items', { query: {} })
+
+    const response = await respondWith({
+      'X-Total-Count': 3,
+      'X-Empty': null,
+      'X-Disabled': false,
+      'X-Flag': 'false',
+      'X-Tags': ['a', 'b'],
+    })
+    const responseWithoutHeaders = await respondWith(undefined)
+
+    expect(response.headers).toEqual({
+      'x-total-count': '3',
+      'x-flag': 'false',
+      'x-tags': ['a', 'b'],
+    })
+    expect(responseWithoutHeaders.headers).toEqual({})
   })
 })
 
