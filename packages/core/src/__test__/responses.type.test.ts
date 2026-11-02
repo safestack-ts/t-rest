@@ -72,3 +72,38 @@ type _routeOutputOfMany = AssertTrue<
 
 // @ts-expect-error a descriptor is required for every status
 Route.get('/').responses({ 200: 'json' })
+
+// a union of routes keeps the statuses and bodies of every member
+const unionA = Route.get('/a').responses({ 200: json<Invoice>() })
+const unionB = Route.get('/b').responses({
+  201: json<{ created: boolean }>(),
+  404: json<Failure>(),
+})
+const unionC = Route.get('/c').responses({ 200: text('text/csv') })
+type UnionRoute = typeof unionA | typeof unionB | typeof unionC
+const unionBag = BagOfRoutes.withoutVersioning()
+  .addRoute(unionA)
+  .addRoute(unionB)
+  .build()
+
+type _unionDeclaredStatus = AssertTrue<
+  IsExact<DeclaredStatus<UnionRoute>, 200 | 201 | 404>
+>
+type _unionBodyOf = AssertTrue<
+  IsExact<
+    BodyOf<UnionRoute>,
+    Invoice | { created: boolean } | Failure | string
+  >
+>
+type _unionBodyOfStatus = AssertTrue<
+  IsExact<BodyOf<UnionRoute, 200>, Invoice | string>
+>
+type _unionBodyOfMemberStatus = AssertTrue<
+  IsExact<BodyOf<UnionRoute, 201>, { created: boolean }>
+>
+type _unionRouteOutput = AssertTrue<
+  IsExact<
+    RouteOutput<typeof unionBag, 'GET', '/a' | '/b'>,
+    Invoice | { created: boolean } | Failure
+  >
+>

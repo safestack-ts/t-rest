@@ -97,13 +97,17 @@ type AnyResponseDescriptor = JsonResponseDescriptor<any> | TextResponseDescripto
 type ResponseMap = {
     readonly [status: number]: AnyResponseDescriptor;
 };
+/** The statuses a route declares, of a union of routes those of every member. */
 type DeclaredStatus<TRoute extends {
     '~responses': unknown;
-}> = keyof TRoute['~responses'] & number;
-/** The descriptor of a status, a status enum member resolves like its value. */
+}> = TRoute extends unknown ? keyof TRoute['~responses'] & number : never;
+/**
+ * The descriptor of a status, a status enum member resolves like its value.
+ * A union of routes yields the descriptors of the members declaring it.
+ */
 type ResponseDescriptorOf<TRoute extends {
     '~responses': unknown;
-}, TStatus extends number> = TStatus extends keyof TRoute['~responses'] ? TRoute['~responses'][TStatus] : never;
+}, TStatus extends number> = TRoute extends unknown ? TStatus extends keyof TRoute['~responses'] ? TRoute['~responses'][TStatus] : never : never;
 /** The body type of the given statuses of a route, by default of all of them. */
 type BodyOf<TRoute extends {
     '~responses': unknown;

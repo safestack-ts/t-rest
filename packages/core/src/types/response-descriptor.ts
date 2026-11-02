@@ -36,15 +36,21 @@ export type AnyResponseDescriptor =
 /** The responses of a route: HTTP status code to response descriptor. */
 export type ResponseMap = { readonly [status: number]: AnyResponseDescriptor }
 
+/** The statuses a route declares, of a union of routes those of every member. */
 export type DeclaredStatus<TRoute extends { '~responses': unknown }> =
-  keyof TRoute['~responses'] & number
+  TRoute extends unknown ? keyof TRoute['~responses'] & number : never
 
-/** The descriptor of a status, a status enum member resolves like its value. */
+/**
+ * The descriptor of a status, a status enum member resolves like its value.
+ * A union of routes yields the descriptors of the members declaring it.
+ */
 export type ResponseDescriptorOf<
   TRoute extends { '~responses': unknown },
   TStatus extends number
-> = TStatus extends keyof TRoute['~responses']
-  ? TRoute['~responses'][TStatus]
+> = TRoute extends unknown
+  ? TStatus extends keyof TRoute['~responses']
+    ? TRoute['~responses'][TStatus]
+    : never
   : never
 
 /** The body type of the given statuses of a route, by default of all of them. */
