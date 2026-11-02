@@ -19,6 +19,10 @@ type SuperagentParser = Parameters<supertest.Test['parse']>[0]
 const isExpressRouter = (target: unknown) =>
   typeof target === 'function' && 'stack' in target && !('listen' in target)
 
+// superagent only serializes objects and would fail on the other json values
+const isJsonPrimitive = (value: unknown) =>
+  typeof value === 'number' || typeof value === 'boolean' || value === null
+
 export abstract class SupertestAdapterBase<
   TApp extends AnyTypedExpressApplication
 > {
@@ -98,7 +102,9 @@ export abstract class SupertestAdapterBase<
       .parse(descriptorParser(responses) as unknown as SuperagentParser)
 
     if (plan.body.send) {
-      request = request.send(plan.body.value as string | object | undefined)
+      request = isJsonPrimitive(plan.body.value)
+        ? request.type('json').send(JSON.stringify(plan.body.value))
+        : request.send(plan.body.value as string | object | undefined)
     }
 
     const headers = { ...this.defaultConfig.headers, ...context.headers }

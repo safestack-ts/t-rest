@@ -14,6 +14,12 @@ type SupertestConfig = {
 
 type RequestInput<TRoute extends AnyRouteDef> = RouteValidationInput<TRoute>;
 
+/**
+ * The input of a request that is meant to fail validation: `params`, `query`
+ * and `body` are not tied to the validator of the route and may be left out.
+ */
+type InvalidRequestInput = BaseRequestInput;
+
 type AnyTypedExpressApplication = TypedExpressApplicationWithoutVersioning<any, any, any> | TypedExpressApplicationWithVersioning<any, any, any, any>;
 
 type ResponseOfStatus<TBody, TStatus extends number> = Omit<supertest.Response, 'body' | 'status' | 'statusCode'> & {
@@ -75,6 +81,12 @@ declare class SupertestAdapterWithoutVersioning<TApp extends TypedExpressApplica
         method: TMethod;
         path: TAbsolutePath;
     }>["~responses"]>>;
+    protected makeInvalidRouteHandler<TMethod extends HTTPMethod>(method: TMethod): <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
+        method: TMethod;
+    }>["path"]>(path: TAbsolutePath, context: SupertestConfig & InvalidRequestInput) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
+        method: TMethod;
+        path: TAbsolutePath;
+    }>["~responses"]>>;
     get: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "GET";
     }>["path"]>(path: TAbsolutePath, context: SupertestConfig & _t_rest_core.RouteValidationInput<Extract<ApplicationRoutes<TApp>, {
@@ -120,6 +132,42 @@ declare class SupertestAdapterWithoutVersioning<TApp extends TypedExpressApplica
         method: "DELETE";
         path: TAbsolutePath;
     }>["~responses"]>>;
+    /**
+     * Same routes, but `params`, `query` and `body` are not checked against the
+     * validator of the route, to test how the server rejects invalid input.
+     */
+    invalid: {
+        get: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
+            method: "GET";
+        }>["path"]>(path: TAbsolutePath, context: SupertestConfig & InvalidRequestInput) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
+            method: "GET";
+            path: TAbsolutePath;
+        }>["~responses"]>>;
+        post: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
+            method: "POST";
+        }>["path"]>(path: TAbsolutePath, context: SupertestConfig & InvalidRequestInput) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
+            method: "POST";
+            path: TAbsolutePath;
+        }>["~responses"]>>;
+        put: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
+            method: "PUT";
+        }>["path"]>(path: TAbsolutePath, context: SupertestConfig & InvalidRequestInput) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
+            method: "PUT";
+            path: TAbsolutePath;
+        }>["~responses"]>>;
+        patch: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
+            method: "PATCH";
+        }>["path"]>(path: TAbsolutePath, context: SupertestConfig & InvalidRequestInput) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
+            method: "PATCH";
+            path: TAbsolutePath;
+        }>["~responses"]>>;
+        delete: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
+            method: "DELETE";
+        }>["path"]>(path: TAbsolutePath, context: SupertestConfig & InvalidRequestInput) => Promise<SupertestResponse<Extract<ApplicationRoutes<TApp>, {
+            method: "DELETE";
+            path: TAbsolutePath;
+        }>["~responses"]>>;
+    };
 }
 
 declare abstract class SupertestVersionInjector {
@@ -185,6 +233,10 @@ declare class SupertestAdapterWithVersioning<TApp extends TypedExpressApplicatio
     protected makeRouteHandler<TMethod extends HTTPMethod>(method: TMethod): <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: TMethod;
     }>["path"], TVersion extends CallableVersions<TApp, TMethod, TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & RequestInput<AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>>) => Promise<SupertestResponse<AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>["~responses"]>>;
+    protected makeInvalidRouteHandler<TMethod extends HTTPMethod>(method: TMethod): <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
+        method: TMethod;
+    }>["path"], TVersion extends CallableVersions<TApp, TMethod, TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & InvalidRequestInput) => Promise<SupertestResponse<AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>["~responses"]>>;
+    private executeVersionedRequest;
     get: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "GET";
     }>["path"], TVersion extends CallableVersions<TApp, "GET", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & _t_rest_core.RouteValidationInput<AppRouteAt<TApp, "GET", TAbsolutePath, TVersion>>) => Promise<SupertestResponse<AppRouteAt<TApp, "GET", TAbsolutePath, TVersion>["~responses"]>>;
@@ -200,6 +252,27 @@ declare class SupertestAdapterWithVersioning<TApp extends TypedExpressApplicatio
     delete: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: "DELETE";
     }>["path"], TVersion extends CallableVersions<TApp, "DELETE", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & _t_rest_core.RouteValidationInput<AppRouteAt<TApp, "DELETE", TAbsolutePath, TVersion>>) => Promise<SupertestResponse<AppRouteAt<TApp, "DELETE", TAbsolutePath, TVersion>["~responses"]>>;
+    /**
+     * Same routes, but `params`, `query` and `body` are not checked against the
+     * validator of the route, to test how the server rejects invalid input.
+     */
+    invalid: {
+        get: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
+            method: "GET";
+        }>["path"], TVersion extends CallableVersions<TApp, "GET", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & InvalidRequestInput) => Promise<SupertestResponse<AppRouteAt<TApp, "GET", TAbsolutePath, TVersion>["~responses"]>>;
+        post: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
+            method: "POST";
+        }>["path"], TVersion extends CallableVersions<TApp, "POST", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & InvalidRequestInput) => Promise<SupertestResponse<AppRouteAt<TApp, "POST", TAbsolutePath, TVersion>["~responses"]>>;
+        put: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
+            method: "PUT";
+        }>["path"], TVersion extends CallableVersions<TApp, "PUT", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & InvalidRequestInput) => Promise<SupertestResponse<AppRouteAt<TApp, "PUT", TAbsolutePath, TVersion>["~responses"]>>;
+        patch: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
+            method: "PATCH";
+        }>["path"], TVersion extends CallableVersions<TApp, "PATCH", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & InvalidRequestInput) => Promise<SupertestResponse<AppRouteAt<TApp, "PATCH", TAbsolutePath, TVersion>["~responses"]>>;
+        delete: <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
+            method: "DELETE";
+        }>["path"], TVersion extends CallableVersions<TApp, "DELETE", TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & InvalidRequestInput) => Promise<SupertestResponse<AppRouteAt<TApp, "DELETE", TAbsolutePath, TVersion>["~responses"]>>;
+    };
 }
 
 declare abstract class SupertestAdapter {
@@ -216,4 +289,4 @@ declare class SupertestTargetError extends Error {
 declare const versionInjectorFrom: (convention: VersionConvention) => SupertestVersionInjector;
 
 export { SupertestAdapter, SupertestAdapterWithVersioning, SupertestAdapterWithoutVersioning, SupertestTargetError, SupertestVersionInjector, VersionInjector, versionInjectorFrom };
-export type { AnySupertestResponse, AnyTypedExpressApplication, DefaultSupertestAdapterConfig, RequestInput, SupertestConfig, SupertestResponse };
+export type { AnySupertestResponse, AnyTypedExpressApplication, DefaultSupertestAdapterConfig, InvalidRequestInput, RequestInput, SupertestConfig, SupertestResponse };

@@ -33,6 +33,7 @@ test('fillPathParams fills and encodes params', () => {
 test('fillPathParams keeps unmatched placeholders', () => {
   expect(fillPathParams('/a/:id/:other', { id: 1 })).toBe('/a/1/:other')
   expect(fillPathParams('/a/:id')).toBe('/a/:id')
+  expect(fillPathParams('/a/:id', null)).toBe('/a/:id')
 })
 
 test('fillPathParams matches placeholders by their whole name', () => {
