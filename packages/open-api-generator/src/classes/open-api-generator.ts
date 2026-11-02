@@ -1,5 +1,8 @@
 import { OpenAPIMetaData } from '../types/open-api-meta-data.js'
-import { OpenAPISchema } from '../types/open-api-schema.js'
+import {
+  OpenAPIResponseSchema,
+  OpenAPISchema,
+} from '../types/open-api-schema.js'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import YAML from 'yaml'
@@ -25,6 +28,48 @@ import {
   OpenAPIGeneratorOptions,
   resolveOpenAPIGeneratorOptions,
 } from '../types/open-api-generator-options.js'
+
+const toOpenAPIResponse = (
+  status: string,
+  {
+    kind,
+    contentType,
+    schema,
+  }: {
+    kind: string
+    contentType: string | undefined
+    schema: { spec: unknown } | undefined
+  }
+): OpenAPIResponseSchema => {
+  const description =
+    Number(status) < 400 ? 'Successful response' : 'Error response'
+
+  switch (kind) {
+    case 'empty':
+      return { description }
+    case 'text':
+      return {
+        description,
+        content: {
+          [contentType ?? 'text/plain']: { schema: { type: 'string' } },
+        },
+      }
+    case 'binary':
+      return {
+        description,
+        content: {
+          [contentType ?? 'application/octet-stream']: {
+            schema: { type: 'string', format: 'binary' },
+          },
+        },
+      }
+    default:
+      return {
+        description,
+        content: { 'application/json': { schema: schema?.spec } },
+      }
+  }
+}
 
 type SpecFilterRoute = {
   method: HTTPMethod
@@ -253,9 +298,12 @@ export abstract class OpenAPIGenerator {
                 ? getOpenAPI3Spec(route.typeInfo.input.properties.body, true)
                 : undefined
 
-            const responseSchema = route.typeInfo.output
-              ? getOpenAPI3Spec(route.typeInfo.output, true)
-              : undefined
+            const responses = route.typeInfo.responses.map((response) => ({
+              ...response,
+              schema: response.body
+                ? getOpenAPI3Spec(response.body, true)
+                : undefined,
+            }))
 
             // headers and path params are inlined, but named types visited there first
             // may be referenced from body or response schemas, so keep their components
@@ -273,7 +321,7 @@ export abstract class OpenAPIGenerator {
             for (const schema of [
               ...inlinedParameterSchemas,
               bodySchema,
-              responseSchema,
+              ...responses.map((response) => response.schema),
               querySchema,
             ]) {
               schema?.ambiguousComponents.forEach((key) =>
@@ -353,16 +401,12 @@ export abstract class OpenAPIGenerator {
                       },
                     }
                   : undefined,
-                responses: {
-                  '200': {
-                    description: 'Successful response',
-                    content: {
-                      'application/json': {
-                        schema: responseSchema?.spec,
-                      },
-                    },
-                  },
-                },
+                responses: Object.fromEntries(
+                  responses.map(({ status, ...response }) => [
+                    status,
+                    toOpenAPIResponse(status, response),
+                  ])
+                ),
               },
             }
           },

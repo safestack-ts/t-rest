@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { BagOfRoutes, Route, ze } from '@t-rest/core'
+import { BagOfRoutes, Route, ze, json } from '@t-rest/core'
 import Express from 'express'
 import { z } from 'zod'
 import request from 'supertest'
@@ -58,7 +58,7 @@ test('express app with multiple routers without versioning is working', async ()
         .validate(z.object({ params: z.object({ basketId: z.string() }) }))
         .response<Basket>()
     )
-    .addRoute(Route.post('/baskets').response<Basket>())
+    .addRoute(Route.post('/baskets').responses({ 201: json<Basket>() }))
     .build()
 
   const typedRESTApplication = TypedExpressApplication.withoutVersioning(

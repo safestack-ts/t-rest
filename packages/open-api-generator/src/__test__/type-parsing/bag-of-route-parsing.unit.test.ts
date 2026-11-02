@@ -20,7 +20,15 @@ interface RouteTestCase {
 const runTestCase = (testCase: RouteTestCase) => {
   test(testCase.name, async () => {
     const { expectedResult } = await import(testCase.modulePath)
-    const results = parseBagOfRoutes(testCase.modulePath, tsConfigPath)
+    // the scenarios declare a single json response
+    const results = new Map(
+      Array.from(
+        parseBagOfRoutes(testCase.modulePath, tsConfigPath).entries()
+      ).map(([key, { responses, ...route }]) => [
+        key,
+        { ...route, output: responses[0]?.body },
+      ])
+    )
 
     if (!isEqual(Array.from(results.values()), expectedResult)) {
       console.log(JSON.stringify(Array.from(results.values()), null, 2))

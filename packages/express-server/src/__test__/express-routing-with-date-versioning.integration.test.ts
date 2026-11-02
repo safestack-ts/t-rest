@@ -417,7 +417,12 @@ test('custom middleware should not break error handler middleware if error is th
     })
 
   expressApp.use(
-    (err: Error, req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => { 
+    (
+      err: Error,
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: ExpressNextFunction
+    ) => {
       res.status(500).send({ error: err.message })
     }
   )

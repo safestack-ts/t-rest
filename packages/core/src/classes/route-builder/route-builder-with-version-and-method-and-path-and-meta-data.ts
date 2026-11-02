@@ -1,5 +1,14 @@
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
+import {
+  EmptyResponseDescriptor,
+  JsonResponseDescriptor,
+  StrictResponseMap,
+} from '../../types/response-descriptor.js'
+import {
+  shorthandResponses,
+  ShorthandStatus,
+} from '../../internal/response-shorthand.js'
 import { RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData } from './route-builder-with-version-and-method-and-path-and-validator-and-meta-data.js'
 import { emptyValidation } from '../../utils/empty-validation.js'
 
@@ -26,14 +35,71 @@ export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
     >(this.version, this.method, this.path, validator, this.metaData)
   }
 
-  public response<TResponse>() {
+  public responses<TResponses extends StrictResponseMap<TResponses>>(
+    responses: TResponses
+  ) {
     return new RouteDef<
       TVersion,
       TMethod,
       TPath,
       typeof emptyValidation,
-      TResponse,
+      TResponses,
       TMetaData
-    >(this.version, this.method, this.path, emptyValidation, this.metaData)
+    >(
+      this.version,
+      this.method,
+      this.path,
+      emptyValidation,
+      responses,
+      this.metaData
+    )
+  }
+
+  /**
+   * Shorthand for `.responses({ [status]: json<TResponse>() })`, the status
+   * defaults to `200`. `.response(204)` declares an empty body.
+   */
+  public response<TResponse>(
+    status?: 200
+  ): RouteDef<
+    TVersion,
+    TMethod,
+    TPath,
+    typeof emptyValidation,
+    { 200: JsonResponseDescriptor<TResponse> },
+    TMetaData
+  >
+  public response<TResponse>(
+    status: 201
+  ): RouteDef<
+    TVersion,
+    TMethod,
+    TPath,
+    typeof emptyValidation,
+    { 201: JsonResponseDescriptor<TResponse> },
+    TMetaData
+  >
+  public response<TResponse>(
+    status: 202
+  ): RouteDef<
+    TVersion,
+    TMethod,
+    TPath,
+    typeof emptyValidation,
+    { 202: JsonResponseDescriptor<TResponse> },
+    TMetaData
+  >
+  public response(
+    status: 204
+  ): RouteDef<
+    TVersion,
+    TMethod,
+    TPath,
+    typeof emptyValidation,
+    { 204: EmptyResponseDescriptor },
+    TMetaData
+  >
+  public response(status: ShorthandStatus = 200) {
+    return this.responses(shorthandResponses(status))
   }
 }

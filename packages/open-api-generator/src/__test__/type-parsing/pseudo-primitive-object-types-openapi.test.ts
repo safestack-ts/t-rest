@@ -21,7 +21,7 @@ describe('OpenAPI Generation for pseudo-primitive object-like types', () => {
 
     const route = routes[0]
     const inputSpec = getOpenAPI3Spec(route.input!)
-    const outputSpec = getOpenAPI3Spec(route.output!)
+    const outputSpec = getOpenAPI3Spec(route.responses[0].body!)
 
     expect(Object.keys(inputSpec.components || {})).not.toContain('any')
     expect(Object.keys(inputSpec.components || {})).not.toContain('unknown')

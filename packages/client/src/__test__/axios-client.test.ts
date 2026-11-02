@@ -46,7 +46,7 @@ test('POST request works', async () => {
   const scope = nock('http://localhost')
     .post('/basket', { entries: [{ id: 'a' }, { id: 'b' }] })
     .matchHeader('x-version', '2024-03-01')
-    .reply(201, { id: 42 })
+    .reply(200, { id: 42 })
 
   const response = await apiClient.post('/basket', {
     body: {
