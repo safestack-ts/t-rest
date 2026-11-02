@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { BaseRequestInput, planRequest } from '@t-rest/protocol'
 import { AnyTypedExpressApplication } from '../types/any-typed-express-application.js'
 import {
@@ -12,7 +11,7 @@ import { SupertestConfig } from '../types/supertest-config.js'
 import supertest from 'supertest'
 import { SupertestResponse } from '../types/supertest-response.js'
 import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config.js'
-import { multipartFieldEntries } from '../utils/multipart-field-entries.js'
+import { encodeMultipart } from '../utils/encode-multipart.js'
 import { SupertestTargetError } from './supertest-target-error.js'
 import { descriptorParser } from '../utils/descriptor-parser.js'
 
@@ -106,28 +105,37 @@ export abstract class SupertestAdapterBase<
       // incoming message
       .parse(descriptorParser(responses) as unknown as SuperagentParser)
 
-    if (context.multipart !== undefined) {
-      request = this.attachMultipart(request, context.multipart)
+    const isMultipart = context.multipart !== undefined && plan.body.send
+    const headers: Record<string, string | number | boolean> = {
+      ...this.defaultConfig.headers,
+      ...context.headers,
+    }
+
+    if (isMultipart) {
+      const form = await encodeMultipart(context.multipart as MultipartBody)
+      // a content type of the call is kept, e.g. to test its rejection, the
+      // default headers usually describe json
+      const callContentType = Object.entries(context.headers ?? {}).find(
+        ([name]) => name.toLowerCase() === 'content-type'
+      )?.[1]
+
+      for (const name of Object.keys(headers)) {
+        if (name.toLowerCase() === 'content-type') {
+          delete headers[name]
+        }
+      }
+
+      request = request
+        .set('Content-Type', String(callContentType ?? form.contentType))
+        .send(form.body)
     } else if (plan.body.send) {
       request = isJsonPrimitive(plan.body.value)
         ? request.type('json').send(JSON.stringify(plan.body.value))
         : request.send(plan.body.value as string | object | undefined)
     }
 
-    const headers = Object.fromEntries(
-      Object.entries({
-        ...this.defaultConfig.headers,
-        ...context.headers,
-      }).filter(
-        // the multipart content type carries the boundary of the body
-        ([name]) =>
-          context.multipart === undefined ||
-          name.toLowerCase() !== 'content-type'
-      )
-    )
-
     if (Object.entries(headers).length > 0) {
-      request = request.set(headers)
+      request = request.set(headers as Record<string, string>)
     }
 
     if (context.expect?.status !== undefined) {
@@ -151,34 +159,6 @@ export abstract class SupertestAdapterBase<
     const response = await request
 
     return response as unknown as SupertestResponse<TResponses>
-  }
-
-  private attachMultipart(request: supertest.Test, multipart: MultipartBody) {
-    const fields = multipartFieldEntries(multipart.fields ?? {})
-    const files = multipart.files ?? []
-
-    // superagent only creates the form once a part is added, without parts
-    // the request would carry no body at all
-    if (fields.length === 0 && files.length === 0) {
-      const boundary = `t-rest-${randomUUID()}`
-
-      return request
-        .set('Content-Type', `multipart/form-data; boundary=${boundary}`)
-        .send(`--${boundary}--\r\n`)
-    }
-
-    for (const [name, value] of fields) {
-      request = request.field(name, value)
-    }
-
-    for (const { field, filename, contentType, ...source } of files) {
-      request = request.attach(field, source.buffer ?? source.path, {
-        filename,
-        contentType,
-      })
-    }
-
-    return request
   }
 
   private stringifyBody(body: any, text?: string) {

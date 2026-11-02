@@ -18,6 +18,17 @@ const bagOfRoutes = BagOfRoutes.withoutVersioning()
       .response<{ id: number }>()
   )
   .addRoute(
+    Route.patch('/uploads/:id')
+      .multipart({ json: true })
+      .validate(
+        z.object({
+          params: z.object({ id: z.string() }),
+          body: z.object({ name: z.string() }),
+        })
+      )
+      .response<{ id: number }>()
+  )
+  .addRoute(
     Route.post('/json')
       .validate(z.object({ body: z.object({ name: z.string() }) }))
       .response<{ id: number }>()
@@ -44,4 +55,11 @@ export const typedCalls = () => {
 
   // @ts-expect-error json routes take no form data
   client.post('/json', { body })
+
+  // a route taking either encoding takes either body
+  client.patch('/uploads/:id', { params: { id: '1' }, body })
+  client.patch('/uploads/:id', { params: { id: '1' }, body: { name: 'a' } })
+
+  // @ts-expect-error the json body stays typed
+  client.patch('/uploads/:id', { params: { id: '1' }, body: { name: 1 } })
 }

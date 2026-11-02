@@ -27,9 +27,57 @@ describe('multipartFieldEntries', () => {
     ])
   })
 
-  test('leaves out undefined and null', () => {
+  test('leaves out undefined and empty arrays and objects', () => {
     expect(
-      multipartFieldEntries({ a: undefined, b: null, c: [undefined] })
+      multipartFieldEntries({ a: undefined, b: [], c: {}, d: [undefined] })
     ).toEqual([])
+  })
+
+  test('sends null as an empty string', () => {
+    expect(multipartFieldEntries({ a: null, b: [null] })).toEqual([
+      ['a', ''],
+      ['b[0]', ''],
+    ])
+  })
+
+  test('serializes values with toJSON through it', () => {
+    class Money {
+      constructor(private readonly cents: number) {}
+      toJSON() {
+        return { amount: this.cents / 100, currency: 'CHF' }
+      }
+    }
+
+    expect(multipartFieldEntries({ price: new Money(150) })).toEqual([
+      ['price[amount]', '1.5'],
+      ['price[currency]', 'CHF'],
+    ])
+  })
+
+  test('serializes other class instances by their own keys', () => {
+    class Point {
+      constructor(public x: number, public y: number) {}
+    }
+
+    expect(multipartFieldEntries({ point: new Point(1, 2) })).toEqual([
+      ['point[x]', '1'],
+      ['point[y]', '2'],
+    ])
+  })
+
+  test('sends buffers as text fields', () => {
+    expect(multipartFieldEntries({ a: Buffer.from('text') })).toEqual([
+      ['a', 'text'],
+    ])
+  })
+
+  test('rejects objects that multer would parse back as an array', () => {
+    expect(() =>
+      multipartFieldEntries({ byIndex: { '0': 'a', '1': 'b' } })
+    ).toThrow(/"byIndex" only has numeric keys/)
+    expect(multipartFieldEntries({ mixed: { '0': 'a', label: 'b' } })).toEqual([
+      ['mixed[0]', 'a'],
+      ['mixed[label]', 'b'],
+    ])
   })
 })

@@ -39,7 +39,7 @@
         "nock": "^14.0.17"
     },
     "peerDependencies": {
-        "axios": "^1.0.0"
+        "axios": "^1.3.0"
     },
     "peerDependenciesMeta": {
         "axios": {

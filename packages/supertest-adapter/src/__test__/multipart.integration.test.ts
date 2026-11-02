@@ -68,6 +68,15 @@ const structuredBody = z.object({
     .optional(),
 })
 
+// form fields cannot be null, an empty one clears the document instead
+const documentBody = z.object({
+  name: z.string(),
+  documentUpload: z
+    .union([z.literal(''), z.null()])
+    .transform(() => null)
+    .optional(),
+})
+
 const bagOfRoutes = BagOfRoutes.withVersioning(Versioning.DATE, versionHistory)
   .addRoute(
     Route.version('2024-01-01')
@@ -90,6 +99,20 @@ const bagOfRoutes = BagOfRoutes.withVersioning(Versioning.DATE, versionHistory)
       .validate(z.object({ file: fileSchema }))
       .response<{ name: string }>()
   )
+  .addRoute(
+    Route.version('2024-01-01')
+      .patch('/documents')
+      .multipart({ json: true })
+      .validate(z.object({ body: documentBody }))
+      .response<z.output<typeof documentBody>>()
+  )
+  .addRoute(
+    Route.version('2024-01-01')
+      .post('/conditions')
+      .multipart()
+      .validate(z.object({ body: z.object({ formValues: structuredBody }) }))
+      .response<{ formValues: z.infer<typeof structuredBody> }>()
+  )
   .build()
 
 const toResult = (
@@ -108,6 +131,7 @@ const toResult = (
 const makeApplication = () => {
   const expressApp = Express()
   const upload = multer({ storage: multer.memoryStorage() })
+  expressApp.use(Express.json())
   const app = TypedExpressApplication.withVersioning(
     expressApp,
     bagOfRoutes,
@@ -129,6 +153,27 @@ const makeApplication = () => {
     .post('/structured')
     .version('2024-01-01')
     .middleware(upload.none())
+    .handle((_, { body }, response) => {
+      response.json(body)
+    })
+
+  app
+    .patch('/documents')
+    .version('2024-01-01')
+    .middleware(upload.none())
+    .handle((_, { body }, response) => {
+      response.json(body)
+    })
+
+  app
+    .post('/conditions')
+    .version('2024-01-01')
+    .middleware(upload.none())
+    .middleware((request, _, next) => {
+      // wraps the flat form fields like a normalizing middleware does
+      request.body = { formValues: request.body }
+      next()
+    })
     .handle((_, { body }, response) => {
       response.json(body)
     })
@@ -278,7 +323,11 @@ describe('multipart requests through the supertest adapter', () => {
   })
 
   test('sends nested objects and arrays of objects', async () => {
-    const meta = { label: 'x', sizes: [1, 2], items: [{ id: 'a' }] }
+    const meta = {
+      label: 'x',
+      sizes: [1, 2],
+      items: [{ id: 'a' }],
+    } as const
 
     const response = await adapter.post('/structured', '2024-01-01', {
       multipart: { fields: { name: 'winter', tags: ['a', 'b'], meta } },
@@ -317,7 +366,7 @@ describe('multipart requests through the supertest adapter', () => {
   })
 
   test('validation errors of multipart requests are reported', async () => {
-    const response = await adapter.put('/avatar', '2024-01-01', {
+    const response = await adapter.invalid.put('/avatar', '2024-01-01', {
       multipart: { fields: { unrelated: 'value' } },
       expect: { status: 400 },
     })
@@ -325,6 +374,53 @@ describe('multipart requests through the supertest adapter', () => {
     expect((response.body as unknown as ErrorBody).issues).toEqual([
       expect.objectContaining({ path: ['file'] }),
     ])
+  })
+
+  test('sends null as an empty field', async () => {
+    const response = await adapter.patch('/documents', '2024-01-01', {
+      multipart: { fields: { name: 'contract', documentUpload: null } },
+      expect: { status: 200 },
+    })
+
+    expect(response.body).toEqual({ name: 'contract', documentUpload: null })
+  })
+
+  test('sends json or multipart to a route taking both', async () => {
+    const json = await adapter.patch('/documents', '2024-01-01', {
+      body: { name: 'contract', documentUpload: null },
+      expect: { status: 200 },
+    })
+    const multipart = await adapter.patch('/documents', '2024-01-01', {
+      multipart: { fields: { name: 'contract' } },
+      expect: { status: 200 },
+    })
+
+    expect(json.body).toEqual({ name: 'contract', documentUpload: null })
+    expect(multipart.body).toEqual({ name: 'contract' })
+  })
+
+  test('keeps the content type of the call', async () => {
+    const response = await adapter.invalid.post('/structured', '2024-01-01', {
+      multipart: { fields: { name: 'winter' } },
+      headers: { 'Content-Type': 'text/plain' },
+      expect: { status: 400 },
+    })
+
+    // multer skips the body that is not declared as multipart
+    expect((response.body as unknown as ErrorBody).issues).toEqual([
+      expect.objectContaining({ path: ['body'] }),
+    ])
+  })
+
+  test('sends the wire format of a reshaping middleware untyped', async () => {
+    const response = await adapter.untyped.post('/conditions', '2024-01-01', {
+      multipart: { fields: { name: 'winter', tags: ['a'] } },
+      expect: { status: 200 },
+    })
+
+    expect(response.body).toEqual({
+      formValues: { name: 'winter', tags: ['a'] },
+    })
   })
 
   test('sends invalid fields through the invalid handler', async () => {
@@ -417,5 +513,21 @@ describe('multipart requests through the rest client', () => {
     })
 
     expect(response.data).toEqual(expectedResult)
+  })
+
+  test('sends json or form data to a route taking both', async () => {
+    const formData = new FormData()
+    formData.set('name', 'contract')
+    formData.set('documentUpload', '')
+
+    const json = await makeClient().patch('/documents', {
+      body: { name: 'contract', documentUpload: null },
+    })
+    const multipart = await makeClient({
+      'Content-Type': 'application/json',
+    }).patch('/documents', { body: formData })
+
+    expect(json.data).toEqual({ name: 'contract', documentUpload: null })
+    expect(multipart.data).toEqual({ name: 'contract', documentUpload: null })
   })
 })

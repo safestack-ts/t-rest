@@ -6,8 +6,9 @@ import {
   AxiosResponseTransformer,
   ResponseType,
 } from 'axios'
-import { HTTPAdapter } from '../types/http-adapter.js'
+import { HTTPAdapter, RequestBodyEncoding } from '../types/http-adapter.js'
 import { HTTPResponse } from '../types/http-response.js'
+import { isFormDataLike } from '../utils/is-form-data-like.js'
 import { HTTPMethod, ResponseMap } from '@t-rest/core'
 import { RequestConfig } from '../types/request-config.js'
 import { decodeBody, isDeclaredStatus } from '../utils/response-decoding.js'
@@ -68,7 +69,8 @@ export class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
     url: string,
     data: unknown,
     requestConfig: (RequestConfig & AxiosRequestConfig) | undefined,
-    responses: TResponses
+    responses: TResponses,
+    bodyEncoding?: RequestBodyEncoding
   ) {
     const { params: _params, ...requestConfigWithoutParams } =
       requestConfig ?? {}
@@ -98,13 +100,13 @@ export class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
       ...requestConfigWithoutParams,
       // axios json-serializes form data if a default header says json, it
       // replaces this content type with the one containing the boundary
-      ...(typeof FormData !== 'undefined' &&
-        data instanceof FormData && {
-          headers: {
-            ...requestConfig?.headers,
-            'Content-Type': 'multipart/form-data',
-          },
-        }),
+      ...((bodyEncoding ?? (isFormDataLike(data) ? 'multipart' : 'json')) ===
+        'multipart' && {
+        headers: {
+          ...requestConfig?.headers,
+          'Content-Type': 'multipart/form-data',
+        },
+      }),
     })
 
     return {

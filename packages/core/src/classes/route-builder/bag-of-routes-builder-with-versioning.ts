@@ -1,5 +1,6 @@
 import { createRouteHashMap, storageKeyOf } from '../../internal/route-table.js'
 import { AnyRouteDef } from '../../types/any-route-def.js'
+import { BodyEncoding } from '../../types/body-encoding.js'
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteHashMap } from '../../types/route-hash-map.js'
 import { VersioningRequired } from '../../types/versioning-required.js'
@@ -27,7 +28,15 @@ export class BagOfRoutesBuilderWithVersioning<
 
   public addRoute<
     TVersion extends TVersionHistory[number],
-    TRouteDef extends RouteDef<TVersion, HTTPMethod, string, any, any, unknown>
+    TRouteDef extends RouteDef<
+      TVersion,
+      HTTPMethod,
+      string,
+      any,
+      any,
+      unknown,
+      BodyEncoding
+    >
   >(
     route: TRouteDef
   ): BagOfRoutesBuilderWithVersioning<

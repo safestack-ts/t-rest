@@ -1,4 +1,5 @@
 import { BodyEncoding } from '../../types/body-encoding.js'
+import { MultipartFileParts } from '../../types/multipart-options.js'
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
 import {
@@ -24,7 +25,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
     private path: TPath,
     private validator: TValidator,
     private metaData: TMetaData,
-    private bodyEncoding?: TBodyEncoding
+    private bodyEncoding?: TBodyEncoding,
+    private multipartFiles?: MultipartFileParts
   ) {}
 
   public responses<TResponses extends StrictResponseMap<TResponses>>(
@@ -45,7 +47,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
       this.validator,
       responses,
       this.metaData,
-      this.bodyEncoding
+      this.bodyEncoding,
+      this.multipartFiles
     )
   }
 

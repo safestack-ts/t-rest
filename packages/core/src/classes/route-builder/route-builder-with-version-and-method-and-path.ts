@@ -1,4 +1,8 @@
 import { BodyEncoding } from '../../types/body-encoding.js'
+import {
+  MultipartFileParts,
+  MultipartOptions,
+} from '../../types/multipart-options.js'
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
 import {
@@ -26,28 +30,43 @@ export class RouteBuilderWithVersionAndMethodAndPath<
     private version: TVersion,
     private method: TMethod,
     private path: TPath,
-    private bodyEncoding?: TBodyEncoding
+    private bodyEncoding?: TBodyEncoding,
+    private multipartFiles?: MultipartFileParts
   ) {}
 
   /**
    * Declares that the route takes `multipart/form-data`. Parsing the upload
    * stays up to a route middleware, the validator describes its result.
    * GET and DELETE never send a body and are rejected.
+   *
+   * `json: true` keeps accepting the body as JSON too, `files` names the file
+   * fields so OpenAPI documents them.
    */
-  public multipart(
+  public multipart<const TOptions extends MultipartOptions = {}>(
     this: RouteBuilderWithVersionAndMethodAndPath<
       TVersion,
       TMethod & BodyMethod,
       TPath,
       TBodyEncoding
-    >
+    >,
+    options?: TOptions
   ) {
+    type TMultipartEncoding = TOptions extends { json: true }
+      ? 'json-or-multipart'
+      : 'multipart'
+
     return new RouteBuilderWithVersionAndMethodAndPath<
       TVersion,
       TMethod,
       TPath,
-      'multipart'
-    >(this.version, this.method as TMethod, this.path, 'multipart')
+      TMultipartEncoding
+    >(
+      this.version,
+      this.method as TMethod,
+      this.path,
+      (options?.json ? 'json-or-multipart' : 'multipart') as TMultipartEncoding,
+      options?.files
+    )
   }
 
   public validate<TValidator>(validator: TValidator) {
@@ -57,7 +76,14 @@ export class RouteBuilderWithVersionAndMethodAndPath<
       TPath,
       TValidator,
       TBodyEncoding
-    >(this.version, this.method, this.path, validator, this.bodyEncoding)
+    >(
+      this.version,
+      this.method,
+      this.path,
+      validator,
+      this.bodyEncoding,
+      this.multipartFiles
+    )
   }
 
   public metaData<TMetaData>(metaData: TMetaData) {
@@ -67,7 +93,14 @@ export class RouteBuilderWithVersionAndMethodAndPath<
       TPath,
       TMetaData,
       TBodyEncoding
-    >(this.version, this.method, this.path, metaData, this.bodyEncoding)
+    >(
+      this.version,
+      this.method,
+      this.path,
+      metaData,
+      this.bodyEncoding,
+      this.multipartFiles
+    )
   }
 
   public responses<TResponses extends StrictResponseMap<TResponses>>(
@@ -88,7 +121,8 @@ export class RouteBuilderWithVersionAndMethodAndPath<
       emptyValidation,
       responses,
       null,
-      this.bodyEncoding
+      this.bodyEncoding,
+      this.multipartFiles
     )
   }
 

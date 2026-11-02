@@ -24,25 +24,28 @@ type HTTPResponse<TResponses> = unknown extends TResponses ? AnyHTTPResponse : n
     [TStatus in keyof TResponses & number]: ResponseOfStatus<TResponses, TStatus>;
 }[keyof TResponses & number] : never;
 
+/** How the body of a single request is encoded. */
+type RequestBodyEncoding = 'json' | 'multipart';
 interface HTTPAdapter<TRequestContext = {}> {
     /**
      * Resolves for the statuses declared in `responses` and rejects for all
      * others. `responses` holds the descriptors of the route of the request,
      * `isDeclaredStatus` and `decodeBody` implement the contract.
      *
-     * `responses` is the last argument, so that an adapter written for an
+     * `responses` follows `requestConfig`, so that an adapter written for an
      * earlier version keeps receiving its `requestConfig`.
      *
-     * `data` is a `FormData` for routes declared with `.multipart()`. It has to
-     * be sent as is: the transport sets the content type with its boundary.
+     * `bodyEncoding` is `'multipart'` when `data` is the `FormData` of a route
+     * declared with `.multipart()`. It has to be sent as is, not serialized as
+     * JSON: the transport sets the content type with its boundary.
      */
-    request<TResponses extends ResponseMap>(method: HTTPMethod, url: string, data: unknown, requestConfig: (RequestConfig & TRequestContext) | undefined, responses: TResponses): Promise<HTTPResponse<TResponses>>;
+    request<TResponses extends ResponseMap>(method: HTTPMethod, url: string, data: unknown, requestConfig: (RequestConfig & TRequestContext) | undefined, responses: TResponses, bodyEncoding?: RequestBodyEncoding): Promise<HTTPResponse<TResponses>>;
 }
 
 declare class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
     private readonly axiosInstance;
     constructor(axiosInstance: AxiosInstance);
-    request<TResponses extends ResponseMap>(method: HTTPMethod, url: string, data: unknown, requestConfig: (RequestConfig & AxiosRequestConfig) | undefined, responses: TResponses): Promise<HTTPResponse<TResponses>>;
+    request<TResponses extends ResponseMap>(method: HTTPMethod, url: string, data: unknown, requestConfig: (RequestConfig & AxiosRequestConfig) | undefined, responses: TResponses, bodyEncoding?: RequestBodyEncoding): Promise<HTTPResponse<TResponses>>;
 }
 
 declare abstract class VersionInjector {
@@ -64,6 +67,7 @@ declare abstract class RESTClientBase<TRoutes extends AnyRouteDef, TVersionHisto
     constructor(routes: BagOfRoutes<TRoutes, Versioning, TVersionHistory>, httpAdapter: HTTPAdapter<TRequestContext>, versionInjector: VersionInjector);
     private routeOf;
     protected requestedVersion(): string;
+    private bodyEncodingOf;
     protected request<TMethod extends HTTPMethod, TResponses extends ResponseMap, TRequestConfig extends BaseRequestInput & RequestConfig & TRequestContext>(method: TMethod, path: string, requestConfig?: TRequestConfig): Promise<HTTPResponse<TResponses>>;
 }
 
@@ -236,4 +240,4 @@ declare const isDeclaredStatus: (responses: ResponseMap, status: number) => bool
 declare const decodeBody: (body: string | ArrayBuffer | ArrayBufferView, descriptor: AnyResponseDescriptor | undefined) => unknown;
 
 export { AxiosHTTPAdapter, NoVersionInjector, RESTClient, RESTClientWithVersioning, RESTClientWithoutVersioning, VersionInjector, decodeBody, isDeclaredStatus, versionInjectorFrom };
-export type { AnyHTTPResponse, HTTPAdapter, HTTPResponse, RequestArgs, RequestConfig, RequestInput, VersionInjectorConstructor };
+export type { AnyHTTPResponse, HTTPAdapter, HTTPResponse, RequestArgs, RequestBodyEncoding, RequestConfig, RequestInput, VersionInjectorConstructor };

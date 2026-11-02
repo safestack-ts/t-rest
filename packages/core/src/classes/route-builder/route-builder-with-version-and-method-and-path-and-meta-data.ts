@@ -1,4 +1,5 @@
 import { BodyEncoding } from '../../types/body-encoding.js'
+import { MultipartFileParts } from '../../types/multipart-options.js'
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
 import {
@@ -25,7 +26,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
     private method: TMethod,
     private path: TPath,
     private metaData: TMetaData,
-    private bodyEncoding?: TBodyEncoding
+    private bodyEncoding?: TBodyEncoding,
+    private multipartFiles?: MultipartFileParts
   ) {}
 
   public validate<TValidator>(validator: TValidator) {
@@ -42,7 +44,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
       this.path,
       validator,
       this.metaData,
-      this.bodyEncoding
+      this.bodyEncoding,
+      this.multipartFiles
     )
   }
 
@@ -64,7 +67,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
       emptyValidation,
       responses,
       this.metaData,
-      this.bodyEncoding
+      this.bodyEncoding,
+      this.multipartFiles
     )
   }
 

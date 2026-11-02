@@ -75,10 +75,10 @@ export class SupertestAdapterWithVersioning<
     >(
       path: TAbsolutePath,
       version: TVersion,
-      context: SupertestConfig & InvalidRequestInput
+      context: SupertestConfig & InvalidRequestInput<TMethod>
     ) => {
       return this.executeVersionedRequest<
-        InvalidRequestInput,
+        InvalidRequestInput<TMethod>,
         AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>['~responses']
       >(method, path, version, context)
     }
@@ -125,4 +125,11 @@ export class SupertestAdapterWithVersioning<
     patch: this.makeInvalidRouteHandler('PATCH'),
     delete: this.makeInvalidRouteHandler('DELETE'),
   }
+
+  /**
+   * The handlers of `invalid` under a name for valid requests whose wire
+   * format the validator does not describe, e.g. because a middleware
+   * reshapes the body before validation.
+   */
+  public untyped = this.invalid
 }

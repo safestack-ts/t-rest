@@ -144,6 +144,48 @@ describe('spec assembly', () => {
         'multipart/form-data': { schema: { type: 'object' } },
       })
     })
+
+    test('declare both media types when they also take json', () => {
+      const schema = getSchemaFromBag(multipartBagOfRoutes, 'multipart.ts')
+      const bodySchema = {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      }
+
+      expect(schema.paths['/uploads'].patch.requestBody.content).toEqual({
+        'application/json': { schema: bodySchema },
+        'multipart/form-data': { schema: bodySchema },
+      })
+    })
+
+    test('document declared file fields as binary parts', () => {
+      const schema = getSchemaFromBag(multipartBagOfRoutes, 'multipart.ts')
+      const binary = { type: 'string', format: 'binary' }
+
+      expect(schema.paths['/documents'].post.requestBody.content).toEqual({
+        'multipart/form-data': {
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              document: binary,
+              attachments: { type: 'array', items: binary },
+            },
+            required: ['name', 'document'],
+          },
+        },
+      })
+      expect(schema.paths['/avatar'].put.requestBody.content).toEqual({
+        'multipart/form-data': {
+          schema: {
+            type: 'object',
+            properties: { avatar: binary },
+            required: ['avatar'],
+          },
+        },
+      })
+    })
   })
 
   describe('equivalent templated paths', () => {

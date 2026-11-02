@@ -9,7 +9,29 @@ declare enum Versioning {
     SEMVER = 2
 }
 
-type BodyEncoding = 'json' | 'multipart';
+/**
+ * How a route takes its body: `json`, `multipart/form-data`, or either of
+ * them (`.multipart({ json: true })`), e.g. for integrators that keep sending
+ * JSON to a route that also accepts uploads.
+ */
+type BodyEncoding = 'json' | 'multipart' | 'json-or-multipart';
+
+/** A file field of a multipart route, documented as binary in OpenAPI. */
+type MultipartFilePart = {
+    /** Several files are sent under the same field name. */
+    multiple?: boolean;
+    required?: boolean;
+};
+type MultipartFileParts = Record<string, MultipartFilePart>;
+type MultipartOptions = {
+    /** The route also accepts the body as JSON. */
+    json?: boolean;
+    /**
+     * The file fields, by field name. The validator only sees what the upload
+     * middleware made of them, so their names are declared here.
+     */
+    files?: MultipartFileParts;
+};
 
 type HTTPMethod = HttpMethod;
 
@@ -56,7 +78,7 @@ type BodyOf<TRoute extends {
  */
 type DecodedBody<TDescriptor, TBinary = Uint8Array, TEmpty = undefined> = TDescriptor extends JsonResponseDescriptor<infer TBody> ? TBody : TDescriptor extends TextResponseDescriptor<string> ? string : TDescriptor extends BinaryResponseDescriptor ? TBinary : TDescriptor extends EmptyResponseDescriptor ? TEmpty : never;
 
-declare class RouteDef<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TValidator, TResponses extends StrictResponseMap<TResponses>, TMetaData, TBodyEncoding extends BodyEncoding = BodyEncoding> {
+declare class RouteDef<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TValidator, TResponses extends StrictResponseMap<TResponses>, TMetaData, TBodyEncoding extends BodyEncoding = 'json'> {
     readonly version: TVersion;
     readonly method: TMethod;
     readonly path: TPath;
@@ -66,7 +88,8 @@ declare class RouteDef<TVersion extends string, TMethod extends HTTPMethod, TPat
     readonly ['~validatorOutputType']: TValidator extends StandardSchemaV1 ? StandardSchemaV1.InferOutput<TValidator> : never;
     readonly metaData: TMetaData;
     readonly bodyEncoding: TBodyEncoding;
-    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, responses: TResponses, metaData: TMetaData, bodyEncoding?: TBodyEncoding);
+    readonly multipartFiles: MultipartFileParts | undefined;
+    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, responses: TResponses, metaData: TMetaData, bodyEncoding?: TBodyEncoding, multipartFiles?: MultipartFileParts);
 }
 
 type AnyRouteValidator = StandardSchemaV1<{
@@ -109,14 +132,14 @@ declare class BagOfRoutesBuilderWithVersioning<TRoutes extends AnyRouteDef, TVer
     private readonly versioning;
     private readonly versionHistory;
     constructor(versioning: TVersioning, versionHistory: TVersionHistory, routes?: RouteHashMap);
-    addRoute<TVersion extends TVersionHistory[number], TRouteDef extends RouteDef<TVersion, HTTPMethod, string, any, any, unknown>>(route: TRouteDef): BagOfRoutesBuilderWithVersioning<TRoutes | TRouteDef, TVersioning, TVersionHistory>;
+    addRoute<TVersion extends TVersionHistory[number], TRouteDef extends RouteDef<TVersion, HTTPMethod, string, any, any, unknown, BodyEncoding>>(route: TRouteDef): BagOfRoutesBuilderWithVersioning<TRoutes | TRouteDef, TVersioning, TVersionHistory>;
     build(): BagOfRoutes<TRoutes, TVersioning, TVersionHistory>;
 }
 
 declare class BagOfRoutesBuilderWithoutVersioning<TRoutes extends AnyRouteDef> {
     protected readonly routes: RouteHashMap;
     constructor(routes?: RouteHashMap);
-    addRoute<TRouteDef extends RouteDef<string, HTTPMethod, string, any, any, unknown>>(route: TRouteDef): BagOfRoutesBuilderWithoutVersioning<TRoutes | TRouteDef>;
+    addRoute<TRouteDef extends RouteDef<string, HTTPMethod, string, any, any, unknown, BodyEncoding>>(route: TRouteDef): BagOfRoutesBuilderWithoutVersioning<TRoutes | TRouteDef>;
     build(): BagOfRoutes<TRoutes, Versioning.NO_VERSIONING, never>;
 }
 
@@ -142,7 +165,8 @@ declare class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVe
     private validator;
     private metaData;
     private bodyEncoding?;
-    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, metaData: TMetaData, bodyEncoding?: TBodyEncoding | undefined);
+    private multipartFiles?;
+    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, metaData: TMetaData, bodyEncoding?: TBodyEncoding | undefined, multipartFiles?: MultipartFileParts | undefined);
     responses<TResponses extends StrictResponseMap<TResponses>>(responses: TResponses): RouteDef<TVersion, TMethod, TPath, TValidator, TResponses, TMetaData, TBodyEncoding>;
     /**
      * Shorthand for `.responses({ [status]: json<TResponse>() })`, the status
@@ -168,7 +192,8 @@ declare class RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion exten
     private path;
     private validator;
     private bodyEncoding?;
-    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, bodyEncoding?: TBodyEncoding | undefined);
+    private multipartFiles?;
+    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, bodyEncoding?: TBodyEncoding | undefined, multipartFiles?: MultipartFileParts | undefined);
     metaData<TMetaData>(metaData: TMetaData): RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion, TMethod, TPath, TValidator, TMetaData, TBodyEncoding>;
     responses<TResponses extends StrictResponseMap<TResponses>>(responses: TResponses): RouteDef<TVersion, TMethod, TPath, TValidator, TResponses, unknown, TBodyEncoding>;
     /**
@@ -195,7 +220,8 @@ declare class RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion extend
     private path;
     private metaData;
     private bodyEncoding?;
-    constructor(version: TVersion, method: TMethod, path: TPath, metaData: TMetaData, bodyEncoding?: TBodyEncoding | undefined);
+    private multipartFiles?;
+    constructor(version: TVersion, method: TMethod, path: TPath, metaData: TMetaData, bodyEncoding?: TBodyEncoding | undefined, multipartFiles?: MultipartFileParts | undefined);
     validate<TValidator>(validator: TValidator): RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion, TMethod, TPath, TValidator, TMetaData, TBodyEncoding>;
     responses<TResponses extends StrictResponseMap<TResponses>>(responses: TResponses): RouteDef<TVersion, TMethod, TPath, EmptySchema, TResponses, TMetaData, TBodyEncoding>;
     /**
@@ -222,13 +248,19 @@ declare class RouteBuilderWithVersionAndMethodAndPath<TVersion extends string, T
     private method;
     private path;
     private bodyEncoding?;
-    constructor(version: TVersion, method: TMethod, path: TPath, bodyEncoding?: TBodyEncoding | undefined);
+    private multipartFiles?;
+    constructor(version: TVersion, method: TMethod, path: TPath, bodyEncoding?: TBodyEncoding | undefined, multipartFiles?: MultipartFileParts | undefined);
     /**
      * Declares that the route takes `multipart/form-data`. Parsing the upload
      * stays up to a route middleware, the validator describes its result.
      * GET and DELETE never send a body and are rejected.
+     *
+     * `json: true` keeps accepting the body as JSON too, `files` names the file
+     * fields so OpenAPI documents them.
      */
-    multipart(this: RouteBuilderWithVersionAndMethodAndPath<TVersion, TMethod & BodyMethod, TPath, TBodyEncoding>): RouteBuilderWithVersionAndMethodAndPath<TVersion, TMethod, TPath, "multipart">;
+    multipart<const TOptions extends MultipartOptions = {}>(this: RouteBuilderWithVersionAndMethodAndPath<TVersion, TMethod & BodyMethod, TPath, TBodyEncoding>, options?: TOptions): RouteBuilderWithVersionAndMethodAndPath<TVersion, TMethod, TPath, TOptions extends {
+        json: true;
+    } ? "json-or-multipart" : "multipart">;
     validate<TValidator>(validator: TValidator): RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion, TMethod, TPath, TValidator, TBodyEncoding>;
     metaData<TMetaData>(metaData: TMetaData): RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion, TMethod, TPath, TMetaData, TBodyEncoding>;
     responses<TResponses extends StrictResponseMap<TResponses>>(responses: TResponses): RouteDef<TVersion, TMethod, TPath, EmptySchema, TResponses, unknown, TBodyEncoding>;
@@ -292,7 +324,7 @@ type ExtractRoute<TBagOfRoutes, TMethod extends HTTPMethod, TPath extends string
     path: TPath;
 }> : never;
 
-type InferMetaData<T extends AnyRouteDef> = T extends RouteDef<any, any, any, any, any, infer TMetaData> ? TMetaData : never;
+type InferMetaData<T extends AnyRouteDef> = T extends RouteDef<any, any, any, any, any, infer TMetaData, any> ? TMetaData : never;
 
 type StripTrailingSlash<TPath extends string> = TPath extends `${infer T}/` ? T : TPath;
 type JoinPathTail<TPath1 extends string, TPath2 extends string> = `${StripTrailingSlash<TPath1>}${StripTrailingSlash<TPath2>}` extends '' ? '/' : StripTrailingSlash<TPath2>;
@@ -334,18 +366,20 @@ type ExtractLatestMatchingRoutePerPath<TRoutes extends AnyRouteDef, TClientVersi
     }>, TClientVersion, TVersionHistory>;
 }[TRoutes['path']];
 
-type RouteValidationOutput<TRoute extends AnyRouteDef> = TRoute extends RouteDef<any, any, any, infer TValidator, any, any> ? TValidator extends StandardSchemaV1 ? StandardSchemaV1.InferOutput<TValidator> : never : never;
+type RouteValidationOutput<TRoute extends AnyRouteDef> = TRoute extends RouteDef<any, any, any, infer TValidator, any, any, any> ? TValidator extends StandardSchemaV1 ? StandardSchemaV1.InferOutput<TValidator> : never : never;
 
-type RouteValidationInput<TRoute extends AnyRouteDef> = TRoute extends RouteDef<any, any, any, infer TValidator, any, any> ? TValidator extends StandardSchemaV1 ? StandardSchemaV1.InferInput<TValidator> : never : never;
+type RouteValidationInput<TRoute extends AnyRouteDef> = TRoute extends RouteDef<any, any, any, infer TValidator, any, any, any> ? TValidator extends StandardSchemaV1 ? StandardSchemaV1.InferInput<TValidator> : never : never;
 
 type OmitFromEach<T, TKeys extends PropertyKey> = T extends unknown ? Omit<T, TKeys> : never;
+type MultipartRequestInput<TRoute extends AnyRouteDef, TMultipartInput> = OmitFromEach<RouteValidationInput<TRoute>, 'body' | 'file' | 'files'> & TMultipartInput;
 /**
  * The input a binding sends for a route. On a multipart route the validator
  * describes the request after the upload middleware parsed it, so `body` and
  * the `file`/`files` keys that middleware adds give way to the wire format of
- * the binding.
+ * the binding. A route taking either encoding takes either input, the JSON
+ * one without the keys only an upload produces.
  */
-type RouteRequestInput<TRoute extends AnyRouteDef, TMultipartInput> = TRoute extends RouteDef<any, any, any, any, any, any, 'multipart'> ? OmitFromEach<RouteValidationInput<TRoute>, 'body' | 'file' | 'files'> & TMultipartInput : RouteValidationInput<TRoute>;
+type RouteRequestInput<TRoute extends AnyRouteDef, TMultipartInput> = TRoute extends RouteDef<any, any, any, any, any, any, infer TBodyEncoding> ? TBodyEncoding extends 'multipart' ? MultipartRequestInput<TRoute, TMultipartInput> : TBodyEncoding extends 'json-or-multipart' ? OmitFromEach<RouteValidationInput<TRoute>, 'file' | 'files'> | MultipartRequestInput<TRoute, TMultipartInput> : RouteValidationInput<TRoute> : never;
 
 type OlderVersions<TVersionHistory extends string[], TVersion extends TVersionHistory[number]> = TVersionHistory extends [...infer TOlderVersions, infer TCurrentVersion] ? TCurrentVersion extends TVersion ? TOlderVersions extends string[] ? TOlderVersions[number] : never : TOlderVersions extends string[] ? OlderVersions<TOlderVersions, TVersion> : never : never;
 
@@ -449,4 +483,4 @@ declare const binary: <TContentType extends string>(contentType: TContentType) =
 declare const empty: () => EmptyResponseDescriptor;
 
 export { BagOfRoutes, BagOfRoutesBuilderWithVersioning, BagOfRoutesBuilderWithoutVersioning, HashMap, Identity, Route, RouteBuilderWithVersionAndMethodAndPath, RouteBuilderWithVersionAndMethodAndPathAndMetaData, RouteBuilderWithVersionAndMethodAndPathAndValidator, RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData, RouteDef, RouteWithVersion, TypedIdentity, ValidationError, VersionHistory, Versioning, binary, combine, createRouteResolver, demoBagOfRoutes, empty, emptyValidation, findNearestLowerDate, first, isDefined, isNonEmptyArray, joinPath, json, last, normalizePathPattern, resolveDateVersion, resolveVersion, text, typedLowerCase, typedUpperCase, versionHistory };
-export type { AddReadonlyDeep, AnyResponseDescriptor, AnyRouteDef, AnyRouteValidator, BagOfRoutesVersions, BinaryResponseDescriptor, BodyEncoding, BodyOf, CombinedBags, DeclaredStatus, DecodedBody, EmptyResponseDescriptor, EmptySchema, EmptyValidation, ExtractLatestMatchingRoutePerPath, ExtractRoute, ExtractRoutes, ExtractVersionMatchingRoute, HTTPMethod, InferMetaData, JoinPath, JsonResponseDescriptor, NewerVersions, NonEmptyArray, OlderVersions, PrefixMatchingRoutes, PrefixString, RemoveReadonlyDeep, RemoveReadonlyDeepArray, ResponseDescriptor, ResponseDescriptorOf, ResponseMap, RouteHashMap, RouteInput, RouteOutput, RouteRequestInput, RouteValidationInput, RouteValidationOutput, StrictResponseMap, StringReplaceHead, StringStartsWith, SuffixString, TextResponseDescriptor, VersioningRequired, WithoutDoubleSlash, WithoutLeadingSlash, WithoutTrailingSlash };
+export type { AddReadonlyDeep, AnyResponseDescriptor, AnyRouteDef, AnyRouteValidator, BagOfRoutesVersions, BinaryResponseDescriptor, BodyEncoding, BodyOf, CombinedBags, DeclaredStatus, DecodedBody, EmptyResponseDescriptor, EmptySchema, EmptyValidation, ExtractLatestMatchingRoutePerPath, ExtractRoute, ExtractRoutes, ExtractVersionMatchingRoute, HTTPMethod, InferMetaData, JoinPath, JsonResponseDescriptor, MultipartFilePart, MultipartFileParts, MultipartOptions, NewerVersions, NonEmptyArray, OlderVersions, PrefixMatchingRoutes, PrefixString, RemoveReadonlyDeep, RemoveReadonlyDeepArray, ResponseDescriptor, ResponseDescriptorOf, ResponseMap, RouteHashMap, RouteInput, RouteOutput, RouteRequestInput, RouteValidationInput, RouteValidationOutput, StrictResponseMap, StringReplaceHead, StringStartsWith, SuffixString, TextResponseDescriptor, VersioningRequired, WithoutDoubleSlash, WithoutLeadingSlash, WithoutTrailingSlash };

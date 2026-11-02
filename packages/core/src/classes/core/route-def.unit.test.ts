@@ -24,4 +24,27 @@ describe('body encoding of routes', () => {
       expect(route.method).toBe('POST')
     }
   })
+
+  test('.multipart({ json: true }) takes either encoding', () => {
+    expect(
+      Route.patch('/').multipart({ json: true }).response<null>().bodyEncoding
+    ).toBe('json-or-multipart')
+  })
+
+  test('.multipart() keeps the declared file fields', () => {
+    const files = {
+      avatar: { required: true },
+      attachments: { multiple: true },
+    }
+
+    expect(
+      Route.version('2024-01-01')
+        .post('/')
+        .multipart({ files })
+        .validate({})
+        .metaData({})
+        .response<null>().multipartFiles
+    ).toEqual(files)
+    expect(Route.post('/').response<null>().multipartFiles).toBeUndefined()
+  })
 })
