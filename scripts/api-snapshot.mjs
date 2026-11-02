@@ -16,7 +16,6 @@ import path from 'node:path'
 const root = path.resolve(import.meta.dirname, '..')
 const packages = [
   'core',
-  'client-utils',
   'client',
   'express-server',
   'supertest-adapter',

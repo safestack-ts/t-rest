@@ -1,5 +1,4 @@
 ---
-'@t-rest/client-utils': patch
 '@t-rest/client': patch
 ---
 

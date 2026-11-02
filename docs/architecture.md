@@ -11,7 +11,6 @@ typed-rest declares a REST contract once and derives the server, the client and 
 | `@t-rest/express-server` | Server binding: typed applications and routers on top of express 4 and 5. | core, protocol, express (peer) |
 | `@t-rest/client` | Client binding: `RESTClient` over a pluggable `HTTPAdapter` (axios adapter included). | protocol |
 | `@t-rest/supertest-adapter` | Test binding: typed supertest calls against a typed express application. | core, protocol, express-server, supertest |
-| `@t-rest/client-utils` | Deprecated, re-exports `buildUrl` from protocol. | protocol |
 
 Rule of thumb: if the client and the server must both get it right, it belongs in protocol. If it describes what a route is, it belongs in core. Bindings adapt both to one transport and own nothing the other side needs.
 
