@@ -23,7 +23,9 @@ type MultipartBody<TFields = Record<string, unknown>> = {
 };
 /** The text a scalar arrives as. */
 type FieldText<TValue> = TValue extends number | bigint | boolean ? `${TValue}` : TValue extends null ? '' : string;
-type MultipartFieldMember<TMember, TField> = TMember extends undefined ? undefined : TMember extends string ? TMember : TMember extends readonly (infer TItem)[] ? undefined extends TField ? readonly MultipartFieldValue<TItem>[] : readonly [MultipartFieldValue<TItem>, ...MultipartFieldValue<TItem>[]] : TMember extends number | bigint | boolean | null | Date ? FieldText<TMember> extends TField ? TMember : never : TMember extends object ? {
+type MultipartFieldMember<TMember, TField> = TMember extends undefined ? undefined : TMember extends string ? TMember : TMember extends readonly (infer TItem)[] ? TItem[] extends TMember ? undefined extends TField ? readonly MultipartFieldValue<TItem>[] : readonly [MultipartFieldValue<TItem>, ...MultipartFieldValue<TItem>[]] : {
+    readonly [TKey in keyof TMember]: MultipartFieldValue<TMember[TKey]>;
+} : TMember extends number | bigint | boolean | null | Date ? FieldText<TMember> extends TField ? TMember : never : TMember extends object ? {
     [TKey in keyof TMember]: MultipartFieldValue<TMember[TKey]>;
 } : never;
 /**
