@@ -64,8 +64,25 @@ export const createTypedResponse = <TRoute extends AnyRouteDef>(
       },
       file: (path: string) => {
         setContentType()
-        // errors are forwarded to the error handlers of the application
-        res.sendFile(resolve(path))
+        // errors are forwarded to the error handlers of the application like
+        // express does without a callback, without the content type of the
+        // file, which would label the response of the error handler
+        res.sendFile(resolve(path), (error?: NodeJS.ErrnoException) => {
+          // a client closing the connection is not an application error
+          if (
+            !error ||
+            error.code === 'ECONNABORTED' ||
+            error.syscall === 'write'
+          ) {
+            return
+          }
+
+          if (!res.headersSent) {
+            res.removeHeader('Content-Type')
+          }
+
+          next(error.code === 'EISDIR' ? undefined : error)
+        })
       },
       end: () => {
         res.end()

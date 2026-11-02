@@ -178,6 +178,18 @@ const withErrorHandler = (app: Express.Application) => {
   return { app, errors }
 }
 
+test('a missing file reaches the error handlers without the file content type', async () => {
+  const { app, errors } = withErrorHandler(makeApp())
+
+  const response = await supertest(app).get('/pdf/file-missing')
+
+  expect(response.status).toBe(500)
+  expect(response.headers['content-type']).toMatch(/^application\/json/)
+  expect(response.body).toEqual({ error: 'stream failed' })
+  expect(errors).toHaveLength(1)
+  expect(errors[0]).toMatchObject({ code: 'ENOENT' })
+})
+
 test('a stream failing before the first byte reaches the error handlers', async () => {
   const { app, errors } = withErrorHandler(makeApp())
 
