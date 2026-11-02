@@ -426,12 +426,15 @@ describe('requests through the axios adapter', () => {
     const response = await respondWith({
       'X-Total-Count': 3,
       'X-Empty': null,
+      'X-Disabled': false,
+      'X-Flag': 'false',
       'X-Tags': ['a', 'b'],
     })
     const responseWithoutHeaders = await respondWith(undefined)
 
     expect(response.headers).toEqual({
       'x-total-count': '3',
+      'x-flag': 'false',
       'x-tags': ['a', 'b'],
     })
     expect(responseWithoutHeaders.headers).toEqual({})

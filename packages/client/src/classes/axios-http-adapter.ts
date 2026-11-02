@@ -31,12 +31,15 @@ const transportFor = (responses: ResponseMap): ResponseType | undefined => {
 
 // axios' own adapters already lower-case the keys, custom ones or interceptors might not.
 // `headers` can be missing in mocked responses, e.g. of axios-mock-adapter.
+// `false` is the sentinel of axios for a disabled header, which it omits as well.
 const normalizeHeaders = (
   headers: AxiosResponse['headers'] | undefined
 ): HTTPResponseHeaders =>
   Object.fromEntries(
     Object.entries(headers ?? {})
-      .filter(([, value]) => value !== null && value !== undefined)
+      .filter(
+        ([, value]) => value !== null && value !== undefined && value !== false
+      )
       .map(([name, value]) => [
         name.toLowerCase(),
         Array.isArray(value) ? value : String(value),
