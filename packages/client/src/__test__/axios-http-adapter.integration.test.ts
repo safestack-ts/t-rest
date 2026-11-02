@@ -223,6 +223,28 @@ test('an empty json body is undefined on json routes', async () => {
   })
 })
 
+test('the json encoding of an empty string stays a string on json routes', async () => {
+  nock('http://localhost')
+    .get('/invoices')
+    .reply(200, '""', { 'Content-Type': 'application/json' })
+
+  await expect(client.get('/invoices')).resolves.toEqual({
+    data: '',
+    statusCode: 200,
+  })
+})
+
+test('the json encoding of an empty string stays a string on routes mixing kinds', async () => {
+  nock('http://localhost')
+    .get('/pdf')
+    .reply(404, '""', { 'Content-Type': 'application/json' })
+
+  await expect(client.get('/pdf')).resolves.toEqual({
+    data: '',
+    statusCode: 404,
+  })
+})
+
 test('an empty json body is undefined on routes mixing kinds', async () => {
   nock('http://localhost').get('/pdf').reply(404)
 

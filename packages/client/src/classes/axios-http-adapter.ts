@@ -3,6 +3,7 @@ import {
   AxiosInstance,
   AxiosRequestConfig,
   AxiosResponse,
+  AxiosResponseTransformer,
   ResponseType,
 } from 'axios'
 import { HTTPAdapter } from '../types/http-adapter.js'
@@ -30,13 +31,15 @@ const transportFor = (responses: ResponseMap): ResponseType | undefined => {
 const decode = (
   response: AxiosResponse,
   responses: ResponseMap,
-  transport: ResponseType | undefined
+  transport: ResponseType | undefined,
+  isEmptyBody: boolean
 ) => {
   const descriptor = responses[response.status]
 
-  // axios already parsed the json body, an empty body stays an empty string
+  // axios already parsed the json body. Only an empty wire body is undefined,
+  // the json encoding of an empty string stays an empty string.
   if (descriptor?.kind === 'json' && transport === undefined) {
-    return response.data === '' ? undefined : response.data
+    return isEmptyBody ? undefined : response.data
   }
 
   try {
@@ -70,12 +73,27 @@ export class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
     const { params: _params, ...requestConfigWithoutParams } =
       requestConfig ?? {}
     const transport = transportFor(responses)
+    // the parsed body of json routes cannot tell an empty wire body from the
+    // json encoding of an empty string, so the wire body is checked before
+    // the transforms of axios parse it
+    let isEmptyBody = false
+    const recordEmptyBody: AxiosResponseTransformer = (body) => {
+      isEmptyBody = body === '' || body === undefined || body === null
+      return body
+    }
     const response = await this.axiosInstance.request({
       url,
       method,
       data,
       headers: requestConfig?.headers,
-      ...(transport ? { responseType: transport } : {}),
+      ...(transport
+        ? { responseType: transport }
+        : {
+            transformResponse: [
+              recordEmptyBody,
+              ...[this.axiosInstance.defaults.transformResponse ?? []].flat(),
+            ],
+          }),
       validateStatus: (status) => isDeclaredStatus(responses, status),
       ...requestConfigWithoutParams,
     })
@@ -84,7 +102,7 @@ export class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
       // a custom response type opts out of decoding
       data: requestConfig?.responseType
         ? response.data
-        : decode(response, responses, transport),
+        : decode(response, responses, transport, isEmptyBody),
       statusCode: response.status,
     } as HTTPResponse<TResponses>
   }
