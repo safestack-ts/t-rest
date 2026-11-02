@@ -12,6 +12,8 @@ type AnyTypedRoute = { '~responses': unknown }
 
 type JsonBodyMethods<TBody> = {
   json(body: TBody): void
+  /** Alias of `json`, like express sends objects as json. */
+  send(body: TBody): void
 }
 
 type TextBodyMethods = {
@@ -54,11 +56,16 @@ export interface TypedResponseBase<TRoute extends AnyTypedRoute> {
   status<TStatus extends DeclaredStatus<TRoute>>(
     code: TStatus
   ): TypedStatusResponse<TRoute, TStatus>
-  header(name: string, value: string): this
+  /**
+   * Sets a header. Body methods only set the `Content-Type` of the descriptor
+   * when no `Content-Type` has been set before.
+   */
+  header(name: string, value: string | number | readonly string[]): this
   raw: ExpressResponse
 }
 
-// `json` without a status answers with 200, which has to be declared as json
+// `json` and `send` without `status()` answer with 200, which has to be
+// declared as json. They keep a status set before, e.g. on `raw`.
 export type TypedResponse<TRoute extends AnyTypedRoute> =
   TypedResponseBase<TRoute> &
     (200 extends DeclaredStatus<TRoute>

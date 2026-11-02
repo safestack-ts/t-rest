@@ -40,6 +40,8 @@ type AnyTypedRoute = {
 };
 type JsonBodyMethods<TBody> = {
     json(body: TBody): void;
+    /** Alias of `json`, like express sends objects as json. */
+    send(body: TBody): void;
 };
 type TextBodyMethods = {
     send(body: string): void;
@@ -60,7 +62,11 @@ type TypedStatusResponse<TRoute extends AnyTypedRoute, TStatus extends number> =
  */
 interface TypedResponseBase<TRoute extends AnyTypedRoute> {
     status<TStatus extends DeclaredStatus<TRoute>>(code: TStatus): TypedStatusResponse<TRoute, TStatus>;
-    header(name: string, value: string): this;
+    /**
+     * Sets a header. Body methods only set the `Content-Type` of the descriptor
+     * when no `Content-Type` has been set before.
+     */
+    header(name: string, value: string | number | readonly string[]): this;
     raw: ExpressResponse;
 }
 type TypedResponse<TRoute extends AnyTypedRoute> = TypedResponseBase<TRoute> & (200 extends DeclaredStatus<TRoute> ? ResponseDescriptorOf<TRoute, 200> extends JsonResponseDescriptor<infer TBody> ? JsonBodyMethods<TBody> : {} : {});
@@ -229,6 +235,12 @@ type BranchedRouter<TAppOrRouter extends TypedRouterBase<any, any, any, any>, TB
 
 type ApplicationRoutes<TApp extends TypedExpressApplicationWithVersioning<any, any, any, any> | TypedExpressApplicationWithoutVersioning<any, any, any>> = TApp extends TypedExpressApplicationWithVersioning<infer TRoutes, any, any, any> ? TRoutes : TApp extends TypedExpressApplicationWithoutVersioning<infer TRoutes, any, any> ? TRoutes : never;
 
+/**
+ * Creates the response passed to route handlers. `next` receives the errors of
+ * streams and files failing after the handler returned, it has to forward at
+ * most one error per request to the error handlers, also when the handler
+ * throws as well.
+ */
 declare const createTypedResponse: <TRoute extends AnyRouteDef>(res: ExpressResponse, route: TRoute, next: ExpressNextFunction) => TypedResponse<TRoute>;
 
 declare const defineMiddleware: <TRequestIn extends ExpressRequest, TRequestOut>(middlewareFn: TypedRequestHandler<TRequestIn>) => TypedMiddleware<TRequestIn, TRequestOut>;

@@ -76,3 +76,18 @@ pdf.json({ id: 1 })
 // @ts-expect-error json without status needs 200 to be declared
 create.json({ id: 1 })
 create.status(201).json({ id: 1 })
+
+// send is an alias of json on json statuses
+invoice.status(200).send({ id: 1 })
+invoice.status(404).send({ error: 'not found' })
+invoice.send({ id: 1 })
+// @ts-expect-error body of another status
+invoice.status(404).send({ id: 1 })
+// @ts-expect-error send without status needs 200 to be declared as json
+pdf.send(buffer)
+
+// header values may be numbers and lists
+invoice.header('content-length', 12).header('vary', ['accept', 'origin'])
+invoice.header('vary', ['accept'] as const)
+// @ts-expect-error header values are strings, numbers or lists of strings
+invoice.header('x-flag', true)

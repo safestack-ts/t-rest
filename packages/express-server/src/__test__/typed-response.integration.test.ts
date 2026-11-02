@@ -37,10 +37,29 @@ const bagOfRoutes = BagOfRoutes.withoutVersioning()
   .addRoute(Route.delete('/invoices').responses({ 204: empty() }))
   .addRoute(Route.get('/raw').response<never>())
   .addRoute(Route.get('/headers').response<{ ok: boolean }>())
+  .addRoute(
+    Route.get('/problem/:variant')
+      .validate(z.object({ params: z.object({ variant: z.string() }) }))
+      .responses({
+        200: json<{ ok: boolean }>(),
+        404: json<{ title: string }>(),
+      })
+  )
+  .addRoute(
+    Route.get('/stream-then-throw').responses({
+      200: binary('application/pdf'),
+    })
+  )
+  .addRoute(
+    Route.get('/pending-stream-then-throw').responses({
+      200: binary('application/pdf'),
+    })
+  )
   .build()
 
 let pdfFile: string
 let endlessStream: PassThrough | undefined
+let pendingStream: PassThrough | undefined
 
 const makeApp = () => {
   const expressApp = Express()
@@ -107,8 +126,51 @@ const makeApp = () => {
   })
 
   app.get('/headers').handle((_request, _validation, response) => {
-    response.header('x-first', '1').header('x-second', '2').json({ ok: true })
+    response
+      .header('x-first', '1')
+      .header('x-second', '2')
+      .header('x-count', 3)
+      .header('vary', ['accept', 'origin'])
+      .json({ ok: true })
   })
+
+  app.get('/problem/:variant').handle((_request, { params }, response) => {
+    switch (params.variant) {
+      case 'content-type':
+        return response
+          .header('content-type', 'application/problem+json')
+          .status(404)
+          .json({ title: 'not found' })
+      case 'send':
+        return response.status(404).send({ title: 'not found' })
+      case 'bare-send':
+        return response.send({ ok: true })
+      case 'status-then-json':
+        // the status is kept, like express does
+        response.status(404)
+        return response.json({ ok: false })
+    }
+  })
+
+  app
+    .get('/stream-then-throw')
+    .handle(async (_request, _validation, response) => {
+      response.status(200).stream(createReadStream(`${pdfFile}.missing`))
+      // the stream fails while the handler is still running
+      await new Promise((resolve) => setTimeout(resolve, 20))
+
+      throw new Error('handler failed')
+    })
+
+  app
+    .get('/pending-stream-then-throw')
+    .handle((_request, _validation, response) => {
+      // the stream has not sent anything when the handler throws
+      pendingStream = new PassThrough()
+      response.status(200).stream(pendingStream)
+
+      throw new Error('handler failed')
+    })
 
   return expressApp
 }
@@ -272,6 +334,81 @@ test('raw is the native express response', async () => {
 test('headers are set and chainable', async () => {
   const response = await supertest(makeApp()).get('/headers')
 
-  expect(response.headers).toMatchObject({ 'x-first': '1', 'x-second': '2' })
+  expect(response.headers).toMatchObject({
+    'x-first': '1',
+    'x-second': '2',
+    'x-count': '3',
+    vary: 'accept, origin',
+  })
   expect(response.body).toEqual({ ok: true })
+})
+
+test('a content type set before the body is kept', async () => {
+  const response = await supertest(makeApp()).get('/problem/content-type')
+
+  expect(response.status).toBe(404)
+  expect(response.headers['content-type']).toMatch(
+    /^application\/problem\+json/
+  )
+  expect(JSON.parse(response.text)).toEqual({ title: 'not found' })
+})
+
+test('send sends objects of json statuses as json', async () => {
+  const withStatus = await supertest(makeApp()).get('/problem/send')
+
+  expect(withStatus.status).toBe(404)
+  expect(withStatus.headers['content-type']).toMatch(/^application\/json/)
+  expect(withStatus.body).toEqual({ title: 'not found' })
+
+  const withoutStatus = await supertest(makeApp()).get('/problem/bare-send')
+
+  expect(withoutStatus.status).toBe(200)
+  expect(withoutStatus.body).toEqual({ ok: true })
+})
+
+test('json without a status keeps a status set before', async () => {
+  const response = await supertest(makeApp()).get('/problem/status-then-json')
+
+  expect(response.status).toBe(404)
+  expect(response.body).toEqual({ ok: false })
+})
+
+test('a handler throwing after a failing stream reaches the error handlers once', async () => {
+  const { app, errors } = withErrorHandler(makeApp())
+  // a second forwarded error continues after the error handler which answered
+  const leaked: Error[] = []
+  app.use(
+    (
+      error: Error,
+      _request: Express.Request,
+      _response: Express.Response,
+      next: Express.NextFunction
+    ) => {
+      leaked.push(error)
+      next(error)
+    }
+  )
+
+  const response = await supertest(app).get('/stream-then-throw')
+
+  expect(response.status).toBe(500)
+  expect(response.body).toEqual({ error: 'stream failed' })
+  // the handler throws after the error handlers answered
+  await new Promise((resolve) => setTimeout(resolve, 40))
+  expect(errors).toHaveLength(1)
+  expect(errors[0]).toMatchObject({ code: 'ENOENT' })
+  expect(leaked).toEqual([])
+})
+
+test('a handler throwing after starting a stream reaches the error handlers without the stream content type', async () => {
+  const { app, errors } = withErrorHandler(makeApp())
+
+  const response = await supertest(app).get('/pending-stream-then-throw')
+
+  expect(response.status).toBe(500)
+  expect(response.headers['content-type']).toMatch(/^application\/json/)
+  expect(response.body).toEqual({ error: 'stream failed' })
+  expect(errors.map(({ message }) => message)).toEqual(['handler failed'])
+  // the stream would otherwise write into the answer of the error handlers
+  expect(pendingStream?.destroyed).toBe(true)
 })
