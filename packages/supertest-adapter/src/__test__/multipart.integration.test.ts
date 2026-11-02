@@ -56,6 +56,18 @@ const uploadValidator = z.object({
   files: z.array(fileSchema),
 })
 
+const structuredBody = z.object({
+  name: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  meta: z
+    .object({
+      label: z.string(),
+      sizes: z.array(z.coerce.number()),
+      items: z.array(z.object({ id: z.string() })),
+    })
+    .optional(),
+})
+
 const bagOfRoutes = BagOfRoutes.withVersioning(Versioning.DATE, versionHistory)
   .addRoute(
     Route.version('2024-01-01')
@@ -63,6 +75,13 @@ const bagOfRoutes = BagOfRoutes.withVersioning(Versioning.DATE, versionHistory)
       .multipart()
       .validate(uploadValidator)
       .response<UploadResult>()
+  )
+  .addRoute(
+    Route.version('2024-01-01')
+      .post('/structured')
+      .multipart()
+      .validate(z.object({ body: structuredBody }))
+      .response<z.infer<typeof structuredBody>>()
   )
   .addRoute(
     Route.version('2024-01-01')
@@ -104,6 +123,14 @@ const makeApplication = () => {
     .middleware(upload.any())
     .handle((_, { body, files }, response) => {
       response.json(toResult(body, files))
+    })
+
+  app
+    .post('/structured')
+    .version('2024-01-01')
+    .middleware(upload.none())
+    .handle((_, { body }, response) => {
+      response.json(body)
     })
 
   app
@@ -239,6 +266,54 @@ describe('multipart requests through the supertest adapter', () => {
     })
 
     expect(response.body).toEqual({ name: 'me.png' })
+  })
+
+  test('sends a single element array as an array', async () => {
+    const response = await adapter.post('/structured', '2024-01-01', {
+      multipart: { fields: { tags: ['a'] } },
+      expect: { status: 200 },
+    })
+
+    expect(response.body).toEqual({ tags: ['a'] })
+  })
+
+  test('sends nested objects and arrays of objects', async () => {
+    const meta = { label: 'x', sizes: [1, 2], items: [{ id: 'a' }] }
+
+    const response = await adapter.post('/structured', '2024-01-01', {
+      multipart: { fields: { name: 'winter', tags: ['a', 'b'], meta } },
+      expect: { status: 200 },
+    })
+
+    expect(response.body).toEqual({ name: 'winter', tags: ['a', 'b'], meta })
+  })
+
+  test('sends a multipart body without fields', async () => {
+    const response = await adapter.post('/structured', '2024-01-01', {
+      multipart: { fields: {} },
+      expect: { status: 200 },
+    })
+
+    expect(response.body).toEqual({})
+  })
+
+  test('sends a multipart body when all fields are undefined', async () => {
+    const adapterWithJsonDefault = SupertestAdapter.withVersioning(
+      app,
+      versionInjectorFrom(convention),
+      { headers: { 'Content-Type': 'application/json' } }
+    )
+
+    const response = await adapterWithJsonDefault.post(
+      '/structured',
+      '2024-01-01',
+      {
+        multipart: { fields: { name: undefined, tags: undefined } },
+        expect: { status: 200 },
+      }
+    )
+
+    expect(response.body).toEqual({})
   })
 
   test('validation errors of multipart requests are reported', async () => {

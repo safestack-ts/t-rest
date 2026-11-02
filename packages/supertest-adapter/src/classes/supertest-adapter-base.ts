@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { BaseRequestInput, planRequest } from '@t-rest/protocol'
 import { AnyTypedExpressApplication } from '../types/any-typed-express-application.js'
 import { HTTPMethod, typedLowerCase } from '@t-rest/core'
@@ -6,6 +7,7 @@ import { SupertestConfig } from '../types/supertest-config.js'
 import supertest from 'supertest'
 import { SupertestResponse } from '../types/supertest-response.js'
 import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config.js'
+import { multipartFieldEntries } from '../utils/multipart-field-entries.js'
 import { SupertestTargetError } from './supertest-target-error.js'
 
 // express applications and http servers can be listened on, routers cannot
@@ -56,7 +58,17 @@ export abstract class SupertestAdapterBase<
       request = request.send(plan.body.value as string | object | undefined)
     }
 
-    const headers = { ...this.defaultConfig.headers, ...context.headers }
+    const headers = Object.fromEntries(
+      Object.entries({
+        ...this.defaultConfig.headers,
+        ...context.headers,
+      }).filter(
+        // the multipart content type carries the boundary of the body
+        ([name]) =>
+          context.multipart === undefined ||
+          name.toLowerCase() !== 'content-type'
+      )
+    )
 
     if (Object.entries(headers).length > 0) {
       request = request.set(headers)
@@ -86,15 +98,24 @@ export abstract class SupertestAdapterBase<
   }
 
   private attachMultipart(request: supertest.Test, multipart: MultipartBody) {
-    for (const [name, value] of Object.entries(multipart.fields ?? {})) {
-      // optional fields can be undefined, which superagent refuses
-      if (value !== undefined) {
-        request = request.field(name, value as string)
-      }
+    const fields = multipartFieldEntries(multipart.fields ?? {})
+    const files = multipart.files ?? []
+
+    // superagent only creates the form once a part is added, without parts
+    // the request would carry no body at all
+    if (fields.length === 0 && files.length === 0) {
+      const boundary = `t-rest-${randomUUID()}`
+
+      return request
+        .set('Content-Type', `multipart/form-data; boundary=${boundary}`)
+        .send(`--${boundary}--\r\n`)
     }
 
-    for (const { field, filename, contentType, ...source } of multipart.files ??
-      []) {
+    for (const [name, value] of fields) {
+      request = request.field(name, value)
+    }
+
+    for (const { field, filename, contentType, ...source } of files) {
       request = request.attach(field, source.buffer ?? source.path, {
         filename,
         contentType,
