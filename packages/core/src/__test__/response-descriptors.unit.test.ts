@@ -35,3 +35,13 @@ test('response<T>() is a shorthand for a json 200 response', () => {
     Route.get('/').metaData({ a: 1 }).response<string>().responses
   ).toEqual({ 200: json() })
 })
+
+test('response<T>(status) declares a json body for the status', () => {
+  expect(Route.post('/').response<string>(201).responses).toEqual({
+    201: json(),
+  })
+  expect(
+    Route.post('/').validate(null).response<string>(202).responses
+  ).toEqual({ 202: json() })
+  expect(Route.delete('/').response(204).responses).toEqual({ 204: empty() })
+})

@@ -1,7 +1,14 @@
 import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
-import { ResponseMap } from '../../types/response-descriptor.js'
-import { json } from '../../utils/response-descriptors.js'
+import {
+  EmptyResponseDescriptor,
+  JsonResponseDescriptor,
+  StrictResponseMap,
+} from '../../types/response-descriptor.js'
+import {
+  shorthandResponses,
+  ShorthandStatus,
+} from '../../internal/response-shorthand.js'
 export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
   TVersion extends string,
   TMethod extends HTTPMethod,
@@ -17,7 +24,9 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
     private metaData: TMetaData
   ) {}
 
-  public responses<TResponses extends ResponseMap>(responses: TResponses) {
+  public responses<TResponses extends StrictResponseMap<TResponses>>(
+    responses: TResponses
+  ) {
     return new RouteDef<
       TVersion,
       TMethod,
@@ -35,8 +44,51 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
     )
   }
 
-  /** Shorthand for `.responses({ 200: json<TResponse>() })`. */
-  public response<TResponse>() {
-    return this.responses({ 200: json<TResponse>() })
+  /**
+   * Shorthand for `.responses({ [status]: json<TResponse>() })`, the status
+   * defaults to `200`. `.response(204)` declares an empty body.
+   */
+  public response<TResponse>(
+    status?: 200
+  ): RouteDef<
+    TVersion,
+    TMethod,
+    TPath,
+    TValidator,
+    { 200: JsonResponseDescriptor<TResponse> },
+    TMetaData
+  >
+  public response<TResponse>(
+    status: 201
+  ): RouteDef<
+    TVersion,
+    TMethod,
+    TPath,
+    TValidator,
+    { 201: JsonResponseDescriptor<TResponse> },
+    TMetaData
+  >
+  public response<TResponse>(
+    status: 202
+  ): RouteDef<
+    TVersion,
+    TMethod,
+    TPath,
+    TValidator,
+    { 202: JsonResponseDescriptor<TResponse> },
+    TMetaData
+  >
+  public response(
+    status: 204
+  ): RouteDef<
+    TVersion,
+    TMethod,
+    TPath,
+    TValidator,
+    { 204: EmptyResponseDescriptor },
+    TMetaData
+  >
+  public response(status: ShorthandStatus = 200) {
+    return this.responses(shorthandResponses(status))
   }
 }

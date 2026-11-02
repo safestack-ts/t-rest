@@ -1,6 +1,7 @@
 import { AssertTrue, IsExact } from 'conditional-type-checks'
 import { BagOfRoutes } from '../classes/core/bag-of-routes.js'
 import { Route } from '../classes/core/route.js'
+import { RouteDef } from '../classes/core/route-def.js'
 import {
   BinaryResponseDescriptor,
   BodyOf,
@@ -90,10 +91,7 @@ type _unionDeclaredStatus = AssertTrue<
   IsExact<DeclaredStatus<UnionRoute>, 200 | 201 | 404>
 >
 type _unionBodyOf = AssertTrue<
-  IsExact<
-    BodyOf<UnionRoute>,
-    Invoice | { created: boolean } | Failure | string
-  >
+  IsExact<BodyOf<UnionRoute>, Invoice | { created: boolean } | Failure | string>
 >
 type _unionBodyOfStatus = AssertTrue<
   IsExact<BodyOf<UnionRoute, 200>, Invoice | string>
@@ -106,4 +104,56 @@ type _unionRouteOutput = AssertTrue<
     RouteOutput<typeof unionBag, 'GET', '/a' | '/b'>,
     Invoice | { created: boolean } | Failure
   >
+>
+
+// the shorthand takes the status of a successful response
+const created = Route.post('/').response<Invoice>(201)
+type _shorthandCreated = AssertTrue<
+  IsExact<
+    (typeof created)['~responses'],
+    { 201: JsonResponseDescriptor<Invoice> }
+  >
+>
+const accepted = Route.post('/').validate(null).response<Invoice>(202)
+type _shorthandAccepted = AssertTrue<
+  IsExact<
+    (typeof accepted)['~responses'],
+    { 202: JsonResponseDescriptor<Invoice> }
+  >
+>
+const noContent = Route.delete('/').metaData({}).response(204)
+type _shorthandNoContent = AssertTrue<
+  IsExact<(typeof noContent)['~responses'], { 204: EmptyResponseDescriptor }>
+>
+// @ts-expect-error other statuses are declared with .responses()
+Route.get('/').response<Invoice>(404)
+// @ts-expect-error a 204 response has no body
+Route.get('/').response<Invoice>(204)
+
+// the output of single statuses of a route
+type _routeOutputOfStatus = AssertTrue<
+  IsExact<RouteOutput<typeof bag, 'GET', '/many', '', 200>, Invoice>
+>
+type _routeOutputOfErrorStatus = AssertTrue<
+  IsExact<RouteOutput<typeof bag, 'GET', '/many', '', 404>, Failure>
+>
+
+// hand written route definitions declare their responses as a response map
+type _invalidRouteDef = RouteDef<
+  '',
+  'GET',
+  '/',
+  null,
+  // @ts-expect-error the responses are a map of descriptors by status
+  Invoice,
+  unknown
+>
+
+// a status enum member counts as its value
+enum StatusCodes {
+  CREATED = 201,
+}
+const createdByEnum = Route.post('/').response<Invoice>(StatusCodes.CREATED)
+type _shorthandByEnum = AssertTrue<
+  IsExact<DeclaredStatus<typeof createdByEnum>, 201>
 >

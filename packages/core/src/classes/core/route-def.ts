@@ -1,12 +1,13 @@
 import { HTTPMethod } from '../../types/http-method.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
+import type { StrictResponseMap } from '../../types/response-descriptor.js'
 
 export class RouteDef<
   TVersion extends string,
   TMethod extends HTTPMethod,
   TPath extends string,
   TValidator,
-  TResponses,
+  TResponses extends StrictResponseMap<TResponses>,
   TMetaData
 > {
   public readonly version: TVersion

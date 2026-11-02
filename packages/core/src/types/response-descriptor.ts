@@ -36,6 +36,15 @@ export type AnyResponseDescriptor =
 /** The responses of a route: HTTP status code to response descriptor. */
 export type ResponseMap = { readonly [status: number]: AnyResponseDescriptor }
 
+/**
+ * Constrains every property of the responses to a descriptor: the numeric index
+ * signature of `ResponseMap` alone accepts any object without numeric keys,
+ * e.g. a body type passed where responses are expected.
+ */
+export type StrictResponseMap<TResponses> = ResponseMap & {
+  readonly [TKey in keyof TResponses]: AnyResponseDescriptor
+}
+
 /** The statuses a route declares, of a union of routes those of every member. */
 export type DeclaredStatus<TRoute extends { '~responses': unknown }> =
   TRoute extends unknown ? keyof TRoute['~responses'] & number : never
@@ -65,4 +74,22 @@ export type BodyOf<
     >
     ? TBody
     : never
+  : never
+
+/**
+ * The body a consumer decodes for a descriptor: the json body, a string for
+ * text, and its own representations of binary and empty bodies.
+ */
+export type DecodedBody<
+  TDescriptor,
+  TBinary = Uint8Array,
+  TEmpty = undefined
+> = TDescriptor extends JsonResponseDescriptor<infer TBody>
+  ? TBody
+  : TDescriptor extends TextResponseDescriptor<string>
+  ? string
+  : TDescriptor extends BinaryResponseDescriptor
+  ? TBinary
+  : TDescriptor extends EmptyResponseDescriptor
+  ? TEmpty
   : never
