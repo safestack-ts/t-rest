@@ -1,11 +1,19 @@
 import { BaseRequestInput, planRequest } from '@t-rest/protocol'
 import { AnyTypedExpressApplication } from '../types/any-typed-express-application.js'
-import { HTTPMethod, typedLowerCase } from '@t-rest/core'
+import {
+  HTTPMethod,
+  ResponseMap,
+  resolveVersion,
+  typedLowerCase,
+} from '@t-rest/core'
 import { SupertestConfig } from '../types/supertest-config.js'
 import supertest from 'supertest'
 import { SupertestResponse } from '../types/supertest-response.js'
 import { DefaultSupertestAdapterConfig } from '../types/default-supertest-adapter-config.js'
 import { SupertestTargetError } from './supertest-target-error.js'
+import { descriptorParser } from '../utils/descriptor-parser.js'
+
+type SuperagentParser = Parameters<supertest.Test['parse']>[0]
 
 // express applications and http servers can be listened on, routers cannot
 const isExpressRouter = (target: unknown) =>
@@ -35,17 +43,44 @@ export abstract class SupertestAdapterBase<
     this.requestTarget = requestTarget as Parameters<typeof supertest>[0]
   }
 
+  /**
+   * The responses of the route the server executes for the request: the route
+   * declared for the version, else the newest route of an older version.
+   */
+  protected responsesOf(
+    method: HTTPMethod,
+    path: string,
+    version: string,
+    versionHistory: string[] = []
+  ): ResponseMap {
+    const declaredVersions = Array.from(this.app.routes.keys())
+      .filter(
+        ([keyMethod, keyPath]) => keyMethod === method && keyPath === path
+      )
+      .map(([, , keyVersion]) => keyVersion)
+    const resolvedVersion =
+      resolveVersion(versionHistory, declaredVersions, version) ?? version
+
+    return this.app.routes.get([method, path, resolvedVersion])?.responses ?? {}
+  }
+
   protected async executeRequest<TRequestInput, TResponses>(
     method: HTTPMethod,
     path: string,
+    responses: ResponseMap,
     context: SupertestConfig & TRequestInput & BaseRequestInput
   ) {
     // the version injector already modified the path template, before its
     // params and query are put into it
     const plan = planRequest(method, path, context)
-    let request = supertest(this.requestTarget)[typedLowerCase(method)](
-      plan.url
-    )
+    // the body is decoded by the declared descriptor of the status, which is
+    // only known once the response arrives
+    let request = supertest(this.requestTarget)
+      [typedLowerCase(method)](plan.url)
+      .buffer(true)
+      // superagent types the parser for the browser, node passes the
+      // incoming message
+      .parse(descriptorParser(responses) as unknown as SuperagentParser)
 
     if (plan.body.send) {
       request = request.send(plan.body.value as string | object | undefined)
@@ -76,11 +111,6 @@ export abstract class SupertestAdapterBase<
     }
 
     const response = await request
-
-    // superagent keeps text bodies apart from the parsed `body`
-    if (response.type.startsWith('text/')) {
-      response.body = response.text
-    }
 
     return response as unknown as SupertestResponse<TResponses>
   }

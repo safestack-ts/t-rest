@@ -37,7 +37,7 @@ export class SupertestAdapterWithoutVersioning<
           ApplicationRoutes<TApp>,
           { method: TMethod; path: TAbsolutePath }
         >['~responses']
-      >(method, path, context)
+      >(method, path, this.responsesOf(method, path, ''), context)
     }
   }
 

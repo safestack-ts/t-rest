@@ -24,6 +24,12 @@ export class SupertestAdapterWithVersioning<
     this.versionInjector = versionInjector
   }
 
+  // the history the server resolves versions against, not part of the public
+  // surface of the application
+  private get versionHistory(): string[] {
+    return (this.app as unknown as { versionHistory: string[] }).versionHistory
+  }
+
   protected makeRouteHandler<TMethod extends HTTPMethod>(method: TMethod) {
     return <
       TAbsolutePath extends Extract<
@@ -40,13 +46,18 @@ export class SupertestAdapterWithVersioning<
       return super.executeRequest<
         RequestInput<AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>>,
         AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>['~responses']
-      >(method, this.versionInjector.modifyUrl(path, version), {
-        ...(context as any),
-        headers: this.versionInjector.modifyHeaders(
-          (context as any)?.headers ?? {},
-          version
-        ),
-      })
+      >(
+        method,
+        this.versionInjector.modifyUrl(path, version),
+        this.responsesOf(method, path, version, this.versionHistory),
+        {
+          ...(context as any),
+          headers: this.versionInjector.modifyHeaders(
+            (context as any)?.headers ?? {},
+            version
+          ),
+        }
+      )
     }
   }
 

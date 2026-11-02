@@ -1,6 +1,6 @@
 import { TypedExpressApplicationWithoutVersioning, TypedExpressApplicationWithVersioning, ApplicationRoutes } from '@t-rest/express-server';
 import * as _t_rest_core from '@t-rest/core';
-import { AnyRouteDef, RouteValidationInput, JsonResponseDescriptor, TextResponseDescriptor, BinaryResponseDescriptor, EmptyResponseDescriptor, HTTPMethod, ExtractVersionMatchingRoute } from '@t-rest/core';
+import { AnyRouteDef, RouteValidationInput, JsonResponseDescriptor, TextResponseDescriptor, BinaryResponseDescriptor, EmptyResponseDescriptor, HTTPMethod, ResponseMap, ExtractVersionMatchingRoute } from '@t-rest/core';
 import { BaseRequestInput, VersionConvention } from '@t-rest/protocol';
 import supertest from 'supertest';
 
@@ -42,7 +42,12 @@ declare abstract class SupertestAdapterBase<TApp extends AnyTypedExpressApplicat
     protected defaultConfig: DefaultSupertestAdapterConfig;
     private readonly requestTarget;
     constructor(app: TApp, defaultConfig: DefaultSupertestAdapterConfig);
-    protected executeRequest<TRequestInput, TResponses>(method: HTTPMethod, path: string, context: SupertestConfig & TRequestInput & BaseRequestInput): Promise<SupertestResponse<TResponses>>;
+    /**
+     * The responses of the route the server executes for the request: the route
+     * declared for the version, else the newest route of an older version.
+     */
+    protected responsesOf(method: HTTPMethod, path: string, version: string, versionHistory?: string[]): ResponseMap;
+    protected executeRequest<TRequestInput, TResponses>(method: HTTPMethod, path: string, responses: ResponseMap, context: SupertestConfig & TRequestInput & BaseRequestInput): Promise<SupertestResponse<TResponses>>;
     private stringifyBody;
 }
 
@@ -159,6 +164,7 @@ type AppRouteAt<TApp extends TypedExpressApplicationWithVersioning<any, any, any
 declare class SupertestAdapterWithVersioning<TApp extends TypedExpressApplicationWithVersioning<any, any, any, any>> extends SupertestAdapterBase<TApp> {
     private readonly versionInjector;
     constructor(app: TApp, versionInjector: SupertestVersionInjector, defaultConfig: DefaultSupertestAdapterConfig);
+    private get versionHistory();
     protected makeRouteHandler<TMethod extends HTTPMethod>(method: TMethod): <TAbsolutePath extends Extract<ApplicationRoutes<TApp>, {
         method: TMethod;
     }>["path"], TVersion extends CallableVersions<TApp, TMethod, TAbsolutePath>>(path: TAbsolutePath, version: TVersion, context: SupertestConfig & RequestInput<AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>>) => Promise<SupertestResponse<AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>["~responses"]>>;
