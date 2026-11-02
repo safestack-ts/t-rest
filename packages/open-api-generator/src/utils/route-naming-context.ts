@@ -505,10 +505,19 @@ export const extractRouteNamingContexts = (
       }
 
       if (callName === 'responses') {
+        const responses = node.arguments.at(0)
+
+        // the statuses of an object literal each keep the namespace of their
+        // own body, a status without one must not take that of another status
         setNamingContext(
           node,
           'response',
-          extractNamingContextFromCallTypes(node, sourceFile)
+          responses && ts.isObjectLiteralExpression(responses)
+            ? extractNamingContextFromTypeNodes(
+                node.typeArguments ?? [],
+                sourceFile
+              )
+            : extractNamingContextFromCallTypes(node, sourceFile)
         )
         setNamingContext(
           node,

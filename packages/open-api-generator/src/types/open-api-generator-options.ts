@@ -4,6 +4,8 @@ export type RouteNamingContextInput = {
   version: string
   // whether the naming context is derived for the validator input or the response
   kind: 'input' | 'response'
+  // the status of the response the naming context is derived for
+  status?: string
   // naming contexts found in the explicitly written types of the route
   namingContext: {
     input?: string
