@@ -73,17 +73,19 @@ describe('typed router modules without versioning', () => {
     const adminModule = defineRouterModule(bagOfRoutes)
       .at('/api/admin')
       .configure((router) => {
-        router.get('/accounts').handle((request, _validationOutput, response) => {
-          response.status(StatusCodes.OK).json([
-            {
-              id: 1,
-              email:
-                'clientId' in request
-                  ? `${request.clientId}@email.com`
-                  : 'admin@email.com',
-            },
-          ])
-        })
+        router
+          .get('/accounts')
+          .handle((request, _validationOutput, response) => {
+            response.status(StatusCodes.OK).json([
+              {
+                id: 1,
+                email:
+                  'clientId' in request
+                    ? `${request.clientId}@email.com`
+                    : 'admin@email.com',
+              },
+            ])
+          })
       })
 
     const expressApp = Express()
@@ -145,17 +147,19 @@ describe('typed router modules without versioning', () => {
     const adminModule = defineRouterModule(bagOfRoutes)
       .at('/api/admin')
       .configure((router) => {
-        router.get('/accounts').handle((request, _validationOutput, response) => {
-          response.status(StatusCodes.OK).json([
-            {
-              id: 1,
-              email:
-                'clientId' in request
-                  ? `${request.clientId}@email.com`
-                  : 'isolated@email.com',
-            },
-          ])
-        })
+        router
+          .get('/accounts')
+          .handle((request, _validationOutput, response) => {
+            response.status(StatusCodes.OK).json([
+              {
+                id: 1,
+                email:
+                  'clientId' in request
+                    ? `${request.clientId}@email.com`
+                    : 'isolated@email.com',
+              },
+            ])
+          })
       })
 
     const expressApp = Express()

@@ -18,6 +18,7 @@ import {
 } from '../types/express-type-shortcuts.js'
 import { TypedMiddleware } from '../types/typed-middleware.js'
 import { VersionExtractor } from '../types/version-extractor.js'
+import { createDiscardableTypedResponse } from '../internal/discardable-typed-response.js'
 import { removePrefixFromPath } from '../utils/remove-prefix-from-path.js'
 import { RouteSetupError } from './route-setup-error.js'
 import { TypedRouterBase } from './typed-router-base.js'
@@ -80,8 +81,21 @@ export class VersionedRouting {
     return async (
       request: ExpressRequest,
       response: ExpressResponse,
-      next: ExpressNextFunction
+      expressNext: ExpressNextFunction
     ) => {
+      // a stream failing after the handler started and the handler throwing
+      // afterwards would both forward an error, the error handlers would then
+      // answer twice
+      let forwarded = false
+      const next: ExpressNextFunction = (error?: unknown) => {
+        if (forwarded) {
+          return
+        }
+
+        forwarded = true
+        expressNext(error)
+      }
+
       try {
         const resolution = this.versionRegistry.resolve(request, key, () =>
           resolveRequest(
@@ -145,11 +159,22 @@ export class VersionedRouting {
 
               requestWithVersion.version = version
 
-              await handler(
-                requestWithVersion,
-                validationOutput.value,
-                response
+              const typedResponse = createDiscardableTypedResponse(
+                response,
+                route,
+                next
               )
+
+              try {
+                await handler(
+                  requestWithVersion,
+                  validationOutput.value,
+                  typedResponse.response
+                )
+              } catch (err) {
+                typedResponse.discardBody()
+                throw err
+              }
             }
           } catch (err) {
             return next(err)

@@ -15,6 +15,7 @@ import multiVersionBagOfRoutes from './scenarios/multi-version'
 import headersBagOfRoutes from './scenarios/headers'
 import unsortedComponentsBagOfRoutes from './scenarios/unsorted-components'
 import semverVersionsBagOfRoutes from './scenarios/semver-versions'
+import typedResponsesBagOfRoutes from './scenarios/typed-responses'
 
 const tsConfigPath = path.join(__dirname, '../../../', 'tsconfig.json')
 
@@ -49,6 +50,27 @@ const baseMetaData = {
 }
 
 describe('OpenAPIGenerator.generate', () => {
+  test('emits one response per declared status and content type', async () => {
+    const outputDir = await createOutputDir()
+
+    await OpenAPIGenerator.generate([
+      {
+        spec: OpenAPISpec.of(typedResponsesBagOfRoutes).withMetaData(
+          baseMetaData
+        ),
+        outputFile: 'spec.yaml',
+        outputDir,
+        entry: entry('typed-responses'),
+        tsConfigPath,
+      },
+    ])
+
+    const spec = await readSpec(path.join(outputDir, 'spec.yaml'))
+
+    expect(spec.paths).toMatchSnapshot()
+    expect(spec.components).toMatchSnapshot()
+  })
+
   describe('options', () => {
     test('uses the spec level options', async () => {
       const outputDir = await createOutputDir()

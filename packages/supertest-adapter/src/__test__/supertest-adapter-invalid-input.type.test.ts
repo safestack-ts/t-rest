@@ -1,11 +1,21 @@
 import { AssertTrue, IsExact } from 'conditional-type-checks'
-import { BagOfRoutes, Route, VersionHistory, Versioning } from '@t-rest/core'
+import {
+  BagOfRoutes,
+  JsonResponseDescriptor,
+  Route,
+  VersionHistory,
+  Versioning,
+} from '@t-rest/core'
 import { TypedExpressApplication } from '@t-rest/express-server'
 import Express from 'express'
 import { z } from 'zod'
 import { SupertestAdapter } from '../classes/supertest-adapter.js'
 import { SupertestVersionInjector } from '../classes/version-injector.js'
 import { SupertestResponse } from '../types/supertest-response.js'
+
+type JsonResponse<TBody> = SupertestResponse<{
+  200: JsonResponseDescriptor<TBody>
+}>
 
 const versionHistory = VersionHistory([
   '2024-01-01',
@@ -72,7 +82,7 @@ export const test = async () => {
     }
   )
   type _declared = AssertTrue<
-    IsExact<typeof declared, SupertestResponse<{ v: 3 }>>
+    IsExact<typeof declared, JsonResponse<{ v: 3 }>>
   >
 
   // a version between two declared versions resolves down like a valid request
@@ -82,17 +92,17 @@ export const test = async () => {
     {}
   )
   type _resolved = AssertTrue<
-    IsExact<typeof resolved, SupertestResponse<{ v: 1 }>>
+    IsExact<typeof resolved, JsonResponse<{ v: 1 }>>
   >
 
   const post = await unversioned.invalid.post('/users/:userId', {
     params: null,
     body: 'email',
   })
-  type _post = AssertTrue<IsExact<typeof post, SupertestResponse<{ v: 1 }>>>
+  type _post = AssertTrue<IsExact<typeof post, JsonResponse<{ v: 1 }>>>
 
   const get = await unversioned.invalid.get('/users/:userId', { query: 42 })
-  type _get = AssertTrue<IsExact<typeof get, SupertestResponse<{ v: 2 }>>>
+  type _get = AssertTrue<IsExact<typeof get, JsonResponse<{ v: 2 }>>>
 
   // @ts-expect-error unknown path
   await versioned.invalid.post('/unknown', '2024-01-01', {})

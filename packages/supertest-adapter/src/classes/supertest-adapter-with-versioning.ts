@@ -1,5 +1,6 @@
 import {
   ApplicationRoutes,
+  DateVersionExtractor,
   TypedExpressApplicationWithVersioning,
 } from '@t-rest/express-server'
 import { HTTPMethod } from '@t-rest/core'
@@ -25,6 +26,23 @@ export class SupertestAdapterWithVersioning<
     this.versionInjector = versionInjector
   }
 
+  // resolves like the server: by date only with a date version extractor.
+  // Neither is part of the public surface of the application.
+  protected versionResolution() {
+    const { versionHistory, versionExtractor } = this.app as unknown as {
+      versionHistory: string[]
+      versionExtractor: Partial<DateVersionExtractor>
+    }
+
+    return {
+      versionHistory,
+      parseDate:
+        typeof versionExtractor.parseDate === 'function'
+          ? versionExtractor.parseDate.bind(versionExtractor)
+          : undefined,
+    }
+  }
+
   protected makeRouteHandler<TMethod extends HTTPMethod>(method: TMethod) {
     return <
       TAbsolutePath extends Extract<
@@ -40,7 +58,7 @@ export class SupertestAdapterWithVersioning<
     ) => {
       return this.executeVersionedRequest<
         RequestInput<AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>>,
-        AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>['~responseType']
+        AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>['~responses']
       >(method, path, version, context)
     }
   }
@@ -61,20 +79,21 @@ export class SupertestAdapterWithVersioning<
     ) => {
       return this.executeVersionedRequest<
         InvalidRequestInput,
-        AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>['~responseType']
+        AppRouteAt<TApp, TMethod, TAbsolutePath, TVersion>['~responses']
       >(method, path, version, context)
     }
   }
 
-  private executeVersionedRequest<TRequestInput, TResponseType>(
+  private executeVersionedRequest<TRequestInput, TResponses>(
     method: HTTPMethod,
     path: string,
     version: string,
     context: SupertestConfig & TRequestInput
   ) {
-    return super.executeRequest<TRequestInput, TResponseType>(
+    return super.executeRequest<TRequestInput, TResponses>(
       method,
       this.versionInjector.modifyUrl(path, version),
+      this.responsesOf(method, path, version),
       {
         ...(context as any),
         headers: this.versionInjector.modifyHeaders(

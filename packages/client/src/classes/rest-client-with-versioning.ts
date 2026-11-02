@@ -33,6 +33,10 @@ export class RESTClientWithVersioning<
     this.versionInjectorConstructor = versionInjectorConstructor
   }
 
+  protected requestedVersion() {
+    return this.version
+  }
+
   private makeRouteHandler<TMethod extends HTTPMethod>(method: TMethod) {
     return <
       TAbsolutePath extends ExtractLatestMatchingRoutePerPath<
@@ -59,7 +63,7 @@ export class RESTClientWithVersioning<
           Extract<TRoutes, { method: TMethod; path: TAbsolutePath }>,
           TVersion,
           TVersionHistory
-        >['~responseType'],
+        >['~responses'],
         NonNullable<(typeof args)[1]>
       >(method, args[0], args[1])
     }

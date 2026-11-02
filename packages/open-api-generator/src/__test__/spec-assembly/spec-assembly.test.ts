@@ -1,8 +1,11 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import path from 'path'
 import { OpenAPIGenerator } from '../../classes/open-api-generator'
 import type { OpenAPIMetaData } from '../../types/open-api-meta-data'
-import type { OpenAPIGeneratorOptions } from '../../types/open-api-generator-options'
+import type {
+  OpenAPIGeneratorOptions,
+  RouteNamingContextInput,
+} from '../../types/open-api-generator-options'
 import type { OpenAPISchema } from '../../types/open-api-schema'
 
 import sameNameWithinResponseBagOfRoutes from './scenarios/same-name-within-response'
@@ -11,6 +14,9 @@ import equivalentTemplatedPathsBagOfRoutes from './scenarios/equivalent-template
 import multipartBagOfRoutes from './scenarios/multipart'
 import reexportUnversionedBagOfRoutes from './scenarios/reexport-unversioned'
 import reexportMultipleBagsBagOfRoutes from './scenarios/reexport-multiple-bags'
+import reexportResponsesDeclarationBagOfRoutes from './scenarios/reexport-responses-declaration'
+import reexportResponsesPerStatusBagOfRoutes from './scenarios/reexport-responses-per-status'
+import reexportResponsesPartialNamespaceBagOfRoutes from './scenarios/reexport-responses-partial-namespace'
 import reexportValidatorContextBagOfRoutes from './scenarios/reexport-validator-context'
 import reexportObjectMemberBagOfRoutes from './scenarios/reexport-object-member'
 import reexportObjectMemberCustomerFirstBagOfRoutes from './scenarios/reexport-object-member-customer-first'
@@ -206,6 +212,62 @@ describe('spec assembly', () => {
         ])
       )
       expect(componentKeys).not.toContain('V2026_06_09_Admin_Checkout_Checkout')
+    })
+
+    test('selects the namespace from types within .responses()', () => {
+      const schema = getSchemaFromBag(
+        reexportResponsesDeclarationBagOfRoutes,
+        'reexport-responses-declaration.ts',
+        { includeTypesNamespaceInName: true }
+      )
+      const componentKeys = Object.keys(schema.components)
+
+      expect(componentKeys).toContain('V2026_06_09_Customer_Checkout_Checkout')
+      expect(componentKeys).not.toContain('V2026_06_09_Admin_Checkout_Checkout')
+    })
+
+    test('selects the namespace of each status from its own body', () => {
+      const schema = getSchemaFromBag(
+        reexportResponsesPerStatusBagOfRoutes,
+        'reexport-responses-per-status.ts',
+        { includeTypesNamespaceInName: true }
+      )
+      const { responses } = schema.paths['/checkouts/{checkoutId}'].get
+
+      expect(
+        responses['200'].content['application/json'].schema.properties.data.$ref
+      ).toBe('#/components/schemas/V2026_06_09_Customer_Checkout_Checkout')
+      expect(
+        responses['404'].content['application/json'].schema.properties.data.$ref
+      ).toBe('#/components/schemas/V2026_06_09_Admin_Checkout_Checkout')
+    })
+
+    test('derives the namespace of a status without one of its own', () => {
+      const deriveRouteNamingContext = vi.fn(
+        (_route: RouteNamingContextInput) => undefined
+      )
+
+      getSchemaFromBag(
+        reexportResponsesPartialNamespaceBagOfRoutes,
+        'reexport-responses-partial-namespace.ts',
+        { includeTypesNamespaceInName: true, deriveRouteNamingContext }
+      )
+
+      const responseCalls = deriveRouteNamingContext.mock.calls
+        .map(([route]) => route)
+        .filter(({ kind }) => kind === 'response')
+
+      // the status with its own namespace does not need to be derived
+      expect(responseCalls).toEqual([
+        {
+          method: 'GET',
+          path: '/checkouts/:checkoutId',
+          version: '2024-01-01',
+          kind: 'response',
+          status: '404',
+          namingContext: { input: undefined, response: undefined },
+        },
+      ])
     })
 
     test('does not apply the response naming context to the validator input', () => {

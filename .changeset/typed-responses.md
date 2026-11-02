@@ -1,0 +1,19 @@
+---
+'@t-rest/core': major
+'@t-rest/express-server': major
+'@t-rest/client': major
+'@t-rest/supertest-adapter': major
+'@t-rest/open-api-generator': major
+---
+
+Typed responses: routes declare their responses per status code and content type, route handlers receive a `TypedResponse` instead of the native express response.
+
+Migration:
+
+- **Route definitions**: `.responses({ 200: json<Invoice>(), 404: json<Failure>() })` declares responses with the new `json`, `text`, `binary` and `empty` descriptors of `@t-rest/core`. `.response<T>()` remains as shorthand for `.responses({ 200: json<T>() })`, `.response<T>(201)` and `.response<T>(202)` declare a json body for another success status and `.response(204)` an empty body. Routes answering with any other status have to declare it with `.responses()`. `RouteDef['~responseType']` is replaced by `responses` and the phantom `~responses`, and the constructor of `RouteDef` takes the responses after the validator. The responses parameter of `RouteDef` has to be a map of descriptors by status, so hand-written `RouteDef<…>` generics passing a body type fail where they are declared.
+- **`RouteOutput`** is the union of the bodies of all declared statuses. Pass a status as fifth parameter for the body of a single status, e.g. `RouteOutput<typeof routes, 'GET', '/invoices', '', 200>`.
+- **Route handlers** (`ExpressResponse` → `TypedResponse`): the third handler argument offers `status(code)`, `json(body)`, `header(name, value)` and `raw`. `status(code)` only accepts declared statuses and offers the body methods of the descriptor: `json`, `send`, `stream`, `file` or `end`. On json statuses `send(body)` is an alias of `json(body)`, like express sends objects as json. `json(body)` and `send(body)` without `status()` answer with the status set before, else `200`. `header(name, value)` accepts strings, numbers and lists of strings, a `Content-Type` set with it is kept by the body methods. Errors of a failing stream or file and errors thrown by the handler reach the error handlers once; when the handler throws before a stream or file sent anything, the stream is stopped and the error response does not carry its content type. Use `response.raw` for the native express response, e.g. for redirects or cookies. Middlewares keep the native response. `HandlerReturnType` is removed.
+- **Client**: `HTTPResponse` takes the responses of a route and is a discriminated union by `statusCode`. Declared statuses resolve, also error statuses, so check `statusCode` where a `catch` handled them before. Undeclared statuses reject, also undeclared 2xx statuses. An empty body of a json status is `undefined`. Generic helpers handling the responses of any route use `AnyHTTPResponse`, which `HTTPResponse<unknown>` resolves to as well.
+- **Custom HTTP adapters**: `HTTPAdapter.request` receives the `responses` of the route as fifth argument, after `requestConfig`. Adapters written for the previous signature keep receiving their `requestConfig` and keep rejecting as before, update them to resolve the declared statuses: `isDeclaredStatus(responses, status)` and `decodeBody(body, responses[status])` of `@t-rest/client` implement the contract, e.g. for `fetch` with `decodeBody(await response.arrayBuffer(), responses[response.status])`.
+- **Supertest adapter**: `SupertestResponse` takes the responses of a route and is a discriminated union by `status`. Bodies of `text` descriptors are strings. Generic helpers handling the responses of any route use `AnySupertestResponse`, which `SupertestResponse<unknown>` resolves to as well.
+- **OpenAPI generator**: emits one entry per declared status with the content type of the descriptor. `RouteTypeInfo.output` is replaced by `responses`. The body of each status keeps the namespace of its own type, a status without one is passed to `deriveRouteNamingContext` with its `status`.
