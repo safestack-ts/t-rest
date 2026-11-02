@@ -188,3 +188,67 @@ test('versioned clients use the responses of the resolved route version', async 
   ).resolves.toEqual({ data: { error: 'not found' }, statusCode: 404 })
   scope.done()
 })
+
+test('an undeclared status with a non json body rejects with the status error', async () => {
+  nock('http://localhost')
+    .get('/invoices')
+    .reply(500, '<!DOCTYPE html><html>Internal Server Error</html>', {
+      'content-type': 'text/html',
+    })
+
+  const error = await client.get('/invoices').catch((error) => error)
+
+  expect(error).toBeInstanceOf(AxiosError)
+  expect(error.message).toBe('Request failed with status code 500')
+  expect(error.response.data).toBe(
+    '<!DOCTYPE html><html>Internal Server Error</html>'
+  )
+})
+
+test('an undeclared status of a binary route rejects with the status error', async () => {
+  nock('http://localhost').get('/pdf').reply(401, 'Unauthorized')
+
+  const error = await client.get('/pdf').catch((error) => error)
+
+  expect(error).toBeInstanceOf(AxiosError)
+  expect(error.message).toBe('Request failed with status code 401')
+})
+
+test('an empty json body is undefined on json routes', async () => {
+  nock('http://localhost').get('/invoices').reply(200)
+
+  await expect(client.get('/invoices')).resolves.toEqual({
+    data: undefined,
+    statusCode: 200,
+  })
+})
+
+test('an empty json body is undefined on routes mixing kinds', async () => {
+  nock('http://localhost').get('/pdf').reply(404)
+
+  await expect(client.get('/pdf')).resolves.toEqual({
+    data: undefined,
+    statusCode: 404,
+  })
+})
+
+test('an invalid json body of a declared status rejects with an axios error', async () => {
+  nock('http://localhost').get('/pdf').reply(404, 'not json')
+
+  const error = await client.get('/pdf').catch((error) => error)
+
+  expect(error).toBeInstanceOf(AxiosError)
+  expect(error.code).toBe(AxiosError.ERR_BAD_RESPONSE)
+  expect(error.response.status).toBe(404)
+})
+
+test('a request to a route outside of the bag rejects instead of throwing', async () => {
+  let request: Promise<unknown> | undefined
+
+  expect(() => {
+    request = (client.get as any)('/unknown')
+  }).not.toThrow()
+  await expect(request).rejects.toThrow(
+    'Route GET /unknown is not part of the bag of routes'
+  )
+})

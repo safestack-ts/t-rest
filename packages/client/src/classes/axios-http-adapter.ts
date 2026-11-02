@@ -1,48 +1,55 @@
-import { AxiosInstance, AxiosRequestConfig, ResponseType } from 'axios'
+import {
+  AxiosError,
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+  ResponseType,
+} from 'axios'
 import { HTTPAdapter } from '../types/http-adapter.js'
 import { HTTPResponse } from '../types/http-response.js'
-import { AnyResponseDescriptor, HTTPMethod, ResponseMap } from '@t-rest/core'
+import { HTTPMethod, ResponseMap } from '@t-rest/core'
 import { RequestConfig } from '../types/request-config.js'
+import { decodeBody, isDeclaredStatus } from '../utils/response-decoding.js'
 
 // the transport has to be selected before the status is known, so a route
-// mixing kinds uses the most generic one and each body is decoded by its status
-const transportFor = (responses: ResponseMap): ResponseType => {
+// mixing kinds uses the most generic one and each body is decoded by its
+// status. Json routes keep the default of axios, which parses json leniently:
+// an explicit `json` response type would make axios parse strictly, also the
+// bodies of undeclared statuses, so that e.g. an html error page would reject
+// with a syntax error instead of the status error.
+const transportFor = (responses: ResponseMap): ResponseType | undefined => {
   const kinds = Object.values(responses).map(({ kind }) => kind)
 
   if (kinds.includes('binary')) {
     return 'arraybuffer'
   }
 
-  return kinds.includes('text') ? 'text' : 'json'
+  return kinds.includes('text') ? 'text' : undefined
 }
 
-const toText = (data: unknown) =>
-  typeof data === 'string'
-    ? data
-    : new TextDecoder().decode(data as ArrayBuffer | Uint8Array)
-
-// node delivers a Buffer, which may be a view on a shared pool
-const toArrayBuffer = (data: unknown) =>
-  ArrayBuffer.isView(data)
-    ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
-    : data
-
 const decode = (
-  data: unknown,
-  descriptor: AnyResponseDescriptor | undefined,
-  transport: ResponseType
+  response: AxiosResponse,
+  responses: ResponseMap,
+  transport: ResponseType | undefined
 ) => {
-  switch (descriptor?.kind) {
-    case 'json':
-      return transport === 'json' ? data : JSON.parse(toText(data))
-    case 'text':
-      return toText(data)
-    case 'binary':
-      return toArrayBuffer(data)
-    case 'empty':
-      return undefined
-    default:
-      return data
+  const descriptor = responses[response.status]
+
+  // axios already parsed the json body, an empty body stays an empty string
+  if (descriptor?.kind === 'json' && transport === undefined) {
+    return response.data === '' ? undefined : response.data
+  }
+
+  try {
+    return decodeBody(response.data, descriptor)
+  } catch (error) {
+    // like axios reports a json body it fails to parse
+    throw AxiosError.from(
+      error,
+      AxiosError.ERR_BAD_RESPONSE,
+      response.config,
+      response.request,
+      response
+    )
   }
 }
 
@@ -57,8 +64,8 @@ export class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
     method: HTTPMethod,
     url: string,
     data: unknown,
-    responses: TResponses,
-    requestConfig?: RequestConfig & AxiosRequestConfig
+    requestConfig: (RequestConfig & AxiosRequestConfig) | undefined,
+    responses: TResponses
   ) {
     const { params: _params, ...requestConfigWithoutParams } =
       requestConfig ?? {}
@@ -68,8 +75,8 @@ export class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
       method,
       data,
       headers: requestConfig?.headers,
-      responseType: transport,
-      validateStatus: (status) => responses[status] !== undefined,
+      ...(transport ? { responseType: transport } : {}),
+      validateStatus: (status) => isDeclaredStatus(responses, status),
       ...requestConfigWithoutParams,
     })
 
@@ -77,7 +84,7 @@ export class AxiosHTTPAdapter implements HTTPAdapter<AxiosRequestConfig> {
       // a custom response type opts out of decoding
       data: requestConfig?.responseType
         ? response.data
-        : decode(response.data, responses[response.status], transport),
+        : decode(response, responses, transport),
       statusCode: response.status,
     } as HTTPResponse<TResponses>
   }

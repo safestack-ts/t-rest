@@ -1,29 +1,30 @@
-import {
-  BinaryResponseDescriptor,
-  EmptyResponseDescriptor,
-  JsonResponseDescriptor,
-  TextResponseDescriptor,
-} from '@t-rest/core'
+import { DecodedBody } from '@t-rest/core'
 
-type ResponseData<TDescriptor> = TDescriptor extends JsonResponseDescriptor<
-  infer TBody
->
-  ? TBody
-  : TDescriptor extends TextResponseDescriptor<string>
-  ? string
-  : TDescriptor extends BinaryResponseDescriptor
-  ? ArrayBuffer
-  : TDescriptor extends EmptyResponseDescriptor
-  ? undefined
-  : never
+type ResponseOfStatus<TResponses, TStatus extends keyof TResponses & number> = {
+  data: DecodedBody<TResponses[TStatus], ArrayBuffer, undefined>
+  statusCode: TStatus
+  // @todo add more
+}
 
-/** Discriminated union of the responses a route declares, by `statusCode`. */
-export type HTTPResponse<TResponses> = TResponses extends unknown
+/** Any response of any route, e.g. for helpers which handle every route. */
+export type AnyHTTPResponse = {
+  data: any
+  statusCode: number
+}
+
+/**
+ * Discriminated union of the responses a route declares, by `statusCode`.
+ * Unknown responses (`unknown`, `any` or `ResponseMap`) are `AnyHTTPResponse`.
+ */
+export type HTTPResponse<TResponses> = unknown extends TResponses
+  ? AnyHTTPResponse
+  : number extends keyof TResponses
+  ? AnyHTTPResponse
+  : TResponses extends unknown
   ? {
-      [TStatus in keyof TResponses & number]: {
-        data: ResponseData<TResponses[TStatus]>
-        statusCode: TStatus
-        // @todo add more
-      }
+      [TStatus in keyof TResponses & number]: ResponseOfStatus<
+        TResponses,
+        TStatus
+      >
     }[keyof TResponses & number]
   : never

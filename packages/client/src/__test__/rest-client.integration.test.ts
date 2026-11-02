@@ -141,8 +141,8 @@ class RecordingHTTPAdapter implements HTTPAdapter<RecordingContext> {
     method: HTTPMethod,
     url: string,
     data: unknown,
-    _responses: TResponses,
-    requestConfig?: RequestConfig & RecordingContext
+    requestConfig: (RequestConfig & RecordingContext) | undefined,
+    _responses: TResponses
   ): Promise<HTTPResponse<TResponses>> {
     this.requests.push({ method, url, data, requestConfig })
 

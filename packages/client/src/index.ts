@@ -12,3 +12,4 @@ export * from './types/request-input.js'
 
 // utils
 export * from './utils/version-injector-from.js'
+export * from './utils/response-decoding.js'

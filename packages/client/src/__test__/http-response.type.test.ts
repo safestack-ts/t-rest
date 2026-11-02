@@ -1,7 +1,16 @@
-import { BagOfRoutes, binary, empty, json, Route, text } from '@t-rest/core'
+import {
+  BagOfRoutes,
+  binary,
+  empty,
+  json,
+  ResponseMap,
+  Route,
+  text,
+} from '@t-rest/core'
 import { AssertTrue, IsExact } from 'conditional-type-checks'
 import { z } from 'zod'
 import { RESTClient } from '../classes/rest-client.js'
+import { AnyHTTPResponse, HTTPResponse } from '../types/http-response.js'
 
 type Invoice = { id: number }
 type Failure = { error: string }
@@ -71,3 +80,16 @@ export const test = async () => {
   // @ts-expect-error status is not declared
   invoice.statusCode === 500
 }
+
+// helpers handling the responses of any route
+type _unknownResponses = AssertTrue<
+  IsExact<HTTPResponse<unknown>, AnyHTTPResponse>
+>
+type _anyResponses = AssertTrue<IsExact<HTTPResponse<any>, AnyHTTPResponse>>
+type _responseMap = AssertTrue<
+  IsExact<HTTPResponse<ResponseMap>, AnyHTTPResponse>
+>
+
+// the response of every route is an AnyHTTPResponse
+export const anyResponse = async (): Promise<AnyHTTPResponse> =>
+  client.get('/pdf')

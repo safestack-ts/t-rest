@@ -23,8 +23,8 @@ class MyHttpAdapter implements HTTPAdapter<MyRequestConfig> {
     method: HTTPMethod,
     url: string,
     data: unknown,
-    responses: TResponses,
-    requestConfig?: RequestConfig & MyRequestConfig
+    requestConfig: (RequestConfig & MyRequestConfig) | undefined,
+    responses: TResponses
   ): Promise<HTTPResponse<TResponses>> {
     throw new Error('Method not implemented.')
   }

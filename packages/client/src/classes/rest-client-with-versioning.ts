@@ -4,7 +4,6 @@ import {
   ExtractLatestMatchingRoutePerPath,
   HTTPMethod,
   NewerVersions,
-  resolveVersion,
   Versioning,
 } from '@t-rest/core'
 import { RESTClientBase } from './rest-client-base.js'
@@ -34,21 +33,8 @@ export class RESTClientWithVersioning<
     this.versionInjectorConstructor = versionInjectorConstructor
   }
 
-  // the newest declared version of the route the client version covers
-  protected routeVersion(method: HTTPMethod, path: string) {
-    const declaredVersions = Array.from(this.routes.routes.keys())
-      .filter(
-        ([keyMethod, keyPath]) => keyMethod === method && keyPath === path
-      )
-      .map(([, , version]) => version)
-
-    return (
-      resolveVersion(
-        this.routes.versionHistory,
-        declaredVersions,
-        this.version
-      ) ?? this.version
-    )
+  protected requestedVersion() {
+    return this.version
   }
 
   private makeRouteHandler<TMethod extends HTTPMethod>(method: TMethod) {
