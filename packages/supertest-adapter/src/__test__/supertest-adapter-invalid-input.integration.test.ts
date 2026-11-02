@@ -12,6 +12,7 @@ import Express, { NextFunction, Request, Response } from 'express'
 import { SupertestAdapter } from '../classes/supertest-adapter.js'
 import { versionInjectorFrom } from '../utils/version-injector-from.js'
 import { versionHeader } from '@t-rest/protocol'
+import { version as expressVersion } from 'express/package.json'
 
 const verbs = ['get', 'post', 'put', 'patch', 'delete'] as const
 const methodsWithBody = ['post', 'put', 'patch'] as const
@@ -98,6 +99,10 @@ const handleValidationError = (
 
   next(error)
 }
+
+// When express.json skips a request, Express 4 leaves the body as {} and Express 5 leaves it undefined.
+const expressMajor = Number(expressVersion.split('.')[0])
+const unparsedBody = expressMajor === 4 ? {} : undefined
 
 let receivedBodies: unknown[] = []
 
@@ -222,15 +227,15 @@ describe.each(verbs)('%s with versioning', (verb) => {
 })
 
 describe.each(methodsWithBody)('%s body', (verb) => {
-  // strings are sent as they are and not as json, so express.json skips them
+  // strings are sent as they are and not as json, so express.json skips them like a missing body
   test.each([
     ['object of the wrong shape', { name: 42 }, { name: 42 }],
     ['array', [1, 2], [1, 2]],
-    ['string', 'chair', undefined],
+    ['string', 'chair', unparsedBody],
     ['number', 42, 42],
     ['boolean', true, true],
     ['null', null, null],
-    ['missing', undefined, undefined],
+    ['missing', undefined, unparsedBody],
   ])('rejects a body that is a %s', async (_, invalidBody, received) => {
     const adapter = makeUnversioned()
     const call = adapter.invalid[verb] as typeof adapter.invalid.post
