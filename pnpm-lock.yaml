@@ -165,6 +165,9 @@ importers:
       '@standard-schema/spec':
         specifier: ^1.1.0
         version: 1.1.0
+      '@t-rest/protocol':
+        specifier: workspace:^
+        version: link:../protocol
       '@t-rest/testing-utilities':
         specifier: workspace:*
         version: link:../testing-utilities

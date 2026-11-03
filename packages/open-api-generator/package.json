@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@standard-schema/spec": "^1.1.0",
+    "@t-rest/protocol": "workspace:^",
     "@t-rest/testing-utilities": "workspace:*",
     "@types/debug": "^4.1.13",
     "@types/lodash": "^4.17.27",
