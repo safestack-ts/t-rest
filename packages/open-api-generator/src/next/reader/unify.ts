@@ -109,18 +109,11 @@ export const unify = (
   const namedIds = [...graph.named.keys()].sort()
   const bodyOf = (id: string) =>
     (graph.named.get(id) as RefShape<Edge>).target.node
-  // An alias owns the node it points at only when no non-alias def sits there.
-  const bodyOwner = new Map<NodeId, string>()
-  for (const id of [
-    ...namedIds.filter((id) => !graph.aliases.has(id)),
-    ...namedIds.filter((id) => graph.aliases.has(id)),
-  ])
-    if (!bodyOwner.has(bodyOf(id))) bodyOwner.set(bodyOf(id), id)
+  const bodyOwner = new Map(namedIds.map((id) => [bodyOf(id), id]))
   const namedInBlock = new Map<number, string>()
   for (const id of namedIds) {
     const block = blockOf(bodyOf(id))
-    if (bodyOwner.get(bodyOf(id)) === id && !namedInBlock.has(block))
-      namedInBlock.set(block, id)
+    if (!namedInBlock.has(block)) namedInBlock.set(block, id)
   }
 
   const unowned = (node: NodeId) =>
@@ -189,14 +182,13 @@ export const unify = (
   }
 
   const types: Record<DefKey, TypeDef<DefKey>> = {}
-  for (const id of namedIds) {
-    const body = graph.named.get(id) as RefShape<Edge>
-    const shape =
-      bodyOwner.get(body.target.node) === id
-        ? withDocs(emitNode(body.target.node), body.docs)
-        : emitEdge(body)
-    types[namedKey(id)] = { kind: 'named', id, direction, shape }
-  }
+  for (const id of namedIds)
+    types[namedKey(id)] = {
+      kind: 'named',
+      id,
+      direction,
+      shape: emitNode(bodyOf(id)),
+    }
   for (const [block, { node }] of representative)
     types[anonymousKey(block)] = {
       kind: 'anonymous',

@@ -383,4 +383,37 @@ describe('generated-def unification', () => {
       )
     )
   })
+
+  test('a use of an alias refers to the alias, which refers to its target', () => {
+    const Person = z.object({ name: z.string() }).meta({ id: 'Shared_Person' })
+    const AdminPerson = Person.meta({
+      id: 'Admin_Person',
+      description: 'An admin',
+    })
+
+    expect(read(z.object({ admin: AdminPerson, person: Person }))).toEqual({
+      shape: object(
+        field('admin', ref('output:Admin_Person')),
+        field('person', ref('output:Shared_Person'))
+      ),
+      types: {
+        'output:Admin_Person': {
+          kind: 'named',
+          id: 'Admin_Person',
+          direction: 'output',
+          shape: {
+            ...ref('output:Shared_Person'),
+            docs: { description: 'An admin' },
+          },
+        },
+        'output:Shared_Person': {
+          kind: 'named',
+          id: 'Shared_Person',
+          direction: 'output',
+          shape: object(field('name', string)),
+        },
+      },
+      diagnostics: [],
+    })
+  })
 })

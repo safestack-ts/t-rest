@@ -28,8 +28,6 @@ export interface SchemaGraph {
   readonly root: RefShape<Edge>
   /** Trusted defs by author id. */
   readonly named: ReadonlyMap<string, RefShape<Edge>>
-  /** Trusted defs that are only a `$ref` to another schema. */
-  readonly aliases: ReadonlySet<string>
   /** Nodes some `$ref` points at: generated defs, untrusted defs, `#`. */
   readonly refTargets: ReadonlySet<NodeId>
   readonly unsupported: readonly { keyword: string; pointer: string }[]
@@ -242,7 +240,6 @@ export const buildGraph = (
   const nodes: Shape<Edge>[] = []
   const nodeAtPointer = new Map<string, NodeId>()
   const named = new Map<string, RefShape<Edge>>()
-  const aliases = new Set<string>()
   const refTargets = new Set<NodeId>()
   const unsupported: { keyword: string; pointer: string }[] = []
 
@@ -274,11 +271,11 @@ export const buildGraph = (
     if (known !== undefined) return known
     const def = defs[key] as JsonSchema
     const pointer = pointerTo('', '$defs', key)
-    const alias = isAnnotatedRef(def)
-    if (alias) aliases.add(key)
-    const edge: RefShape<Edge> = alias
-      ? edgeTo(def, pointer)
-      : { kind: 'ref', target: { node: nodeAt(pointer), pointer } }
+    // an alias gets a node of its own, so its uses do not resolve to the target
+    const node = isAnnotatedRef(def)
+      ? addNode(() => edgeTo(def, pointer))
+      : nodeAt(pointer)
+    const edge: RefShape<Edge> = { kind: 'ref', target: { node, pointer } }
     named.set(key, edge)
     return edge
   }
@@ -569,5 +566,5 @@ export const buildGraph = (
     ? edgeTo(schema, '')
     : { kind: 'ref', target: { node: nodeAt(''), pointer: '' } }
 
-  return { nodes, root, named, aliases, refTargets, unsupported }
+  return { nodes, root, named, refTargets, unsupported }
 }
