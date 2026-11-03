@@ -58,8 +58,8 @@ export default [
   },
   {
     // targets differ only in the capability table, so no other writer file names one
-    files: ['packages/open-api-generator/src/next/writer/**/*.ts'],
-    ignores: ['packages/open-api-generator/src/next/writer/capabilities.ts'],
+    files: ['packages/open-api-generator/src/writer/**/*.ts'],
+    ignores: ['packages/open-api-generator/src/writer/capabilities.ts'],
     rules: {
       'no-restricted-syntax': [
         'error',

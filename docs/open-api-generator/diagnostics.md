@@ -1,16 +1,19 @@
 # Generator diagnostics
 
-<!-- Generated from packages/open-api-generator/src/next/diagnostics/registry.ts by its docs test. Do not edit. -->
+<!-- Generated from packages/open-api-generator/src/diagnostics/registry.ts by its docs test. Do not edit. -->
 
-Every diagnostic has a code, a severity and a location (operation, slot, JSON pointer). `write()` writes nothing when any diagnostic is an error. Codes marked configurable accept a severity override in `config.diagnostics`.
+Every diagnostic has a code, a severity and a location (operation, slot, JSON pointer, spec output). `write()` writes nothing when any diagnostic is an error. Codes marked configurable accept a severity override in `config.diagnostics`.
 
 | Code | Severity | Configurable |
 | --- | --- | --- |
+| [`config/output-template`](#configoutput-template) | error | no |
+| [`config/spec-version`](#configspec-version) | error | no |
 | [`naming/anonymous-recursion`](#naminganonymous-recursion) | warning | yes |
 | [`naming/component-conflict`](#namingcomponent-conflict) | error | no |
 | [`naming/direction-split`](#namingdirection-split) | info | no |
 | [`naming/duplicate-id`](#namingduplicate-id) | error | no |
 | [`naming/duplicate-response-id`](#namingduplicate-response-id) | error | no |
+| [`naming/model-without-id`](#namingmodel-without-id) | error | yes |
 | [`naming/probable-model-without-id`](#namingprobable-model-without-id) | warning | yes |
 | [`naming/reserved-response-id`](#namingreserved-response-id) | error | no |
 | [`naming/shared-response-without-description`](#namingshared-response-without-description) | warning | yes |
@@ -37,6 +40,22 @@ Every diagnostic has a code, a severity and a location (operation, slot, JSON po
 | [`writer/discriminator-not-emitted`](#writerdiscriminator-not-emitted) | info | no |
 | [`writer/downgrade`](#writerdowngrade) | warning | yes |
 | [`writer/tag-undeclared`](#writertag-undeclared) | info | yes |
+
+## config/output-template
+
+**Spec output does not fit the spec.**
+
+A spec `output` cannot be written: its extension is not `.yaml`, `.yml` or `.json`, a spec with `versions` has no `{version}` in it, or it has `{version}` while the bag is not versioned.
+
+**Fix.** Use a supported extension, and put `{version}` into the output of a spec with `versions`, e.g. `openapi/{version}.yaml`.
+
+## config/spec-version
+
+**Spec version is not in the history.**
+
+A spec names a `version`, or lists `versions`, that the version history of the bag does not have, or lists no versions at all.
+
+**Fix.** Use versions of the `VersionHistory` of the bag, or `versions: "all"`.
 
 ## naming/anonymous-recursion
 
@@ -77,6 +96,14 @@ Two different schemas carry the same id (`.meta({ id })` or `defineModels`) insi
 Two response descriptors carry the same `id` but differ in their schema object or their docs (`description`, `headers`, `examples`, content type). Each is documented inline instead of as one shared response.
 
 **Fix.** Create the descriptor once and reuse the value, or give each descriptor its own `id`.
+
+## naming/model-without-id
+
+**Model without id.**
+
+A schema of `naming.models` does not convert to a reference to an id, so it is inlined wherever it is used instead of becoming a component.
+
+**Fix.** Give the schema an id (`.meta({ id })` or `defineModels`), or remove it from the models module.
 
 ## naming/probable-model-without-id
 
