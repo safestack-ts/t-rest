@@ -7,6 +7,8 @@ export default [
     ignores: [
       '**/node_modules/',
       '**/dist/',
+      // generated public API snapshots, see scripts/api-snapshot.mjs
+      'packages/*/api/',
       '**/build/',
       '**/__test__/',
       '.husky/',
