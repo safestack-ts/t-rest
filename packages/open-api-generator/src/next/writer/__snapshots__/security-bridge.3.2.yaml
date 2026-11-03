@@ -1,0 +1,74 @@
+openapi: 3.2.0
+info:
+  title: Scenario
+  version: 1.0.0
+paths:
+  /default:
+    get:
+      operationId: getDefault
+      responses:
+        "204":
+          description: No Content
+      security:
+        - apiKey: []
+  /optional:
+    get:
+      operationId: getOptional
+      responses:
+        "204":
+          description: No Content
+      security:
+        - bearer: []
+        - {}
+  /public:
+    get:
+      operationId: getPublic
+      parameters:
+        - name: authorization
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+  /required:
+    get:
+      operationId: getRequired
+      parameters:
+        - name: x-trace
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+        - bearer: []
+  /scoped:
+    get:
+      operationId: getScoped
+      responses:
+        "204":
+          description: No Content
+      security:
+        - oauth:
+            - read
+        - {}
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+    bearer:
+      type: http
+      scheme: bearer
+    oauth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.example.com/token
+          scopes:
+            read: Read access

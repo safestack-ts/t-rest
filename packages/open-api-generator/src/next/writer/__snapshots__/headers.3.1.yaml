@@ -1,0 +1,62 @@
+openapi: 3.1.1
+info:
+  title: Scenario
+  version: 1.0.0
+paths:
+  /greeting:
+    get:
+      operationId: getGreeting
+      parameters:
+        - name: accept-language
+          in: header
+          required: false
+          schema:
+            type: string
+            enum:
+              - de
+              - en
+              - fr
+        - name: x-channel
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+  /greeting/localized:
+    get:
+      operationId: getGreetingLocalized
+      parameters:
+        - name: Accept-Language
+          in: header
+          required: true
+          schema:
+            type: string
+            enum:
+              - de
+              - fr
+        - name: x-channel
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      responses:
+        "200":
+          description: OK
+          headers:
+            x-rate-limit:
+              schema:
+                type: integer
+          content:
+            text/plain:
+              schema:
+                type: string

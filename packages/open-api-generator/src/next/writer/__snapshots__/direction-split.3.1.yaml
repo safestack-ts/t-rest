@@ -1,0 +1,68 @@
+openapi: 3.1.1
+info:
+  title: Scenario
+  version: 1.0.0
+paths:
+  /orders:
+    post:
+      operationId: postOrders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+components:
+  schemas:
+    Item:
+      type: object
+      properties:
+        quantity:
+          type: number
+          default: 1
+      required:
+        - quantity
+    ItemInput:
+      type: object
+      properties:
+        quantity:
+          type: number
+          default: 1
+    Order:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Item"
+        tag:
+          $ref: "#/components/schemas/Tag"
+      required:
+        - items
+        - tag
+    OrderInput:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItemInput"
+        tag:
+          $ref: "#/components/schemas/Tag"
+      required:
+        - items
+        - tag
+    Tag:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name

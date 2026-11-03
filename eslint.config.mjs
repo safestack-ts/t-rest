@@ -57,6 +57,24 @@ export default [
     },
   },
   {
+    // targets differ only in the capability table, so no other writer file names one
+    files: ['packages/open-api-generator/src/next/writer/**/*.ts'],
+    ignores: ['packages/open-api-generator/src/next/writer/capabilities.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...[
+          'Literal[value=/^3\\.[012]$/]',
+          'TemplateElement[value.cooked=/^3\\.[012]$/]',
+        ].map((selector) => ({
+          selector,
+          message:
+            'Do not branch on an OpenAPI target. Add or read a column of CAPABILITIES in writer/capabilities.ts.',
+        })),
+      ],
+    },
+  },
+  {
     // type tests declare values only to inspect their types
     files: ['**/*.type.test.ts'],
     rules: { '@typescript-eslint/no-unused-vars': 'off' },

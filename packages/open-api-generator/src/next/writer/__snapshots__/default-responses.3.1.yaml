@@ -1,0 +1,59 @@
+openapi: 3.1.1
+info:
+  title: Scenario
+  version: 1.0.0
+paths:
+  /a:
+    get:
+      operationId: getA
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Upload"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /b:
+    post:
+      operationId: postB
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Upload"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Failure"
+components:
+  schemas:
+    Failure:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    Upload:
+      type: object
+      properties:
+        id:
+          type: string
+        size:
+          type: number
+      required:
+        - id
+        - size
+  responses:
+    BadRequest:
+      description: The request is invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Failure"

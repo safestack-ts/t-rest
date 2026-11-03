@@ -1,0 +1,99 @@
+openapi: 3.0.3
+info:
+  title: Scenario
+  version: 1.0.0
+paths:
+  /products:
+    post:
+      operationId: postProducts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+              required:
+                - name
+            examples:
+              valid:
+                summary: A product
+                value:
+                  name: Chair
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                plain:
+                  value: ok
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+              examples:
+                created:
+                  value:
+                    id: 1
+                    name: Chair
+  /products/{id}:
+    get:
+      operationId: getProductsById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: number
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                    default: []
+                required:
+                  - id
+                  - tags
+              examples:
+                tagged:
+                  value:
+                    id: 1
+                    tags: []
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema: {}
+              examples:
+                missing:
+                  value:
+                    error: not found
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+      required:
+        - id
+        - name
