@@ -1,0 +1,169 @@
+openapi: 3.0.3
+info:
+  title: Shop API
+  description: Products and their stock
+  version: 2024-01-01
+tags:
+  - name: catalog
+    description: Products and their stock
+  - name: admin
+    description: Internal tools
+paths:
+  /products:
+    get:
+      tags:
+        - catalog
+      summary: List products
+      operationId: getProducts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/V2024_01_01_Catalog_Product"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    post:
+      tags:
+        - catalog
+      summary: Create a product
+      operationId: postProducts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/V2024_01_01_Catalog_NewProduct"
+            examples:
+              coffee:
+                summary: A bag of coffee
+                value:
+                  name: Coffee
+                  price:
+                    amount: 1290
+                    currency: CHF
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/V2024_01_01_Catalog_Product"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+      security:
+        - oauth:
+            - catalog:write
+  /products/{productId}:
+    get:
+      tags:
+        - catalog
+      summary: Get a product
+      operationId: getProductsByProductId
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+            format: uuid
+      responses:
+        "200":
+          description: The product
+          headers:
+            etag:
+              required: true
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/V2024_01_01_Catalog_Product"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          description: No product with this id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/V2024_01_01_Shared_Problem"
+      security:
+        - bearer: []
+        - {}
+components:
+  schemas:
+    V2024_01_01_Catalog_NewProduct:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        price:
+          $ref: "#/components/schemas/V2024_01_01_Shared_Price"
+      required:
+        - name
+        - price
+    V2024_01_01_Catalog_Product:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+        price:
+          $ref: "#/components/schemas/V2024_01_01_Shared_Price"
+      required:
+        - id
+        - name
+        - price
+    V2024_01_01_Shared_Price:
+      type: object
+      properties:
+        amount:
+          type: number
+          description: Minor units, e.g. cents
+        currency:
+          type: string
+          enum:
+            - CHF
+            - EUR
+      required:
+        - amount
+        - currency
+    V2024_01_01_Shared_Problem:
+      type: object
+      properties:
+        message:
+          type: string
+        issues:
+          type: array
+          items:
+            type: string
+      required:
+        - message
+  responses:
+    BadRequest:
+      description: The request does not match the route validator
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/V2024_01_01_Shared_Problem"
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    oauth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.shop.dev/token
+          scopes:
+            catalog:write: Change the catalog

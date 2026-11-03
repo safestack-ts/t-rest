@@ -185,6 +185,9 @@ importers:
       '@t-rest/core':
         specifier: workspace:^
         version: link:../core
+      '@t-rest/open-api-generator':
+        specifier: workspace:^
+        version: link:../open-api-generator
       axios:
         specifier: ^1.21.0
         version: 1.21.0
@@ -192,9 +195,15 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
+      '@standard-schema/spec':
+        specifier: ^1.1.0
+        version: 1.1.0
       '@t-rest/testing-utilities':
         specifier: workspace:*
         version: link:../testing-utilities
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
 
   packages/protocol: {}
 
