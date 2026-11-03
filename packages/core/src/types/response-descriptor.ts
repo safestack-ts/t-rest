@@ -1,3 +1,25 @@
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+
+/** A named example, its `value` is typed against what it documents. */
+export interface Example<TValue> {
+  readonly summary?: string
+  readonly description?: string
+  readonly value: TValue
+}
+
+export type Examples<TValue> = Readonly<Record<string, Example<TValue>>>
+
+/** Documentation of a response, only read by documentation generators. */
+export interface ResponseOptions<TBody> {
+  /** The generator falls back to the reason phrase of the status. */
+  readonly description?: string
+  /** One object schema, each property is a response header. */
+  readonly headers?: StandardSchemaV1
+  readonly examples?: Examples<TBody>
+  /** Shares the response between routes, e.g. as a component of an OpenAPI document. */
+  readonly id?: string
+}
+
 export interface ResponseDescriptor<
   TKind extends string,
   TContentType extends string | undefined,
@@ -6,6 +28,12 @@ export interface ResponseDescriptor<
   readonly kind: TKind
   readonly contentType: TContentType
   readonly ['~body']: TBody
+  /** The schema of a json body, set by `json(schema)`. */
+  readonly schema?: StandardSchemaV1
+  readonly description?: string
+  readonly headers?: StandardSchemaV1
+  readonly examples?: Examples<unknown>
+  readonly id?: string
 }
 
 export type JsonResponseDescriptor<TBody> = ResponseDescriptor<

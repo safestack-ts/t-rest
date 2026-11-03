@@ -40,6 +40,12 @@ const bagOfRoutes = BagOfRoutes.withoutVersioning()
     })
   )
   .addRoute(Route.get('/single').response<Invoice>())
+  .addRoute(
+    Route.get('/schema').responses({
+      200: json(z.object({ id: z.string().transform(Number) })),
+      404: json<Failure>(),
+    })
+  )
   .build()
 
 const client = RESTClient.withoutVersioning(bagOfRoutes, null as any)
@@ -90,6 +96,15 @@ export const test = async () => {
   type _headers = AssertTrue<
     IsExact<typeof pdf.headers, HTTPResponseHeaders | undefined>
   >
+
+  const schema = await client.get('/schema')
+
+  if (schema.statusCode === 200) {
+    // the body of a schema is its output
+    type _data = AssertTrue<IsExact<typeof schema.data, { id: number }>>
+  } else {
+    type _data = AssertTrue<IsExact<typeof schema.data, Failure>>
+  }
 
   // @ts-expect-error status is not declared
   invoice.statusCode === 500

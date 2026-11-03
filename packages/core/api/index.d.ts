@@ -1,5 +1,5 @@
 import { HttpMethod } from '@t-rest/protocol';
-import { StandardSchemaV1 } from '@standard-schema/spec';
+import { StandardSchemaV1, StandardJSONSchemaV1 } from '@standard-schema/spec';
 export { ze } from './zod.js';
 import { z } from 'zod';
 
@@ -35,10 +35,33 @@ type MultipartOptions = {
 
 type HTTPMethod = HttpMethod;
 
+/** A named example, its `value` is typed against what it documents. */
+interface Example<TValue> {
+    readonly summary?: string;
+    readonly description?: string;
+    readonly value: TValue;
+}
+type Examples<TValue> = Readonly<Record<string, Example<TValue>>>;
+/** Documentation of a response, only read by documentation generators. */
+interface ResponseOptions<TBody> {
+    /** The generator falls back to the reason phrase of the status. */
+    readonly description?: string;
+    /** One object schema, each property is a response header. */
+    readonly headers?: StandardSchemaV1;
+    readonly examples?: Examples<TBody>;
+    /** Shares the response between routes, e.g. as a component of an OpenAPI document. */
+    readonly id?: string;
+}
 interface ResponseDescriptor<TKind extends string, TContentType extends string | undefined, TBody> {
     readonly kind: TKind;
     readonly contentType: TContentType;
     readonly ['~body']: TBody;
+    /** The schema of a json body, set by `json(schema)`. */
+    readonly schema?: StandardSchemaV1;
+    readonly description?: string;
+    readonly headers?: StandardSchemaV1;
+    readonly examples?: Examples<unknown>;
+    readonly id?: string;
 }
 type JsonResponseDescriptor<TBody> = ResponseDescriptor<'json', 'application/json', TBody>;
 type TextResponseDescriptor<TContentType extends string = 'text/plain'> = ResponseDescriptor<'text', TContentType, string>;
@@ -152,8 +175,9 @@ declare class BagOfRoutes<_TRoutes extends AnyRouteDef, TVersioning extends Vers
     static withoutVersioning(): BagOfRoutesBuilderWithoutVersioning<never>;
 }
 
-interface EmptySchema extends StandardSchemaV1<{}> {
+interface EmptySchema extends StandardSchemaV1<{}>, StandardJSONSchemaV1<{}> {
     type: 'empty';
+    readonly '~standard': StandardSchemaV1.Props<{}> & StandardJSONSchemaV1.Props<{}>;
 }
 declare const emptyValidation: EmptySchema;
 type EmptyValidation = StandardSchemaV1.InferOutput<EmptySchema>;
@@ -477,10 +501,20 @@ declare function isDefined<Value>(value: Value | null | undefined): value is Val
 /** @deprecated Use `pathShape` from `@t-rest/protocol`. */
 declare const normalizePathPattern: (path: string) => string;
 
-declare const json: <TBody>() => JsonResponseDescriptor<TBody>;
-declare const text: <TContentType extends string = "text/plain">(contentType?: TContentType) => TextResponseDescriptor<TContentType>;
-declare const binary: <TContentType extends string>(contentType: TContentType) => BinaryResponseDescriptor<TContentType>;
-declare const empty: () => EmptyResponseDescriptor;
+type SchemaOutput<TSchema> = StandardSchemaV1.InferOutput<TSchema & StandardSchemaV1>;
+type UntypedJsonOptions<TBody> = ResponseOptions<TBody> & {
+    readonly '~standard'?: never;
+};
+/** A json body typed and documented by the output of its schema. */
+declare function json<TSchema>(schema: TSchema extends StandardSchemaV1 ? TSchema : never, options?: ResponseOptions<SchemaOutput<TSchema>>): JsonResponseDescriptor<SchemaOutput<TSchema>>;
+/** A json body typed by a type argument, documented by the options only. */
+declare function json<TBody>(options?: UntypedJsonOptions<TBody>): JsonResponseDescriptor<TBody>;
+/** A text body, `text/plain` unless another content type is given. */
+declare function text(contentType?: undefined, options?: ResponseOptions<string>): TextResponseDescriptor<'text/plain'>;
+declare function text<TContentType extends string>(contentType: TContentType, options?: ResponseOptions<string>): TextResponseDescriptor<TContentType>;
+declare function text<TContentType extends string>(contentType?: TContentType, options?: ResponseOptions<string>): TextResponseDescriptor<TContentType | 'text/plain'>;
+declare const binary: <TContentType extends string>(contentType: TContentType, options?: Omit<ResponseOptions<Uint8Array>, "examples">) => BinaryResponseDescriptor<TContentType>;
+declare const empty: (options?: Omit<ResponseOptions<undefined>, "examples">) => EmptyResponseDescriptor;
 
 export { BagOfRoutes, BagOfRoutesBuilderWithVersioning, BagOfRoutesBuilderWithoutVersioning, HashMap, Identity, Route, RouteBuilderWithVersionAndMethodAndPath, RouteBuilderWithVersionAndMethodAndPathAndMetaData, RouteBuilderWithVersionAndMethodAndPathAndValidator, RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData, RouteDef, RouteWithVersion, TypedIdentity, ValidationError, VersionHistory, Versioning, binary, combine, createRouteResolver, demoBagOfRoutes, empty, emptyValidation, findNearestLowerDate, first, isDefined, isNonEmptyArray, joinPath, json, last, normalizePathPattern, resolveDateVersion, resolveVersion, text, typedLowerCase, typedUpperCase, versionHistory };
-export type { AddReadonlyDeep, AnyResponseDescriptor, AnyRouteDef, AnyRouteValidator, BagOfRoutesVersions, BinaryResponseDescriptor, BodyEncoding, BodyOf, CombinedBags, DeclaredStatus, DecodedBody, EmptyResponseDescriptor, EmptySchema, EmptyValidation, ExtractLatestMatchingRoutePerPath, ExtractRoute, ExtractRoutes, ExtractVersionMatchingRoute, HTTPMethod, InferMetaData, JoinPath, JsonResponseDescriptor, MultipartFilePart, MultipartFileParts, MultipartOptions, NewerVersions, NonEmptyArray, OlderVersions, PrefixMatchingRoutes, PrefixString, RemoveReadonlyDeep, RemoveReadonlyDeepArray, ResponseDescriptor, ResponseDescriptorOf, ResponseMap, RouteHashMap, RouteInput, RouteOutput, RouteRequestInput, RouteValidationInput, RouteValidationOutput, StrictResponseMap, StringReplaceHead, StringStartsWith, SuffixString, TextResponseDescriptor, VersioningRequired, WithoutDoubleSlash, WithoutLeadingSlash, WithoutTrailingSlash };
+export type { AddReadonlyDeep, AnyResponseDescriptor, AnyRouteDef, AnyRouteValidator, BagOfRoutesVersions, BinaryResponseDescriptor, BodyEncoding, BodyOf, CombinedBags, DeclaredStatus, DecodedBody, EmptyResponseDescriptor, EmptySchema, EmptyValidation, Example, Examples, ExtractLatestMatchingRoutePerPath, ExtractRoute, ExtractRoutes, ExtractVersionMatchingRoute, HTTPMethod, InferMetaData, JoinPath, JsonResponseDescriptor, MultipartFilePart, MultipartFileParts, MultipartOptions, NewerVersions, NonEmptyArray, OlderVersions, PrefixMatchingRoutes, PrefixString, RemoveReadonlyDeep, RemoveReadonlyDeepArray, ResponseDescriptor, ResponseDescriptorOf, ResponseMap, ResponseOptions, RouteHashMap, RouteInput, RouteOutput, RouteRequestInput, RouteValidationInput, RouteValidationOutput, StrictResponseMap, StringReplaceHead, StringStartsWith, SuffixString, TextResponseDescriptor, VersioningRequired, WithoutDoubleSlash, WithoutLeadingSlash, WithoutTrailingSlash };
