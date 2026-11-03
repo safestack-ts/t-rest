@@ -1,4 +1,4 @@
-import type { Docs, Shape } from './types.js'
+import type { Docs, Shape, TypeDef } from './types.js'
 
 export type RefShape<R> = Extract<Shape<R>, { kind: 'ref' }>
 
@@ -57,4 +57,22 @@ export const withDocs = <S extends Shape<unknown>>(
   return (
     Object.keys(merged).length > 0 ? { ...rest, docs: merged } : rest
   ) as S
+}
+
+/** Follows refs from `shape` to the first shape that is not a ref to a known type. */
+export const dereference = <R extends string>(
+  shape: Shape<R>,
+  types: Readonly<Record<R, TypeDef<R>>>
+): Shape<R> => {
+  const seen = new Set<R>()
+  let current = shape
+  while (
+    current.kind === 'ref' &&
+    !seen.has(current.target) &&
+    types[current.target]
+  ) {
+    seen.add(current.target)
+    current = types[current.target].shape
+  }
+  return current
 }
