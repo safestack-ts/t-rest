@@ -112,7 +112,9 @@ declare class RouteDef<TVersion extends string, TMethod extends HTTPMethod, TPat
     readonly metaData: TMetaData;
     readonly bodyEncoding: TBodyEncoding;
     readonly multipartFiles: MultipartFileParts | undefined;
-    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, responses: TResponses, metaData: TMetaData, bodyEncoding?: TBodyEncoding, multipartFiles?: MultipartFileParts);
+    /** Example requests from `.validate(validator, { examples })`. */
+    readonly requestExamples: Examples<unknown> | undefined;
+    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, responses: TResponses, metaData: TMetaData, bodyEncoding?: TBodyEncoding, multipartFiles?: MultipartFileParts, requestExamples?: Examples<unknown>);
 }
 
 type AnyRouteValidator = StandardSchemaV1<{
@@ -182,6 +184,105 @@ interface EmptySchema extends StandardSchemaV1<{}>, StandardJSONSchemaV1<{}> {
 declare const emptyValidation: EmptySchema;
 type EmptyValidation = StandardSchemaV1.InferOutput<EmptySchema>;
 
+declare const securitySchemeBrand: unique symbol;
+interface OAuthFlow {
+    readonly refreshUrl?: string;
+    /** Scope name to its description. */
+    readonly scopes: Readonly<Record<string, string>>;
+}
+interface OAuthFlows {
+    readonly authorizationCode?: OAuthFlow & {
+        readonly authorizationUrl: string;
+        readonly tokenUrl: string;
+    };
+    readonly clientCredentials?: OAuthFlow & {
+        readonly tokenUrl: string;
+    };
+    readonly implicit?: OAuthFlow & {
+        readonly authorizationUrl: string;
+    };
+    readonly password?: OAuthFlow & {
+        readonly tokenUrl: string;
+    };
+}
+/** How a client authenticates, in the vocabulary of OpenAPI security schemes. */
+type SecuritySchemeSpec = {
+    readonly description?: string;
+} & ({
+    readonly type: 'http';
+    readonly scheme: 'bearer';
+    readonly bearerFormat?: string;
+} | {
+    readonly type: 'http';
+    readonly scheme: 'basic';
+} | {
+    readonly type: 'apiKey';
+    readonly in: 'header' | 'query' | 'cookie';
+    readonly name: string;
+} | {
+    readonly type: 'oauth2';
+    readonly flows: OAuthFlows;
+} | {
+    readonly type: 'openIdConnect';
+    readonly openIdConnectUrl: string;
+});
+/** The scope names an oauth2 scheme declares in any of its flows. */
+type SecuritySchemeScope<TSpec extends SecuritySchemeSpec> = TSpec extends {
+    readonly type: 'oauth2';
+    readonly flows: infer TFlows;
+} ? {
+    [TFlow in keyof TFlows]-?: TFlows[TFlow] extends {
+        readonly scopes: infer TScopes;
+    } ? keyof TScopes & string : never;
+}[keyof TFlows] : never;
+/** A security scheme requested with scopes. */
+interface ScopedSecurityScheme {
+    readonly scheme: SecurityScheme;
+    readonly scopes: readonly string[];
+}
+/** Created by `securityScheme()`, routes reference it in `meta.security`. */
+interface SecurityScheme<TName extends string = string, TSpec extends SecuritySchemeSpec = SecuritySchemeSpec> {
+    readonly [securitySchemeBrand]: true;
+    readonly name: TName;
+    readonly spec: TSpec;
+    scopes(...scopes: SecuritySchemeScope<TSpec>[]): ScopedSecurityScheme;
+}
+/**
+ * Alternatives of requirements, each satisfied by all of its schemes. `[]` is
+ * public, `[[bearer], []]` makes authentication optional.
+ */
+type SecurityRequirements = readonly (readonly (SecurityScheme | ScopedSecurityScheme)[])[];
+
+/**
+ * The documented meta data of a route. `.metaData()` checks these keys and
+ * keeps any other key with its own type, e.g. `public: true` for a filter.
+ */
+interface RouteMeta {
+    readonly summary?: string;
+    readonly description?: string;
+    readonly tags?: readonly string[];
+    readonly deprecated?: boolean;
+    readonly operationId?: string;
+    readonly externalDocs?: {
+        readonly url: string;
+        readonly description?: string;
+    };
+    readonly servers?: readonly {
+        readonly url: string;
+        readonly description?: string;
+        readonly variables?: Readonly<Record<string, {
+            readonly default: string;
+            readonly description?: string;
+            readonly enum?: readonly string[];
+        }>>;
+    }[];
+    readonly security?: SecurityRequirements;
+}
+/** Checks the keys of `RouteMeta` in a meta data type, other keys pass as they are. */
+type CheckMeta<TMeta> = {
+    [TKey in keyof TMeta]: TKey extends keyof RouteMeta ? RouteMeta[TKey] : unknown;
+};
+
 declare class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TValidator, TMetaData, TBodyEncoding extends BodyEncoding = 'json'> {
     private version;
     private method;
@@ -190,7 +291,8 @@ declare class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVe
     private metaData;
     private bodyEncoding?;
     private multipartFiles?;
-    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, metaData: TMetaData, bodyEncoding?: TBodyEncoding | undefined, multipartFiles?: MultipartFileParts | undefined);
+    private requestExamples?;
+    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, metaData: TMetaData, bodyEncoding?: TBodyEncoding | undefined, multipartFiles?: MultipartFileParts | undefined, requestExamples?: Examples<unknown> | undefined);
     responses<TResponses extends StrictResponseMap<TResponses>>(responses: TResponses): RouteDef<TVersion, TMethod, TPath, TValidator, TResponses, TMetaData, TBodyEncoding>;
     /**
      * Shorthand for `.responses({ [status]: json<TResponse>() })`, the status
@@ -217,8 +319,9 @@ declare class RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion exten
     private validator;
     private bodyEncoding?;
     private multipartFiles?;
-    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, bodyEncoding?: TBodyEncoding | undefined, multipartFiles?: MultipartFileParts | undefined);
-    metaData<TMetaData>(metaData: TMetaData): RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion, TMethod, TPath, TValidator, TMetaData, TBodyEncoding>;
+    private requestExamples?;
+    constructor(version: TVersion, method: TMethod, path: TPath, validator: TValidator, bodyEncoding?: TBodyEncoding | undefined, multipartFiles?: MultipartFileParts | undefined, requestExamples?: Examples<unknown> | undefined);
+    metaData<TMetaData extends CheckMeta<TMetaData>>(metaData: TMetaData): RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion, TMethod, TPath, TValidator, TMetaData, TBodyEncoding>;
     responses<TResponses extends StrictResponseMap<TResponses>>(responses: TResponses): RouteDef<TVersion, TMethod, TPath, TValidator, TResponses, unknown, TBodyEncoding>;
     /**
      * Shorthand for `.responses({ [status]: json<TResponse>() })`, the status
@@ -238,6 +341,11 @@ declare class RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion exten
     }, unknown, TBodyEncoding>;
 }
 
+interface ValidateOptions<TValidator> {
+    /** Example requests, typed against the input of the validator. */
+    readonly examples?: Examples<TValidator extends StandardSchemaV1 ? StandardSchemaV1.InferInput<TValidator> : never>;
+}
+
 declare class RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion extends string, TMethod extends HTTPMethod, TPath extends string, TMetaData, TBodyEncoding extends BodyEncoding = 'json'> {
     private version;
     private method;
@@ -246,7 +354,7 @@ declare class RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion extend
     private bodyEncoding?;
     private multipartFiles?;
     constructor(version: TVersion, method: TMethod, path: TPath, metaData: TMetaData, bodyEncoding?: TBodyEncoding | undefined, multipartFiles?: MultipartFileParts | undefined);
-    validate<TValidator>(validator: TValidator): RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion, TMethod, TPath, TValidator, TMetaData, TBodyEncoding>;
+    validate<TValidator>(validator: TValidator, options?: ValidateOptions<TValidator>): RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<TVersion, TMethod, TPath, TValidator, TMetaData, TBodyEncoding>;
     responses<TResponses extends StrictResponseMap<TResponses>>(responses: TResponses): RouteDef<TVersion, TMethod, TPath, EmptySchema, TResponses, TMetaData, TBodyEncoding>;
     /**
      * Shorthand for `.responses({ [status]: json<TResponse>() })`, the status
@@ -285,8 +393,8 @@ declare class RouteBuilderWithVersionAndMethodAndPath<TVersion extends string, T
     multipart<const TOptions extends MultipartOptions = {}>(this: RouteBuilderWithVersionAndMethodAndPath<TVersion, TMethod & BodyMethod, TPath, TBodyEncoding>, options?: TOptions): RouteBuilderWithVersionAndMethodAndPath<TVersion, TMethod, TPath, TOptions extends {
         json: true;
     } ? "json-or-multipart" : "multipart">;
-    validate<TValidator>(validator: TValidator): RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion, TMethod, TPath, TValidator, TBodyEncoding>;
-    metaData<TMetaData>(metaData: TMetaData): RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion, TMethod, TPath, TMetaData, TBodyEncoding>;
+    validate<TValidator>(validator: TValidator, options?: ValidateOptions<TValidator>): RouteBuilderWithVersionAndMethodAndPathAndValidator<TVersion, TMethod, TPath, TValidator, TBodyEncoding>;
+    metaData<TMetaData extends CheckMeta<TMetaData>>(metaData: TMetaData): RouteBuilderWithVersionAndMethodAndPathAndMetaData<TVersion, TMethod, TPath, TMetaData, TBodyEncoding>;
     responses<TResponses extends StrictResponseMap<TResponses>>(responses: TResponses): RouteDef<TVersion, TMethod, TPath, EmptySchema, TResponses, unknown, TBodyEncoding>;
     /**
      * Shorthand for `.responses({ [status]: json<TResponse>() })`, the status
@@ -518,5 +626,11 @@ declare function text<TContentType extends string>(contentType?: TContentType, o
 declare const binary: <TContentType extends string>(contentType: TContentType, options?: Omit<ResponseOptions<Uint8Array>, "examples">) => BinaryResponseDescriptor<TContentType>;
 declare const empty: (options?: Omit<ResponseOptions<undefined>, "examples">) => EmptyResponseDescriptor;
 
-export { BagOfRoutes, BagOfRoutesBuilderWithVersioning, BagOfRoutesBuilderWithoutVersioning, HashMap, Identity, Route, RouteBuilderWithVersionAndMethodAndPath, RouteBuilderWithVersionAndMethodAndPathAndMetaData, RouteBuilderWithVersionAndMethodAndPathAndValidator, RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData, RouteDef, RouteWithVersion, TypedIdentity, ValidationError, VersionHistory, Versioning, binary, combine, createRouteResolver, demoBagOfRoutes, empty, emptyValidation, findNearestLowerDate, first, isDefined, isNonEmptyArray, joinPath, json, last, normalizePathPattern, resolveDateVersion, resolveVersion, text, typedLowerCase, typedUpperCase, versionHistory };
-export type { AddReadonlyDeep, AnyResponseDescriptor, AnyRouteDef, AnyRouteValidator, BagOfRoutesVersions, BinaryResponseDescriptor, BodyEncoding, BodyOf, CombinedBags, DeclaredStatus, DecodedBody, EmptyResponseDescriptor, EmptySchema, EmptyValidation, Example, Examples, ExtractLatestMatchingRoutePerPath, ExtractRoute, ExtractRoutes, ExtractVersionMatchingRoute, HTTPMethod, InferMetaData, JoinPath, JsonResponseDescriptor, MultipartFilePart, MultipartFileParts, MultipartOptions, NewerVersions, NonEmptyArray, OlderVersions, PrefixMatchingRoutes, PrefixString, RemoveReadonlyDeep, RemoveReadonlyDeepArray, ResponseDescriptor, ResponseDescriptorOf, ResponseMap, ResponseOptions, RouteHashMap, RouteInput, RouteOutput, RouteRequestInput, RouteValidationInput, RouteValidationOutput, StrictResponseMap, StringReplaceHead, StringStartsWith, SuffixString, TextResponseDescriptor, VersioningRequired, WithoutDoubleSlash, WithoutLeadingSlash, WithoutTrailingSlash };
+/**
+ * Declares a security scheme, `name` is its name in documentation. Routes
+ * reference the returned value in `meta.security`.
+ */
+declare const securityScheme: <const TName extends string, const TSpec extends SecuritySchemeSpec>(name: TName, spec: TSpec) => SecurityScheme<TName, TSpec>;
+
+export { BagOfRoutes, BagOfRoutesBuilderWithVersioning, BagOfRoutesBuilderWithoutVersioning, HashMap, Identity, Route, RouteBuilderWithVersionAndMethodAndPath, RouteBuilderWithVersionAndMethodAndPathAndMetaData, RouteBuilderWithVersionAndMethodAndPathAndValidator, RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData, RouteDef, RouteWithVersion, TypedIdentity, ValidationError, VersionHistory, Versioning, binary, combine, createRouteResolver, demoBagOfRoutes, empty, emptyValidation, findNearestLowerDate, first, isDefined, isNonEmptyArray, joinPath, json, last, normalizePathPattern, resolveDateVersion, resolveVersion, securityScheme, text, typedLowerCase, typedUpperCase, versionHistory };
+export type { AddReadonlyDeep, AnyResponseDescriptor, AnyRouteDef, AnyRouteValidator, BagOfRoutesVersions, BinaryResponseDescriptor, BodyEncoding, BodyOf, CheckMeta, CombinedBags, DeclaredStatus, DecodedBody, EmptyResponseDescriptor, EmptySchema, EmptyValidation, Example, Examples, ExtractLatestMatchingRoutePerPath, ExtractRoute, ExtractRoutes, ExtractVersionMatchingRoute, HTTPMethod, InferMetaData, JoinPath, JsonResponseDescriptor, MultipartFilePart, MultipartFileParts, MultipartOptions, NewerVersions, NonEmptyArray, OAuthFlows, OlderVersions, PrefixMatchingRoutes, PrefixString, RemoveReadonlyDeep, RemoveReadonlyDeepArray, ResponseDescriptor, ResponseDescriptorOf, ResponseMap, ResponseOptions, RouteHashMap, RouteInput, RouteMeta, RouteOutput, RouteRequestInput, RouteValidationInput, RouteValidationOutput, ScopedSecurityScheme, SecurityRequirements, SecurityScheme, SecuritySchemeScope, SecuritySchemeSpec, StrictResponseMap, StringReplaceHead, StringStartsWith, SuffixString, TextResponseDescriptor, ValidateOptions, VersioningRequired, WithoutDoubleSlash, WithoutLeadingSlash, WithoutTrailingSlash };

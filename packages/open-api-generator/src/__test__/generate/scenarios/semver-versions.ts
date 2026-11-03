@@ -15,6 +15,7 @@ export default BagOfRoutes.withVersioning(Versioning.SEMVER, versionHistory)
   .addRoute(
     Route.version('1.1.0')
       .get('/users/:userId')
+      // @ts-expect-error invalid meta data the generator warns about at runtime
       .metaData({ tags: 'users' })
       .response<UserV1>()
   )

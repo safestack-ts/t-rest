@@ -4,6 +4,7 @@ import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
 import {
   EmptyResponseDescriptor,
+  Examples,
   JsonResponseDescriptor,
   StrictResponseMap,
 } from '../../types/response-descriptor.js'
@@ -11,6 +12,7 @@ import {
   shorthandResponses,
   ShorthandStatus,
 } from '../../internal/response-shorthand.js'
+import { CheckMeta } from '../../types/route-meta.js'
 import { RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData } from './route-builder-with-version-and-method-and-path-and-validator-and-meta-data.js'
 
 export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
@@ -26,10 +28,11 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
     private path: TPath,
     private validator: TValidator,
     private bodyEncoding?: TBodyEncoding,
-    private multipartFiles?: MultipartFileParts
+    private multipartFiles?: MultipartFileParts,
+    private requestExamples?: Examples<unknown>
   ) {}
 
-  public metaData<TMetaData>(metaData: TMetaData) {
+  public metaData<TMetaData extends CheckMeta<TMetaData>>(metaData: TMetaData) {
     return new RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
       TVersion,
       TMethod,
@@ -44,7 +47,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
       this.validator,
       metaData,
       this.bodyEncoding,
-      this.multipartFiles
+      this.multipartFiles,
+      this.requestExamples
     )
   }
 
@@ -67,7 +71,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidator<
       responses,
       null,
       this.bodyEncoding,
-      this.multipartFiles
+      this.multipartFiles,
+      this.requestExamples
     )
   }
 

@@ -17,6 +17,8 @@ import {
 import { RouteBuilderWithVersionAndMethodAndPathAndValidator } from './route-builder-with-version-and-method-and-path-and-validator.js'
 import { RouteBuilderWithVersionAndMethodAndPathAndMetaData } from './route-builder-with-version-and-method-and-path-and-meta-data.js'
 import { emptyValidation } from '../../utils/empty-validation.js'
+import { CheckMeta } from '../../types/route-meta.js'
+import { ValidateOptions } from '../../types/validate-options.js'
 
 type BodyMethod = Exclude<HTTPMethod, 'GET' | 'DELETE'>
 
@@ -69,7 +71,10 @@ export class RouteBuilderWithVersionAndMethodAndPath<
     )
   }
 
-  public validate<TValidator>(validator: TValidator) {
+  public validate<TValidator>(
+    validator: TValidator,
+    options?: ValidateOptions<TValidator>
+  ) {
     return new RouteBuilderWithVersionAndMethodAndPathAndValidator<
       TVersion,
       TMethod,
@@ -82,11 +87,12 @@ export class RouteBuilderWithVersionAndMethodAndPath<
       this.path,
       validator,
       this.bodyEncoding,
-      this.multipartFiles
+      this.multipartFiles,
+      options?.examples
     )
   }
 
-  public metaData<TMetaData>(metaData: TMetaData) {
+  public metaData<TMetaData extends CheckMeta<TMetaData>>(metaData: TMetaData) {
     return new RouteBuilderWithVersionAndMethodAndPathAndMetaData<
       TVersion,
       TMethod,
