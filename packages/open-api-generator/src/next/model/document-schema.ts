@@ -243,6 +243,21 @@ const linkSchema = z.strictObject({
   description: z.string().optional(),
 })
 
+const serverSchema = z.strictObject({
+  url: z.string(),
+  description: z.string().optional(),
+  variables: z
+    .record(
+      z.string(),
+      z.strictObject({
+        default: z.string(),
+        description: z.string().optional(),
+        enum: z.array(z.string()).optional(),
+      })
+    )
+    .optional(),
+})
+
 const operationSchema = named(
   'Operation',
   'One route in one version. `key` is built from the normalized path, for example `GET /users/{} @2024-01-01`.',
@@ -257,7 +272,7 @@ const operationSchema = named(
     tags: z.array(z.string()),
     deprecated: z.boolean(),
     externalDocs: linkSchema.optional(),
-    servers: z.array(linkSchema).optional(),
+    servers: z.array(serverSchema).optional(),
     parameters: z.array(parameterSchema),
     requestBody: z
       .strictObject({
