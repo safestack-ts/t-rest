@@ -107,7 +107,7 @@ importers:
         specifier: ^22.20.5
         version: 22.20.5
       zod:
-        specifier: ^3.25.0 || ^4.0.0
+        specifier: ^4.0.0
         version: 4.6.7
 
   packages/express-server:
@@ -184,7 +184,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
       zod:
-        specifier: ^3.25.0 || ^4.0.0
+        specifier: ^4.0.0
         version: 4.6.7
 
   packages/playground:
