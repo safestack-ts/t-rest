@@ -1,0 +1,108 @@
+openapi: 3.0.0
+info:
+  title: Baseline
+  description: Baseline fixture
+  version: 2024-01-01
+servers: []
+tags: []
+paths:
+  /products:
+    get:
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductV1"
+  /products/{productId}:
+    get:
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductV1"
+        "404":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Failure"
+  /products/{productId}/manual:
+    get:
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Failure"
+  /products/export:
+    get:
+      parameters: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            text/csv:
+              schema:
+                type: string
+        "202":
+          description: Successful response
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  schemas:
+    Failure:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    ProductV1:
+      type: object
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+      required:
+        - id
+        - name

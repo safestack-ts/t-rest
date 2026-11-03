@@ -1,0 +1,122 @@
+openapi: 3.0.0
+info:
+  title: Baseline
+  description: Baseline fixture
+  version: 1.0.0
+servers: []
+tags: []
+paths:
+  /documents:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                note:
+                  type: string
+                document:
+                  type: string
+                  format: binary
+                attachments:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+              required:
+                - title
+                - document
+      responses:
+        "201":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Upload"
+        "422":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadFailure"
+  /avatar:
+    put:
+      parameters: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+              required:
+                - avatar
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Upload"
+  /documents/{documentId}:
+    patch:
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+              required:
+                - title
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+              required:
+                - title
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Upload"
+components:
+  schemas:
+    Upload:
+      type: object
+      properties:
+        id:
+          type: string
+        size:
+          type: number
+      required:
+        - id
+        - size
+    UploadFailure:
+      type: object
+      properties:
+        error:
+          type: string
+        field:
+          type: string
+          nullable: true
+      required:
+        - error
+        - field

@@ -1,0 +1,224 @@
+openapi: 3.0.0
+info:
+  title: Baseline
+  description: Baseline fixture
+  version: 1.0.0
+servers: []
+tags: []
+paths:
+  /drawings:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  nullable: true
+                figures:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: object
+                        properties:
+                          kind:
+                            type: string
+                            enum:
+                              - circle
+                          radius:
+                            type: number
+                        required:
+                          - kind
+                          - radius
+                      - type: object
+                        properties:
+                          kind:
+                            type: string
+                            enum:
+                              - square
+                          side:
+                            type: number
+                        required:
+                          - kind
+                          - side
+                origin:
+                  type: array
+                  items:
+                    type: number
+                  minItems: 2
+                  maxItems: 2
+                status:
+                  type: string
+                  enum:
+                    - draft
+                    - published
+                layer:
+                  type: number
+                  enum:
+                    - 2
+                    - 1
+                    - 3
+                tags:
+                  type: object
+                  additionalProperties:
+                    type: string
+              required:
+                - title
+                - figures
+                - origin
+                - status
+                - layer
+      responses:
+        "201":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Drawing"
+        "400":
+          description: Error response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  issues:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - issues
+  /tree:
+    get:
+      parameters: []
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TreeNode"
+    put:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TreeInput"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TreeNode"
+components:
+  schemas:
+    Circle:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum:
+            - circle
+        radius:
+          type: number
+      required:
+        - kind
+        - radius
+    Drawing:
+      type: object
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+          nullable: true
+        figures:
+          type: array
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/Circle"
+              - $ref: "#/components/schemas/Square"
+        origin:
+          type: array
+          items:
+            type: number
+          minItems: 2
+          maxItems: 2
+        status:
+          type: string
+          enum:
+            - draft
+            - published
+        layer:
+          type: number
+          enum:
+            - 2
+            - 1
+            - 3
+        version:
+          type: number
+          enum:
+            - 2
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        note:
+          type: string
+      required:
+        - id
+        - title
+        - figures
+        - origin
+        - status
+        - layer
+        - version
+        - tags
+    Square:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum:
+            - square
+        side:
+          type: number
+      required:
+        - kind
+        - side
+    TreeInput:
+      type: object
+      properties:
+        label:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/TreeInput"
+      required:
+        - label
+    TreeNode:
+      type: object
+      properties:
+        label:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/TreeNode"
+        parent:
+          oneOf:
+            - $ref: "#/components/schemas/TreeNode"
+            - type: string
+              enum:
+                - null
+              nullable: true
+      required:
+        - label
+        - children
+        - parent
