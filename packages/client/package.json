@@ -14,6 +14,21 @@
             },
             "import": "./dist/index.js",
             "require": "./dist/index.cjs"
+        },
+        "./axios": {
+            "types": {
+                "import": "./dist/axios.d.ts",
+                "require": "./dist/axios.d.cts"
+            },
+            "import": "./dist/axios.js",
+            "require": "./dist/axios.cjs"
+        }
+    },
+    "typesVersions": {
+        "*": {
+            "axios": [
+                "./dist/axios.d.ts"
+            ]
         }
     },
     "files": [

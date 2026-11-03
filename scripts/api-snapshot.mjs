@@ -28,7 +28,7 @@ const packages = [
   'protocol',
 ]
 // entry points besides `index` (subpath exports)
-const extraEntries = { core: ['zod'] }
+const extraEntries = { core: ['zod'], client: ['axios'] }
 const mode = process.argv[2]
 
 if (mode !== 'check' && mode !== 'update') {
