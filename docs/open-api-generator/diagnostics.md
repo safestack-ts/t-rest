@@ -162,7 +162,7 @@ A query parameter accepts an object, array or tuple, which travels as JSON text,
 
 **Two outputs write one file.**
 
-Two specs write the same file, either their `output` or their `<basename>.api-model.json` sidecar, e.g. `api.yaml` and `api.json`.
+Two specs write the same file, either their `output` or their `<basename>.api-model.json` sidecar, e.g. `api.yaml` and `api.json`. Paths are compared ignoring case.
 
 **Fix.** Give the specs outputs with different base names.
 

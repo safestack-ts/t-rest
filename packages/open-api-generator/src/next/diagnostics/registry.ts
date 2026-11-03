@@ -343,9 +343,10 @@ export const DIAGNOSTICS = {
     configurable: false,
     title: 'Two outputs write one file',
     trigger:
-      'Two specs write the same file, either their `output` or their `<basename>.api-model.json` sidecar, e.g. `api.yaml` and `api.json`.',
+      'Two specs write the same file, either their `output` or their `<basename>.api-model.json` sidecar, e.g. `api.yaml` and `api.json`. Paths are compared ignoring case.',
     fix: 'Give the specs outputs with different base names.',
-    message: (d) => `${list(d.outputs)} all write ${d.path}`,
+    message: (d) =>
+      `more than one spec writes ${d.path} (outputs: ${list(d.outputs)})`,
   }),
 } as const
 
