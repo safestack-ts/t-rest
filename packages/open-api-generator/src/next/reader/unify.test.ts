@@ -108,7 +108,7 @@ describe('generated-def unification', () => {
         return z.array(T)
       },
     })
-    const kids = 'anon:GET /x#response#/properties/b/properties/kids'
+    const kids = 'anon:output:A#/properties/kids'
 
     expect(
       read(

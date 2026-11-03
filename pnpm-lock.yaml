@@ -152,6 +152,9 @@ importers:
       debug:
         specifier: ^4.4.3
         version: 4.4.3
+      http-status-codes:
+        specifier: ^2.3.0
+        version: 2.3.0
       lodash:
         specifier: ^4.18.1
         version: 4.18.1

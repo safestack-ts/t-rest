@@ -1,0 +1,110 @@
+{
+  "modelVersion": 1,
+  "versioning": {
+    "kind": "none"
+  },
+  "types": {
+    "output:Upload": {
+      "kind": "named",
+      "id": "Upload",
+      "direction": "output",
+      "shape": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "id",
+            "required": true,
+            "shape": {
+              "kind": "string"
+            }
+          },
+          {
+            "name": "size",
+            "required": true,
+            "shape": {
+              "kind": "number",
+              "integer": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  "responses": {},
+  "securitySchemes": {},
+  "operations": [
+    {
+      "key": "GET /search",
+      "method": "GET",
+      "path": "/search",
+      "version": "",
+      "operationId": "getSearch",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [
+        {
+          "name": "filter",
+          "in": "query",
+          "required": true,
+          "shape": {
+            "kind": "object",
+            "fields": [
+              {
+                "name": "tag",
+                "required": true,
+                "shape": {
+                  "kind": "string"
+                }
+              }
+            ]
+          },
+          "encoding": "json"
+        },
+        {
+          "name": "ids",
+          "in": "query",
+          "required": false,
+          "shape": {
+            "kind": "array",
+            "items": {
+              "kind": "number",
+              "integer": false
+            }
+          },
+          "encoding": "json"
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": true,
+          "shape": {
+            "kind": "string"
+          },
+          "encoding": "plain"
+        }
+      ],
+      "responses": {
+        "200": {
+          "kind": "inline",
+          "response": {
+            "description": "OK",
+            "headers": [],
+            "content": {
+              "application/json": {
+                "shape": {
+                  "kind": "array",
+                  "items": {
+                    "kind": "ref",
+                    "target": "output:Upload"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "security": [],
+      "extensions": {}
+    }
+  ]
+}

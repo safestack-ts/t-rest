@@ -1,0 +1,144 @@
+{
+  "modelVersion": 1,
+  "versioning": {
+    "kind": "none"
+  },
+  "types": {
+    "output:Upload": {
+      "kind": "named",
+      "id": "Upload",
+      "direction": "output",
+      "shape": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "id",
+            "required": true,
+            "shape": {
+              "kind": "string"
+            }
+          },
+          {
+            "name": "size",
+            "required": true,
+            "shape": {
+              "kind": "number",
+              "integer": false
+            }
+          }
+        ]
+      }
+    },
+    "output:Failure": {
+      "kind": "named",
+      "id": "Failure",
+      "direction": "output",
+      "shape": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "error",
+            "required": true,
+            "shape": {
+              "kind": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "responses": {
+    "BadRequest": {
+      "description": "The request is invalid",
+      "headers": [],
+      "content": {
+        "application/json": {
+          "shape": {
+            "kind": "ref",
+            "target": "output:Failure"
+          }
+        }
+      }
+    }
+  },
+  "securitySchemes": {},
+  "operations": [
+    {
+      "key": "GET /a",
+      "method": "GET",
+      "path": "/a",
+      "version": "",
+      "operationId": "getA",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [],
+      "responses": {
+        "200": {
+          "kind": "inline",
+          "response": {
+            "description": "OK",
+            "headers": [],
+            "content": {
+              "application/json": {
+                "shape": {
+                  "kind": "ref",
+                  "target": "output:Upload"
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "kind": "shared",
+          "id": "BadRequest"
+        }
+      },
+      "security": [],
+      "extensions": {}
+    },
+    {
+      "key": "POST /b",
+      "method": "POST",
+      "path": "/b",
+      "version": "",
+      "operationId": "postB",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [],
+      "responses": {
+        "201": {
+          "kind": "inline",
+          "response": {
+            "description": "Created",
+            "headers": [],
+            "content": {
+              "application/json": {
+                "shape": {
+                  "kind": "ref",
+                  "target": "output:Upload"
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "kind": "inline",
+          "response": {
+            "description": "Bad Request",
+            "headers": [],
+            "content": {
+              "application/json": {
+                "shape": {
+                  "kind": "ref",
+                  "target": "output:Failure"
+                }
+              }
+            }
+          }
+        }
+      },
+      "security": [],
+      "extensions": {}
+    }
+  ]
+}

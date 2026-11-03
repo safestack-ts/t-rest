@@ -131,6 +131,99 @@ export const DIAGNOSTICS = {
     fix: 'Give each schema its own id, or reuse one schema value instead of two equal-looking ones.',
     message: (d) => `two different schemas use the id "${d.id}"`,
   }),
+  'naming/duplicate-response-id': define<{ id: string }>()({
+    severity: 'error',
+    configurable: false,
+    title: 'Two responses share one id',
+    trigger:
+      'Two response descriptors carry the same `id` but differ in their schema object or their docs (`description`, `headers`, `examples`, content type). Each is documented inline instead of as one shared response.',
+    fix: 'Create the descriptor once and reuse the value, or give each descriptor its own `id`.',
+    message: (d) => `two different responses use the id "${d.id}"`,
+  }),
+  'naming/shared-response-without-description': define<{
+    id: string
+    statuses: string[]
+  }>()({
+    severity: 'warning',
+    configurable: true,
+    title: 'A shared response serves several statuses without a description',
+    trigger:
+      'A response descriptor with an `id` and no `description` is used for more than one status, e.g. one `json(Error, { id })` for 400 and 404. The shared response is documented with the reason phrases of every status it serves, e.g. "Bad Request or Not Found".',
+    fix: 'Give the descriptor a `description` that fits every status, or create one descriptor per status.',
+    message: (d) =>
+      `the shared response "${d.id}" serves ${d.statuses.join(
+        ', '
+      )} without a description`,
+  }),
+  'operation/duplicate-route': define<{ paths: string[] }>()({
+    severity: 'error',
+    configurable: false,
+    title: 'Two routes share one operation',
+    trigger:
+      'Two routes of one version have the same method and paths that differ only in parameter names, e.g. `/users/:id` and `/users/:userId`. Requests cannot tell them apart; only the first is documented.',
+    fix: 'Remove one of the routes, or give them different paths.',
+    message: (d) => `the routes ${list(d.paths)} are one operation`,
+  }),
+  'operation/invalid-meta': define<{ key: string }>()({
+    severity: 'warning',
+    configurable: true,
+    title: 'Route meta value has the wrong type',
+    trigger:
+      "A `RouteMeta` key of `.metaData()` holds a value of another type at runtime, e.g. `tags: 'users'` behind a `@ts-expect-error`. The key is left out of the operation.",
+    fix: 'Pass the value with the type `RouteMeta` declares for the key.',
+    message: (d) => `meta key "${d.key}" has the wrong type and was left out`,
+  }),
+  'operation/example-invalid': define<{ example: string; issues: string[] }>()({
+    severity: 'error',
+    configurable: false,
+    title: 'Example does not match its schema',
+    trigger:
+      'A request example (`.validate(schema, { examples })`) fails the route validator, or a response example fails the schema of its `json(schema, { examples })` descriptor. The example is left out.',
+    fix: 'Correct the example value, or the schema if the example shows the intended data.',
+    message: (d) =>
+      `example "${d.example}" does not match its schema: ${list(d.issues)}`,
+  }),
+  'operation/example-unverifiable': define<{
+    examples: string[]
+    reason: string
+  }>()({
+    severity: 'info',
+    configurable: false,
+    title: 'Example not validated',
+    trigger:
+      'An example cannot be checked: its descriptor has no schema, its schema reads differently as input and as output (a default, a transform), or the validator only validates asynchronously. The example is documented as written.',
+    fix: 'Nothing to do; check the example by hand.',
+    message: (d) => `example(s) ${list(d.examples)} not validated: ${d.reason}`,
+  }),
+  'response/untyped-json': define<Record<string, never>>()({
+    severity: 'warning',
+    configurable: true,
+    title: 'JSON response without schema',
+    trigger:
+      'A response is declared with `json<T>()`, so only TypeScript knows its body. It is documented as any JSON value.',
+    fix: 'Pass the schema: `json(schema)`.',
+    message: () =>
+      'json<T>() has no schema; the body is documented as any JSON value',
+  }),
+  'security/header-and-scheme': define<{ header: string; scheme: string }>()({
+    severity: 'warning',
+    configurable: true,
+    title: 'Header covered by a security scheme',
+    trigger:
+      'The route declares a header in its validator and a security scheme in `meta.security` that sends the same header (`authorization` for `http` and `oauth2` schemes, the header name of an `apiKey`, or a header mapped by `securityFromHeaders`). The header parameter is left out; the scheme documents it.',
+    fix: "Remove the header from the validator's `headers`, or the scheme from `meta.security`.",
+    message: (d) =>
+      `header "${d.header}" is also sent by the security scheme "${d.scheme}"`,
+  }),
+  'security/scheme-name-conflict': define<{ name: string }>()({
+    severity: 'error',
+    configurable: false,
+    title: 'Two security schemes share one name',
+    trigger:
+      'Two `securityScheme()` values have the same name but different specs.',
+    fix: 'Declare each scheme once and reuse the value, or give the schemes different names.',
+    message: (d) => `two different security schemes use the name "${d.name}"`,
+  }),
 } as const
 
 type Definitions = typeof DIAGNOSTICS

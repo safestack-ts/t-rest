@@ -1,0 +1,238 @@
+{
+  "modelVersion": 1,
+  "versioning": {
+    "kind": "none"
+  },
+  "types": {
+    "output:Upload": {
+      "kind": "named",
+      "id": "Upload",
+      "direction": "output",
+      "shape": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "id",
+            "required": true,
+            "shape": {
+              "kind": "string"
+            }
+          },
+          {
+            "name": "size",
+            "required": true,
+            "shape": {
+              "kind": "number",
+              "integer": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  "responses": {},
+  "securitySchemes": {},
+  "operations": [
+    {
+      "key": "PATCH /documents/{}",
+      "method": "PATCH",
+      "path": "/documents/:documentId",
+      "version": "",
+      "operationId": "patchDocumentsByDocumentId",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [
+        {
+          "name": "documentId",
+          "in": "path",
+          "required": true,
+          "shape": {
+            "kind": "string"
+          },
+          "encoding": "plain"
+        }
+      ],
+      "requestBody": {
+        "required": false,
+        "content": {
+          "application/json": {
+            "shape": {
+              "kind": "object",
+              "fields": [
+                {
+                  "name": "title",
+                  "required": true,
+                  "shape": {
+                    "kind": "string"
+                  }
+                }
+              ]
+            }
+          },
+          "multipart/form-data": {
+            "shape": {
+              "kind": "object",
+              "fields": [
+                {
+                  "name": "title",
+                  "required": true,
+                  "shape": {
+                    "kind": "string"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "kind": "inline",
+          "response": {
+            "description": "OK",
+            "headers": [],
+            "content": {
+              "application/json": {
+                "shape": {
+                  "kind": "ref",
+                  "target": "output:Upload"
+                }
+              }
+            }
+          }
+        }
+      },
+      "security": [],
+      "extensions": {}
+    },
+    {
+      "key": "POST /documents",
+      "method": "POST",
+      "path": "/documents",
+      "version": "",
+      "operationId": "postDocuments",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "shape": {
+              "kind": "object",
+              "fields": [
+                {
+                  "name": "title",
+                  "required": true,
+                  "shape": {
+                    "kind": "string"
+                  }
+                },
+                {
+                  "name": "document",
+                  "required": true,
+                  "shape": {
+                    "kind": "string",
+                    "contentMediaType": "application/octet-stream"
+                  }
+                },
+                {
+                  "name": "attachments",
+                  "required": false,
+                  "shape": {
+                    "kind": "array",
+                    "items": {
+                      "kind": "string",
+                      "contentMediaType": "application/octet-stream"
+                    }
+                  }
+                }
+              ]
+            },
+            "encoding": {
+              "document": {
+                "contentType": "application/octet-stream"
+              },
+              "attachments": {
+                "contentType": "application/octet-stream"
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "kind": "inline",
+          "response": {
+            "description": "Created",
+            "headers": [],
+            "content": {
+              "application/json": {
+                "shape": {
+                  "kind": "ref",
+                  "target": "output:Upload"
+                }
+              }
+            }
+          }
+        }
+      },
+      "security": [],
+      "extensions": {}
+    },
+    {
+      "key": "PUT /avatar",
+      "method": "PUT",
+      "path": "/avatar",
+      "version": "",
+      "operationId": "putAvatar",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "shape": {
+              "kind": "object",
+              "fields": [
+                {
+                  "name": "avatar",
+                  "required": true,
+                  "shape": {
+                    "kind": "string",
+                    "contentMediaType": "application/octet-stream"
+                  }
+                }
+              ]
+            },
+            "encoding": {
+              "avatar": {
+                "contentType": "application/octet-stream"
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "kind": "inline",
+          "response": {
+            "description": "OK",
+            "headers": [],
+            "content": {
+              "application/json": {
+                "shape": {
+                  "kind": "ref",
+                  "target": "output:Upload"
+                }
+              }
+            }
+          }
+        }
+      },
+      "security": [],
+      "extensions": {}
+    }
+  ]
+}

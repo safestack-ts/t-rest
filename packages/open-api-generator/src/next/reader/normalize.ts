@@ -35,7 +35,7 @@ interface NormalizationRule {
   ) => JsonSchemaObject
 }
 
-const without = (node: JsonSchemaObject, ...keys: string[]) =>
+export const without = (node: JsonSchemaObject, ...keys: string[]) =>
   Object.fromEntries(
     Object.entries(node).filter(([key]) => !keys.includes(key))
   )

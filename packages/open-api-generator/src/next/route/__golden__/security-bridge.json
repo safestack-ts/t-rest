@@ -1,0 +1,194 @@
+{
+  "modelVersion": 1,
+  "versioning": {
+    "kind": "none"
+  },
+  "types": {},
+  "responses": {},
+  "securitySchemes": {
+    "apiKey": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "X-Api-Key"
+    },
+    "bearer": {
+      "type": "http",
+      "scheme": "bearer"
+    },
+    "oauth": {
+      "type": "oauth2",
+      "flows": {
+        "clientCredentials": {
+          "tokenUrl": "https://auth.example.com/token",
+          "scopes": {
+            "read": "Read access"
+          }
+        }
+      }
+    }
+  },
+  "operations": [
+    {
+      "key": "GET /default",
+      "method": "GET",
+      "path": "/default",
+      "version": "",
+      "operationId": "getDefault",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [],
+      "responses": {
+        "204": {
+          "kind": "inline",
+          "response": {
+            "description": "No Content",
+            "headers": [],
+            "content": {}
+          }
+        }
+      },
+      "security": [
+        [
+          {
+            "scheme": "apiKey",
+            "scopes": []
+          }
+        ]
+      ],
+      "extensions": {}
+    },
+    {
+      "key": "GET /optional",
+      "method": "GET",
+      "path": "/optional",
+      "version": "",
+      "operationId": "getOptional",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [],
+      "responses": {
+        "204": {
+          "kind": "inline",
+          "response": {
+            "description": "No Content",
+            "headers": [],
+            "content": {}
+          }
+        }
+      },
+      "security": [
+        [
+          {
+            "scheme": "bearer",
+            "scopes": []
+          }
+        ],
+        []
+      ],
+      "extensions": {}
+    },
+    {
+      "key": "GET /public",
+      "method": "GET",
+      "path": "/public",
+      "version": "",
+      "operationId": "getPublic",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [
+        {
+          "name": "authorization",
+          "in": "header",
+          "required": true,
+          "shape": {
+            "kind": "string"
+          },
+          "encoding": "plain"
+        }
+      ],
+      "responses": {
+        "204": {
+          "kind": "inline",
+          "response": {
+            "description": "No Content",
+            "headers": [],
+            "content": {}
+          }
+        }
+      },
+      "security": [],
+      "extensions": {}
+    },
+    {
+      "key": "GET /required",
+      "method": "GET",
+      "path": "/required",
+      "version": "",
+      "operationId": "getRequired",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [
+        {
+          "name": "x-trace",
+          "in": "header",
+          "required": true,
+          "shape": {
+            "kind": "string"
+          },
+          "encoding": "plain"
+        }
+      ],
+      "responses": {
+        "204": {
+          "kind": "inline",
+          "response": {
+            "description": "No Content",
+            "headers": [],
+            "content": {}
+          }
+        }
+      },
+      "security": [
+        [
+          {
+            "scheme": "bearer",
+            "scopes": []
+          }
+        ]
+      ],
+      "extensions": {}
+    },
+    {
+      "key": "GET /scoped",
+      "method": "GET",
+      "path": "/scoped",
+      "version": "",
+      "operationId": "getScoped",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [],
+      "responses": {
+        "204": {
+          "kind": "inline",
+          "response": {
+            "description": "No Content",
+            "headers": [],
+            "content": {}
+          }
+        }
+      },
+      "security": [
+        [
+          {
+            "scheme": "oauth",
+            "scopes": [
+              "read"
+            ]
+          }
+        ],
+        []
+      ],
+      "extensions": {}
+    }
+  ]
+}

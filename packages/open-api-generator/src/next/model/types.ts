@@ -16,7 +16,8 @@ export type Direction = 'input' | 'output'
 /**
  * Identity of a type inside one generator run:
  * `input:<id>` / `output:<id>` for author ids, and
- * `anon:<operation key>#<slot>#<json pointer>` for recursion without an id.
+ * `anon:<direction>:<id>#<json pointer>` for recursion without an id inside a
+ * named def, `anon:<operation key>#<slot>#<json pointer>` outside any.
  */
 export type DefKey = Brand<string, 'DefKey'>
 

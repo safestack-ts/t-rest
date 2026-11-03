@@ -5,6 +5,7 @@ import {
   convert,
   ConversionCache,
   createConversionCache,
+  JsonSchemaObject,
   StandardJSONSchemaSource,
 } from './convert.js'
 import { buildGraph } from './graph.js'
@@ -13,8 +14,9 @@ import {
   emptySchemaPointers,
   JsonSchema,
   pointerTo,
+  transformSchema,
 } from './json-schema.js'
-import { normalize } from './normalize.js'
+import { normalize, without } from './normalize.js'
 import { unify } from './unify.js'
 import { VendorPolicy, vendorPolicy } from './vendor-policy.js'
 
@@ -87,6 +89,33 @@ const inputForClosedness = (
 ): JsonSchema | undefined => {
   const input = convert(schema, 'input', policy, run.cache)
   return input.kind === 'converted' ? input.schema : undefined
+}
+
+/** `readOnly` and `writeOnly` say who sends a value, not which values validate. */
+const withoutAccessAnnotations = (schema: JsonSchema) =>
+  transformSchema(schema, (node) => without(node, 'readOnly', 'writeOnly'))
+
+/**
+ * Whether the input and output conversions of `schema` accept the same values
+ * after normalization, so a value validated as input also documents the output.
+ */
+export const directionsAgree = (
+  schema: StandardJSONSchemaSource,
+  run: ReaderRun
+): boolean => {
+  const policy = run.policyOf(schema['~standard'].vendor)
+  const input = convert(schema, 'input', policy, run.cache)
+  const output = convert(schema, 'output', policy, run.cache)
+  if (input.kind !== 'converted' || output.kind !== 'converted') return false
+
+  const options = { policy, input: input.schema }
+  const normalized = (direction: Direction, converted: JsonSchemaObject) =>
+    JSON.stringify(
+      withoutAccessAnnotations(normalize(converted, { ...options, direction }))
+    )
+  return (
+    normalized('input', input.schema) === normalized('output', output.schema)
+  )
 }
 
 /** Reads one schema in one direction into model shapes. Pure apart from the run's cache. */
