@@ -6,10 +6,15 @@ Every diagnostic has a code, a severity and a location (operation, slot, JSON po
 
 | Code | Severity | Configurable |
 | --- | --- | --- |
+| [`naming/anonymous-recursion`](#naminganonymous-recursion) | warning | yes |
+| [`naming/component-conflict`](#namingcomponent-conflict) | error | no |
+| [`naming/direction-split`](#namingdirection-split) | info | no |
 | [`naming/duplicate-id`](#namingduplicate-id) | error | no |
 | [`naming/duplicate-response-id`](#namingduplicate-response-id) | error | no |
+| [`naming/probable-model-without-id`](#namingprobable-model-without-id) | warning | yes |
 | [`naming/reserved-response-id`](#namingreserved-response-id) | error | no |
 | [`naming/shared-response-without-description`](#namingshared-response-without-description) | warning | yes |
+| [`operation/duplicate-operation-id`](#operationduplicate-operation-id) | error | no |
 | [`operation/duplicate-route`](#operationduplicate-route) | error | no |
 | [`operation/example-invalid`](#operationexample-invalid) | error | no |
 | [`operation/example-unverifiable`](#operationexample-unverifiable) | info | no |
@@ -29,6 +34,30 @@ Every diagnostic has a code, a severity and a location (operation, slot, JSON po
 | [`security/reserved-scheme-name`](#securityreserved-scheme-name) | error | no |
 | [`security/scheme-name-conflict`](#securityscheme-name-conflict) | error | no |
 
+## naming/anonymous-recursion
+
+**Recursive schema without id.**
+
+A schema refers to itself but has no id, and `naming.nameAnonymous` did not name it. Inside a named type it is named after that type and its JSON pointer there; elsewhere after the operationId, the slot and the JSON pointer of its first use, which changes when the route does. Equal recursive schemas share one name; two different ones with one fallback name get a numeric suffix.
+
+**Fix.** Give the recursive schema an id (`.meta({ id })` or `defineModels`), or name it in `naming.nameAnonymous`.
+
+## naming/component-conflict
+
+**Two components want one name.**
+
+Two different types or shared responses end up with the same component name: ids that differ only in characters a component name cannot hold, an id that equals another id plus the input suffix, or one name from `naming.nameAnonymous` for different shapes. The later one gets a numeric suffix. Two fallback names of `naming/anonymous-recursion` that clash are not a conflict.
+
+**Fix.** Rename one of the ids, or return different names from `naming.nameAnonymous`.
+
+## naming/direction-split
+
+**Input and output of one id differ.**
+
+A schema with an id reads differently as request input and as response output, so it becomes two components: the output keeps the id, the input gets `naming.inputSuffix` (default `Input`). A nested `.default()`, `.transform()` or `.readonly()` splits the type that contains it and every type above it, since their inputs refer to the split input.
+
+**Fix.** Nothing to do. To keep one component, use the schema in one direction only, or move the default out of the shared type.
+
 ## naming/duplicate-id
 
 **Two schemas share one id.**
@@ -45,6 +74,14 @@ Two response descriptors carry the same `id` but differ in their schema object o
 
 **Fix.** Create the descriptor once and reuse the value, or give each descriptor its own `id`.
 
+## naming/probable-model-without-id
+
+**Probable model without id.**
+
+Request or response bodies of two or more operations contain the same inline object with at least two fields. It is inlined in each of them, so clients get one type per use.
+
+**Fix.** Give the schema an id (`.meta({ id })` or `defineModels`) and reuse it, or lower the severity in `config.diagnostics`.
+
 ## naming/reserved-response-id
 
 **Response id is reserved.**
@@ -60,6 +97,14 @@ A response descriptor has the `id` `__proto__`, which JSON and the model documen
 A response descriptor with an `id` and no `description` is used for more than one status, e.g. one `json(Error, { id })` for 400 and 404. The shared response is documented with the reason phrases of every status it serves, e.g. "Bad Request or Not Found".
 
 **Fix.** Give the descriptor a `description` that fits every status, or create one descriptor per status.
+
+## operation/duplicate-operation-id
+
+**Two operations share one operationId.**
+
+Two operations of one spec have the same `operationId`, from `meta.operationId`, the `operationId` hook or the derived default.
+
+**Fix.** Set a unique `meta.operationId` on one of the routes, or make the hook return unique ids.
 
 ## operation/duplicate-route
 

@@ -252,6 +252,63 @@ export const DIAGNOSTICS = {
     fix: 'Declare each scheme once and reuse the value, or give the schemes different names.',
     message: (d) => `two different security schemes use the name "${d.name}"`,
   }),
+  'naming/direction-split': define<{ id: string; input: string }>()({
+    severity: 'info',
+    configurable: false,
+    title: 'Input and output of one id differ',
+    trigger:
+      'A schema with an id reads differently as request input and as response output, so it becomes two components: the output keeps the id, the input gets `naming.inputSuffix` (default `Input`). A nested `.default()`, `.transform()` or `.readonly()` splits the type that contains it and every type above it, since their inputs refer to the split input.',
+    fix: 'Nothing to do. To keep one component, use the schema in one direction only, or move the default out of the shared type.',
+    message: (d) =>
+      `"${d.id}" reads differently as input; the input is named "${d.input}"`,
+  }),
+  'naming/anonymous-recursion': define<{ name: string }>()({
+    severity: 'warning',
+    configurable: true,
+    title: 'Recursive schema without id',
+    trigger:
+      'A schema refers to itself but has no id, and `naming.nameAnonymous` did not name it. Inside a named type it is named after that type and its JSON pointer there; elsewhere after the operationId, the slot and the JSON pointer of its first use, which changes when the route does. Equal recursive schemas share one name; two different ones with one fallback name get a numeric suffix.',
+    fix: 'Give the recursive schema an id (`.meta({ id })` or `defineModels`), or name it in `naming.nameAnonymous`.',
+    message: (d) => `a recursive schema without id is named "${d.name}"`,
+  }),
+  'naming/probable-model-without-id': define<{
+    fields: string[]
+    operations: string[]
+  }>()({
+    severity: 'warning',
+    configurable: true,
+    title: 'Probable model without id',
+    trigger:
+      'Request or response bodies of two or more operations contain the same inline object with at least two fields. It is inlined in each of them, so clients get one type per use.',
+    fix: 'Give the schema an id (`.meta({ id })` or `defineModels`) and reuse it, or lower the severity in `config.diagnostics`.',
+    message: (d) =>
+      `an object with ${list(d.fields)} is repeated without id in ${list(
+        d.operations
+      )}`,
+  }),
+  'naming/component-conflict': define<{ name: string; owners: string[] }>()({
+    severity: 'error',
+    configurable: false,
+    title: 'Two components want one name',
+    trigger:
+      'Two different types or shared responses end up with the same component name: ids that differ only in characters a component name cannot hold, an id that equals another id plus the input suffix, or one name from `naming.nameAnonymous` for different shapes. The later one gets a numeric suffix. Two fallback names of `naming/anonymous-recursion` that clash are not a conflict.',
+    fix: 'Rename one of the ids, or return different names from `naming.nameAnonymous`.',
+    message: (d) =>
+      `the component name "${d.name}" is wanted by ${list(d.owners)}`,
+  }),
+  'operation/duplicate-operation-id': define<{
+    operationId: string
+    operations: string[]
+  }>()({
+    severity: 'error',
+    configurable: false,
+    title: 'Two operations share one operationId',
+    trigger:
+      'Two operations of one spec have the same `operationId`, from `meta.operationId`, the `operationId` hook or the derived default.',
+    fix: 'Set a unique `meta.operationId` on one of the routes, or make the hook return unique ids.',
+    message: (d) =>
+      `operationId "${d.operationId}" is used by ${list(d.operations)}`,
+  }),
 } as const
 
 type Definitions = typeof DIAGNOSTICS
