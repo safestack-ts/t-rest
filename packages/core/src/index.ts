@@ -48,6 +48,7 @@ export * from './types/response-descriptor.js'
 export * from './types/route-meta.js'
 export * from './types/security-scheme.js'
 export * from './types/validate-options.js'
+export * from './types/with-default-responses.js'
 
 // utils
 export * from './utils/combine.js'

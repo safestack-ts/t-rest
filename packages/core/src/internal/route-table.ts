@@ -2,7 +2,7 @@ import { RouteHashMap } from '../types/route-hash-map.js'
 import { AnyRouteDef } from '../types/any-route-def.js'
 import { HashMap } from '../utils/hash-map.js'
 
-type RouteKey = Parameters<RouteHashMap['set']>[0] // [HTTPMethod, Path, Version]
+export type RouteKey = Parameters<RouteHashMap['set']>[0] // [HTTPMethod, Path, Version]
 
 /**
  * Collision-free hash of a route key. The previous `key.join('-')` mapped

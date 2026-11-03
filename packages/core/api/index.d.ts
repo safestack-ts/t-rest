@@ -127,6 +127,9 @@ type AnyRouteValidator = StandardSchemaV1<{
 
 type AnyRouteDef = RouteDef<string, HTTPMethod, string, AnyRouteValidator, any, unknown, BodyEncoding>;
 
+/** A route whose responses are filled with the defaults, its own declarations win. */
+type WithDefaultResponses<TRoute, TDefaults> = TRoute extends RouteDef<infer TVersion extends string, infer TMethod extends HTTPMethod, infer TPath extends string, infer TValidator extends AnyRouteValidator, infer TResponses, infer TMetaData, infer TBodyEncoding extends BodyEncoding> ? Omit<TDefaults, keyof TResponses> & TResponses extends infer TMerged extends StrictResponseMap<TMerged> ? RouteDef<TVersion, TMethod, TPath, TValidator, TMerged, TMetaData, TBodyEncoding> : never : never;
+
 type HashFunction<TKey> = (input: TKey) => string;
 /** @deprecated Internal helper, will be removed from the public API in a future major. */
 declare class HashMap<TKey, TValue> {
@@ -173,6 +176,11 @@ declare class BagOfRoutes<_TRoutes extends AnyRouteDef, TVersioning extends Vers
     readonly versioning: TVersioning;
     readonly versionHistory: TVersionHistory;
     constructor(routes: RouteHashMap, versioning: TVersioning, versionHistory: TVersionHistory);
+    /**
+     * A bag whose routes declare the default responses for the statuses they do
+     * not declare themselves, e.g. `{ 400: json(ValidationErrorBody) }`.
+     */
+    withDefaultResponses<TDefaults extends StrictResponseMap<TDefaults>>(defaults: TDefaults): BagOfRoutes<WithDefaultResponses<_TRoutes, TDefaults>, TVersioning, TVersionHistory>;
     static withVersioning<TVersioning extends VersioningRequired, TVersionHistory extends string[]>(versioning: TVersioning, versionHistory: TVersionHistory): BagOfRoutesBuilderWithVersioning<never, TVersioning, TVersionHistory>;
     static withoutVersioning(): BagOfRoutesBuilderWithoutVersioning<never>;
 }
@@ -633,4 +641,4 @@ declare const empty: (options?: Omit<ResponseOptions<undefined>, "examples">) =>
 declare const securityScheme: <const TName extends string, const TSpec extends SecuritySchemeSpec>(name: TName, spec: TSpec) => SecurityScheme<TName, TSpec>;
 
 export { BagOfRoutes, BagOfRoutesBuilderWithVersioning, BagOfRoutesBuilderWithoutVersioning, HashMap, Identity, Route, RouteBuilderWithVersionAndMethodAndPath, RouteBuilderWithVersionAndMethodAndPathAndMetaData, RouteBuilderWithVersionAndMethodAndPathAndValidator, RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData, RouteDef, RouteWithVersion, TypedIdentity, ValidationError, VersionHistory, Versioning, binary, combine, createRouteResolver, demoBagOfRoutes, empty, emptyValidation, findNearestLowerDate, first, isDefined, isNonEmptyArray, joinPath, json, last, normalizePathPattern, resolveDateVersion, resolveVersion, securityScheme, text, typedLowerCase, typedUpperCase, versionHistory };
-export type { AddReadonlyDeep, AnyResponseDescriptor, AnyRouteDef, AnyRouteValidator, BagOfRoutesVersions, BinaryResponseDescriptor, BodyEncoding, BodyOf, CheckMeta, CombinedBags, DeclaredStatus, DecodedBody, EmptyResponseDescriptor, EmptySchema, EmptyValidation, Example, Examples, ExtractLatestMatchingRoutePerPath, ExtractRoute, ExtractRoutes, ExtractVersionMatchingRoute, HTTPMethod, InferMetaData, JoinPath, JsonResponseDescriptor, MultipartFilePart, MultipartFileParts, MultipartOptions, NewerVersions, NonEmptyArray, OAuthFlows, OlderVersions, PrefixMatchingRoutes, PrefixString, RemoveReadonlyDeep, RemoveReadonlyDeepArray, ResponseDescriptor, ResponseDescriptorOf, ResponseMap, ResponseOptions, RouteHashMap, RouteInput, RouteMeta, RouteOutput, RouteRequestInput, RouteValidationInput, RouteValidationOutput, ScopedSecurityScheme, SecurityRequirements, SecurityScheme, SecuritySchemeScope, SecuritySchemeSpec, StrictResponseMap, StringReplaceHead, StringStartsWith, SuffixString, TextResponseDescriptor, ValidateOptions, VersioningRequired, WithoutDoubleSlash, WithoutLeadingSlash, WithoutTrailingSlash };
+export type { AddReadonlyDeep, AnyResponseDescriptor, AnyRouteDef, AnyRouteValidator, BagOfRoutesVersions, BinaryResponseDescriptor, BodyEncoding, BodyOf, CheckMeta, CombinedBags, DeclaredStatus, DecodedBody, EmptyResponseDescriptor, EmptySchema, EmptyValidation, Example, Examples, ExtractLatestMatchingRoutePerPath, ExtractRoute, ExtractRoutes, ExtractVersionMatchingRoute, HTTPMethod, InferMetaData, JoinPath, JsonResponseDescriptor, MultipartFilePart, MultipartFileParts, MultipartOptions, NewerVersions, NonEmptyArray, OAuthFlows, OlderVersions, PrefixMatchingRoutes, PrefixString, RemoveReadonlyDeep, RemoveReadonlyDeepArray, ResponseDescriptor, ResponseDescriptorOf, ResponseMap, ResponseOptions, RouteHashMap, RouteInput, RouteMeta, RouteOutput, RouteRequestInput, RouteValidationInput, RouteValidationOutput, ScopedSecurityScheme, SecurityRequirements, SecurityScheme, SecuritySchemeScope, SecuritySchemeSpec, StrictResponseMap, StringReplaceHead, StringStartsWith, SuffixString, TextResponseDescriptor, ValidateOptions, VersioningRequired, WithDefaultResponses, WithoutDoubleSlash, WithoutLeadingSlash, WithoutTrailingSlash };
