@@ -1,4 +1,4 @@
-import type { Shape } from './types.js'
+import type { Docs, Shape } from './types.js'
 
 export type RefShape<R> = Extract<Shape<R>, { kind: 'ref' }>
 
@@ -46,4 +46,15 @@ export const refsOf = <R>(shape: Shape<R>): RefShape<R>[] => {
     return ref
   })
   return refs
+}
+
+export const withDocs = <S extends Shape<unknown>>(
+  shape: S,
+  docs: Docs | undefined
+): S => {
+  const merged = { ...shape.docs, ...docs }
+  const { docs: _, ...rest } = shape
+  return (
+    Object.keys(merged).length > 0 ? { ...rest, docs: merged } : rest
+  ) as S
 }
