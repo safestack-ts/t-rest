@@ -1,4 +1,3 @@
-export * from './classes/axios-http-adapter.js'
 export * from './classes/rest-client.js'
 export * from './classes/rest-client-with-versioning.js'
 export * from './classes/rest-client-without-versioning.js'

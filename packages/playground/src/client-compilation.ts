@@ -1,4 +1,5 @@
-import { AxiosHTTPAdapter, RESTClient } from '@t-rest/client'
+import { RESTClient } from '@t-rest/client'
+import { AxiosHTTPAdapter } from '@t-rest/client/axios'
 import { BagOfRoutes, Route, VersionHistory, Versioning } from '@t-rest/core'
 import axios from 'axios'
 import { z } from 'zod'

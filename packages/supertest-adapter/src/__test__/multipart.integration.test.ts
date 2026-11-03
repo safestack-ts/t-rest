@@ -13,10 +13,10 @@ import {
   ze,
 } from '@t-rest/core'
 import {
-  AxiosHTTPAdapter,
   RESTClient,
   versionInjectorFrom as clientVersionInjectorFrom,
 } from '@t-rest/client'
+import { AxiosHTTPAdapter } from '@t-rest/client/axios'
 import {
   TypedExpressApplication,
   versionExtractorFrom,

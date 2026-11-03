@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: ["src/index.ts", "src/axios.ts"],
   tsconfig: "tsconfig.esm.json",
   format: ["esm", "cjs"],
   dts: true,
