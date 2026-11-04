@@ -4,6 +4,7 @@ import { HTTPMethod } from '../../types/http-method.js'
 import { RouteDef } from '../core/route-def.js'
 import {
   EmptyResponseDescriptor,
+  Examples,
   JsonResponseDescriptor,
   StrictResponseMap,
 } from '../../types/response-descriptor.js'
@@ -26,7 +27,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
     private validator: TValidator,
     private metaData: TMetaData,
     private bodyEncoding?: TBodyEncoding,
-    private multipartFiles?: MultipartFileParts
+    private multipartFiles?: MultipartFileParts,
+    private requestExamples?: Examples<unknown>
   ) {}
 
   public responses<TResponses extends StrictResponseMap<TResponses>>(
@@ -48,7 +50,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
       responses,
       this.metaData,
       this.bodyEncoding,
-      this.multipartFiles
+      this.multipartFiles,
+      this.requestExamples
     )
   }
 

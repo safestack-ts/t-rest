@@ -2,7 +2,10 @@ import { BodyEncoding } from '../../types/body-encoding.js'
 import { MultipartFileParts } from '../../types/multipart-options.js'
 import { HTTPMethod } from '../../types/http-method.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import type { StrictResponseMap } from '../../types/response-descriptor.js'
+import type {
+  Examples,
+  StrictResponseMap,
+} from '../../types/response-descriptor.js'
 
 export class RouteDef<
   TVersion extends string,
@@ -26,6 +29,8 @@ export class RouteDef<
   public readonly metaData: TMetaData
   public readonly bodyEncoding: TBodyEncoding
   public readonly multipartFiles: MultipartFileParts | undefined
+  /** Example requests from `.validate(validator, { examples })`. */
+  public readonly requestExamples: Examples<unknown> | undefined
 
   constructor(
     version: TVersion,
@@ -35,7 +40,8 @@ export class RouteDef<
     responses: TResponses,
     metaData: TMetaData,
     bodyEncoding: TBodyEncoding = 'json' as TBodyEncoding,
-    multipartFiles?: MultipartFileParts
+    multipartFiles?: MultipartFileParts,
+    requestExamples?: Examples<unknown>
   ) {
     this.version = version
     this.method = method
@@ -47,5 +53,6 @@ export class RouteDef<
     this.metaData = metaData
     this.bodyEncoding = bodyEncoding
     this.multipartFiles = multipartFiles
+    this.requestExamples = requestExamples
   }
 }

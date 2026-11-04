@@ -13,6 +13,7 @@ import {
 } from '../../internal/response-shorthand.js'
 import { RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData } from './route-builder-with-version-and-method-and-path-and-validator-and-meta-data.js'
 import { emptyValidation } from '../../utils/empty-validation.js'
+import { ValidateOptions } from '../../types/validate-options.js'
 
 export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
   TVersion extends string,
@@ -30,7 +31,10 @@ export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
     private multipartFiles?: MultipartFileParts
   ) {}
 
-  public validate<TValidator>(validator: TValidator) {
+  public validate<TValidator>(
+    validator: TValidator,
+    options?: ValidateOptions<TValidator>
+  ) {
     return new RouteBuilderWithVersionAndMethodAndPathAndValidatorAndMetaData<
       TVersion,
       TMethod,
@@ -45,7 +49,8 @@ export class RouteBuilderWithVersionAndMethodAndPathAndMetaData<
       validator,
       this.metaData,
       this.bodyEncoding,
-      this.multipartFiles
+      this.multipartFiles,
+      options?.examples
     )
   }
 

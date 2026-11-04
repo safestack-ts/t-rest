@@ -50,6 +50,12 @@ const bagOfRoutes = BagOfRoutes.withoutVersioning()
 
 const client = RESTClient.withoutVersioning(bagOfRoutes, null as any)
 
+type Invalid = { issues: string[] }
+const clientWithDefaults = RESTClient.withoutVersioning(
+  bagOfRoutes.withDefaultResponses({ 400: json<Invalid>() }),
+  null as any
+)
+
 export const test = async () => {
   const invoice = await client.get('/invoices/:id', {
     params: { id: '1' },
@@ -108,6 +114,19 @@ export const test = async () => {
 
   // @ts-expect-error status is not declared
   invoice.statusCode === 500
+
+  const withDefaults = await clientWithDefaults.get('/invoices/:id', {
+    params: { id: '1' },
+  })
+
+  type _defaultStatus = AssertTrue<
+    IsExact<typeof withDefaults.statusCode, 200 | 400 | 404>
+  >
+  if (withDefaults.statusCode === 400) {
+    type _data = AssertTrue<IsExact<typeof withDefaults.data, Invalid>>
+  }
+  // @ts-expect-error status is not declared
+  withDefaults.statusCode === 500
 }
 
 // helpers handling the responses of any route
