@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import { renderDiagnosticsReference } from './diagnostics/render.js'
 import { apiModelJsonSchema } from './model/document-schema.js'
 import { renderApiModelReference } from './model/render.js'
+import { renderTargetsReference } from './writer/render.js'
 
 const docs = (file: string) => `../../../../docs/open-api-generator/${file}`
 
@@ -15,6 +16,10 @@ test('api-model.md is generated from the document schema', async () => {
   await expect(renderApiModelReference()).toMatchFileSnapshot(
     docs('api-model.md')
   )
+})
+
+test('targets.md is generated from the capability table', async () => {
+  await expect(renderTargetsReference()).toMatchFileSnapshot(docs('targets.md'))
 })
 
 test('api-model.v1.schema.json is generated from the document schema', async () => {

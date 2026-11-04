@@ -1,0 +1,56 @@
+openapi: 3.2.0
+info:
+  title: Scenario
+  version: 1.0.0
+paths:
+  /search:
+    get:
+      operationId: getSearch
+      parameters:
+        - name: filter
+          in: query
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tag:
+                    type: string
+                required:
+                  - tag
+        - name: ids
+          in: query
+          required: false
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: number
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Upload"
+components:
+  schemas:
+    Upload:
+      type: object
+      properties:
+        id:
+          type: string
+        size:
+          type: number
+      required:
+        - id
+        - size

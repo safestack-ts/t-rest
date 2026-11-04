@@ -309,6 +309,45 @@ export const DIAGNOSTICS = {
     message: (d) =>
       `operationId "${d.operationId}" is used by ${list(d.operations)}`,
   }),
+  'writer/downgrade': define<{ capability: string; target: string }>()({
+    severity: 'warning',
+    configurable: true,
+    title: 'Schema approximated for the target',
+    trigger:
+      'The OpenAPI target cannot express a part of a schema, so the document describes it less precisely: tuple elements of different types, more than one schema example, a constrained `propertyNames`, or a non-`x-` annotation keyword in 3.0. The pointer locates the schema in the emitted document; `targets.md` describes each capability.',
+    fix: 'Target a newer OpenAPI version, accept the approximation, or lower the severity in `config.diagnostics`.',
+    message: (d) =>
+      `OpenAPI ${d.target} approximates "${d.capability}" here, see targets.md`,
+  }),
+  'writer/discriminator-not-emitted': define<{ property: string }>()({
+    severity: 'info',
+    configurable: false,
+    title: 'Discriminator not emitted',
+    trigger:
+      'Every object member of a union has a required property with one string literal, unique across the members, but a member is an inline object rather than a component. A discriminator maps values to components, so none is emitted.',
+    fix: 'Give each member an id (`.meta({ id })` or `defineModels`) to get a discriminator.',
+    message: (d) =>
+      `the union is discriminated by "${d.property}", but a member is not a component`,
+  }),
+  'writer/tag-undeclared': define<{ tag: string }>()({
+    severity: 'info',
+    configurable: true,
+    title: 'Tag used but not declared',
+    trigger:
+      'An operation uses a tag that `config.tags` does not declare. The tag is appended to the document tags without a description.',
+    fix: 'Declare the tag in `config.tags`, with a description.',
+    message: (d) => `tag "${d.tag}" is used but not declared`,
+  }),
+  'output/path-collision': define<{ path: string; outputs: string[] }>()({
+    severity: 'error',
+    configurable: false,
+    title: 'Two outputs write one file',
+    trigger:
+      'Two specs write the same file, either their `output` or their `<basename>.api-model.json` sidecar, e.g. `api.yaml` and `api.json`. Paths are compared ignoring case.',
+    fix: 'Give the specs outputs with different base names.',
+    message: (d) =>
+      `more than one spec writes ${d.path} (outputs: ${list(d.outputs)})`,
+  }),
 } as const
 
 type Definitions = typeof DIAGNOSTICS

@@ -1,0 +1,111 @@
+openapi: 3.1.1
+info:
+  title: Scenario
+  version: 1.0.0
+paths:
+  /avatar:
+    put:
+      operationId: putAvatar
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  contentMediaType: application/octet-stream
+              required:
+                - avatar
+            encoding:
+              avatar:
+                contentType: application/octet-stream
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Upload"
+  /documents:
+    post:
+      operationId: postDocuments
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                document:
+                  type: string
+                  contentMediaType: application/octet-stream
+                attachments:
+                  type: array
+                  items:
+                    type: string
+                    contentMediaType: application/octet-stream
+              required:
+                - title
+                - document
+            encoding:
+              document:
+                contentType: application/octet-stream
+              attachments:
+                contentType: application/octet-stream
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Upload"
+  /documents/{documentId}:
+    patch:
+      operationId: patchDocumentsByDocumentId
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+              required:
+                - title
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+              required:
+                - title
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Upload"
+components:
+  schemas:
+    Upload:
+      type: object
+      properties:
+        id:
+          type: string
+        size:
+          type: number
+      required:
+        - id
+        - size

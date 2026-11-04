@@ -1,0 +1,249 @@
+# writer/downgrade /components/schemas/Owner/properties/position
+# writer/downgrade /components/schemas/Owner/properties/labels
+# writer/downgrade /components/schemas/Owner/properties/note
+# writer/downgrade /components/schemas/Owner/properties/note
+# writer/discriminator-not-emitted /components/schemas/Owner/properties/shape
+# writer/tag-undeclared
+openapi: 3.0.3
+info:
+  title: Variety
+  description: Every writer feature
+  contact:
+    name: API team
+    email: api@example.com
+  license:
+    name: MIT
+  version: 1.0.0
+servers:
+  - url: https://{region}.example.com
+    description: Production
+    variables:
+      region:
+        default: eu
+        enum:
+          - eu
+          - us
+tags:
+  - name: owners
+    description: Pet owners
+  - name: pets
+paths:
+  /owners:
+    post:
+      tags:
+        - owners
+      operationId: postOwners
+      parameters:
+        - name: filter
+          in: query
+          required: false
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    $ref: "#/components/schemas/Status"
+                required:
+                  - status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Owner"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Owner"
+  /owners/{ownerId}:
+    get:
+      tags:
+        - owners
+        - pets
+      summary: Get an owner
+      description: One owner with its pet.
+      externalDocs:
+        url: https://example.com/owners
+      operationId: getOwnersByOwnerId
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The owner
+          headers:
+            x-rate-limit:
+              required: true
+              schema:
+                type: integer
+            x-trace:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Owner"
+      deprecated: true
+      security:
+        - bearer: []
+      servers:
+        - url: https://legacy.example.com
+      x-audience: partners
+components:
+  schemas:
+    Cat:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - cat
+        lives:
+          type: integer
+          minimum: 0
+          maximum: 9
+      required:
+        - type
+        - lives
+    Dog:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - dog
+        good:
+          type: boolean
+      required:
+        - type
+        - good
+    Owner:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Full name
+        nickname:
+          type: string
+          nullable: true
+        status:
+          oneOf:
+            - $ref: "#/components/schemas/Status"
+            - type: string
+              enum:
+                - null
+              nullable: true
+        pet:
+          anyOf:
+            - oneOf:
+                - $ref: "#/components/schemas/Cat"
+                - $ref: "#/components/schemas/Dog"
+              discriminator:
+                propertyName: type
+                mapping:
+                  cat: "#/components/schemas/Cat"
+                  dog: "#/components/schemas/Dog"
+            - type: string
+              enum:
+                - null
+              nullable: true
+        favorite:
+          allOf:
+            - $ref: "#/components/schemas/Cat"
+          description: The favorite cat
+        position:
+          type: array
+          items:
+            anyOf:
+              - type: string
+              - type: number
+          minItems: 2
+          maxItems: 2
+        score:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+          maximum: 100
+        level:
+          type: number
+          enum:
+            - 3
+        code:
+          oneOf:
+            - type: string
+              enum:
+                - a
+            - type: number
+              enum:
+                - 1
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        photo:
+          type: string
+          pattern: ^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z+/]{3}=))?$
+          format: byte
+        note:
+          type: string
+          example: short
+          x-internal: true
+        shape:
+          anyOf:
+            - type: object
+              properties:
+                kind:
+                  type: string
+                  enum:
+                    - circle
+                radius:
+                  type: number
+              required:
+                - kind
+                - radius
+            - type: object
+              properties:
+                kind:
+                  type: string
+                  enum:
+                    - square
+                side:
+                  type: number
+              required:
+                - kind
+                - side
+        gone:
+          not: {}
+      required:
+        - name
+        - nickname
+        - status
+        - pet
+        - favorite
+        - position
+        - score
+        - level
+        - code
+        - labels
+        - photo
+        - note
+        - shape
+    Status:
+      type: string
+      enum:
+        - active
+        - archived
+      x-enum-varnames:
+        - Active
+        - Archived
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer

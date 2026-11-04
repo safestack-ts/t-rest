@@ -21,6 +21,7 @@ Every diagnostic has a code, a severity and a location (operation, slot, JSON po
 | [`operation/invalid-meta`](#operationinvalid-meta) | warning | yes |
 | [`operation/meta-not-serializable`](#operationmeta-not-serializable) | warning | yes |
 | [`operation/mixed-query-encoding`](#operationmixed-query-encoding) | warning | yes |
+| [`output/path-collision`](#outputpath-collision) | error | no |
 | [`response/untyped-json`](#responseuntyped-json) | warning | yes |
 | [`schema/conversion-failed`](#schemaconversion-failed) | error | no |
 | [`schema/multipart-placeholder`](#schemamultipart-placeholder) | info | no |
@@ -33,6 +34,9 @@ Every diagnostic has a code, a severity and a location (operation, slot, JSON po
 | [`security/header-and-scheme`](#securityheader-and-scheme) | warning | yes |
 | [`security/reserved-scheme-name`](#securityreserved-scheme-name) | error | no |
 | [`security/scheme-name-conflict`](#securityscheme-name-conflict) | error | no |
+| [`writer/discriminator-not-emitted`](#writerdiscriminator-not-emitted) | info | no |
+| [`writer/downgrade`](#writerdowngrade) | warning | yes |
+| [`writer/tag-undeclared`](#writertag-undeclared) | info | yes |
 
 ## naming/anonymous-recursion
 
@@ -154,6 +158,14 @@ A query parameter accepts an object, array or tuple, which travels as JSON text,
 
 **Fix.** Accept the structured value only, for example with `ze.jsonObject`, or move the text value to a parameter of its own.
 
+## output/path-collision
+
+**Two outputs write one file.**
+
+Two specs write the same file, either their `output` or their `<basename>.api-model.json` sidecar, e.g. `api.yaml` and `api.json`. Paths are compared ignoring case.
+
+**Fix.** Give the specs outputs with different base names.
+
 ## response/untyped-json
 
 **JSON response without schema.**
@@ -249,3 +261,27 @@ A `securityScheme()` is named `__proto__`, which JSON and the model document dro
 Two `securityScheme()` values have the same name but different specs.
 
 **Fix.** Declare each scheme once and reuse the value, or give the schemes different names.
+
+## writer/discriminator-not-emitted
+
+**Discriminator not emitted.**
+
+Every object member of a union has a required property with one string literal, unique across the members, but a member is an inline object rather than a component. A discriminator maps values to components, so none is emitted.
+
+**Fix.** Give each member an id (`.meta({ id })` or `defineModels`) to get a discriminator.
+
+## writer/downgrade
+
+**Schema approximated for the target.**
+
+The OpenAPI target cannot express a part of a schema, so the document describes it less precisely: tuple elements of different types, more than one schema example, a constrained `propertyNames`, or a non-`x-` annotation keyword in 3.0. The pointer locates the schema in the emitted document; `targets.md` describes each capability.
+
+**Fix.** Target a newer OpenAPI version, accept the approximation, or lower the severity in `config.diagnostics`.
+
+## writer/tag-undeclared
+
+**Tag used but not declared.**
+
+An operation uses a tag that `config.tags` does not declare. The tag is appended to the document tags without a description.
+
+**Fix.** Declare the tag in `config.tags`, with a description.
