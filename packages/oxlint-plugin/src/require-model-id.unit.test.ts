@@ -56,6 +56,10 @@ const valid = [
   `${ZOD}export const json = z.toJSONSchema(Person)`,
   `${ZOD}export const parsed = z.string().parse('a')`,
   `${ZOD}export const registry = z.registry()`,
+  `${ZOD}export const positive = z.check(() => {})`,
+  `import { check } from 'zod'\nexport const positive = check(() => {})`,
+  `${ZOD}export const Person = z.object({}).check(z.refine(() => true)).meta({ id: 'Person' })`,
+  `${ZOD}export const Person = z.fromJSONSchema({ type: 'object' }).meta({ id: 'Person' })`,
   `${ZOD}export const name = z.object({}).shape.name`,
   `${ZOD}export const name = Person.shape.name.optional()`,
   `import { z } from 'other'\nexport const Person = z.object({})`,
@@ -138,6 +142,18 @@ const invalid = [
     errors: [{ messageId: 'missingId' }],
   },
   {
+    code: `${ZOD}export const Person = z.object({}).check(z.refine(() => true))`,
+    errors: [{ messageId: 'missingId', data: { name: 'Person' } }],
+  },
+  {
+    code: `${ZOD}export const Person = z.fromJSONSchema({ type: 'object' })`,
+    errors: [{ messageId: 'missingId', data: { name: 'Person' } }],
+  },
+  {
+    code: `import { fromJSONSchema } from 'zod'\nexport const Person = fromJSONSchema({ type: 'object' })`,
+    errors: [{ messageId: 'missingId', data: { name: 'Person' } }],
+  },
+  {
     code: `${ZOD}export const Names = z.array(z.string()) as z.ZodType`,
     errors: [{ messageId: 'missingId' }],
   },
@@ -205,6 +221,36 @@ const invalid = [
     filename: CHECKOUT,
     options: [MODELS_ROOT],
     errors: [{ messageId: 'idMismatch' }],
+  },
+  {
+    code: `${ZOD}export const Total = z.string().check(z.minLength(1)).meta({ id: 'Total' })`,
+    filename: CHECKOUT,
+    options: [MODELS_ROOT],
+    errors: [
+      {
+        messageId: 'idMismatch',
+        data: {
+          name: 'Total',
+          actual: 'Total',
+          expected: 'V2024_01_01_Shared_Checkout',
+        },
+      },
+    ],
+  },
+  {
+    code: `${ZOD}export const Total = z.fromJSONSchema({ type: 'string' }).meta({ id: 'Total' })`,
+    filename: CHECKOUT,
+    options: [MODELS_ROOT],
+    errors: [
+      {
+        messageId: 'idMismatch',
+        data: {
+          name: 'Total',
+          actual: 'Total',
+          expected: 'V2024_01_01_Shared_Checkout',
+        },
+      },
+    ],
   },
   {
     code: `${MODELS}${ZOD}export const { Total } = defineModels('Other.Namespace', { Total: z.string() })`,

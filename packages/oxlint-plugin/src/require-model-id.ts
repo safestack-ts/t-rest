@@ -52,7 +52,8 @@ const DERIVING = new Set([
   'merge',
 ])
 const KEEPS_ID = new Set(['describe', 'meta', 'readonly'])
-const NOT_A_SCHEMA = new Set([
+/** Schema methods that return something other than a schema. */
+const INSTANCE_NOT_A_SCHEMA = new Set([
   'parse',
   'parseAsync',
   'safeParse',
@@ -69,7 +70,10 @@ const NOT_A_SCHEMA = new Set([
   'isOptional',
   'isNullable',
   'toJSONSchema',
-  'fromJSONSchema',
+])
+/** Zod exports that are not schema constructors. */
+const NAMESPACE_NOT_A_SCHEMA = new Set([
+  ...INSTANCE_NOT_A_SCHEMA,
   'registry',
   'config',
   'treeifyError',
@@ -152,7 +156,7 @@ const readChain = (expression: Node): Chain | null => {
       if (!isNamespacePath(node)) return null
       viaMember = true
       while (node.type === 'MemberExpression') {
-        if (NOT_A_SCHEMA.has(node.property.name)) return null
+        if (NAMESPACE_NOT_A_SCHEMA.has(node.property.name)) return null
         node = unwrap(node.object)
       }
     } else if (node.type === 'Identifier') {
@@ -167,6 +171,9 @@ interface Resolved {
   /** method calls after the schema constructor, inner call first */
   readonly calls: readonly Call[]
 }
+
+const schemaCalls = (calls: readonly Call[]): Resolved | null =>
+  calls.some((call) => INSTANCE_NOT_A_SCHEMA.has(call.name)) ? null : { calls }
 
 type ZodBinding = 'namespace' | 'function'
 
@@ -341,27 +348,27 @@ export const requireModelId: RuleModule = {
       const chain = readChain(expression)
       if (!chain) return null
       const { root, rootCall, viaMember, calls } = chain
-      if (calls.some((call) => NOT_A_SCHEMA.has(call.name))) return null
 
       const zodBinding = zodBindings.get(root.name)
       if (zodBinding === 'namespace') {
         if (rootCall || calls.length === 0) return null
-        if (NOT_A_SCHEMA.has(calls[0].name)) return null
-        return { calls: calls.slice(1) }
+        const [constructor, ...methods] = calls
+        if (NAMESPACE_NOT_A_SCHEMA.has(constructor.name)) return null
+        return schemaCalls(methods)
       }
       if (zodBinding === 'function') {
-        if (!rootCall || NOT_A_SCHEMA.has(root.name)) return null
-        return { calls }
+        if (!rootCall || NAMESPACE_NOT_A_SCHEMA.has(root.name)) return null
+        return schemaCalls(calls)
       }
 
       if (rootCall || viaMember || calls.length === 0 || seen.has(root.name))
         return null
-      if (modelBindings.has(root.name)) return { calls }
+      if (modelBindings.has(root.name)) return schemaCalls(calls)
 
       const init = localInits.get(root.name)
       if (!init) return null
       seen.add(root.name)
-      return resolve(init, seen) ? { calls } : null
+      return resolve(init, seen) ? schemaCalls(calls) : null
     }
 
     const checkId = (name: string, id: string, node: Node) => {
