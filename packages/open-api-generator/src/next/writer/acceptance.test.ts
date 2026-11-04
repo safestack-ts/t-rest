@@ -1,21 +1,12 @@
-import Ajv2020 from 'ajv/dist/2020'
-import AjvDraft04 from 'ajv-draft-04'
 import { describe, expect, test } from 'vitest'
 import { pipeline } from '../spec/testing.js'
 import { CAPABILITIES, Target, TARGETS } from './capabilities.js'
 import { writeDocument } from './document.js'
+import { instanceValidator } from './testing.js'
 import { Owner, varietyBag, varietyOptions } from './variety.js'
 
 // The emitted schemas accept and reject what the zod schemas do, except where
 // a capability approximates them.
-
-// Ajv checks a discriminator's members but does not support `mapping`.
-const withoutMappings = (value: unknown): unknown =>
-  JSON.parse(
-    JSON.stringify(value, (key, entry) =>
-      key === 'mapping' ? undefined : entry
-    )
-  )
 
 const ownerValidator = (target: Target) => {
   const { document } = writeDocument(
@@ -23,16 +14,9 @@ const ownerValidator = (target: Target) => {
     target,
     varietyOptions
   )
-  const options = { strict: false, validateFormats: false, discriminator: true }
-  const ajv =
-    CAPABILITIES[target].nullable === 'nullable-keyword'
-      ? new AjvDraft04(options)
-      : new Ajv2020(options)
-  ajv.addSchema(
-    withoutMappings({ components: document.components }) as object,
-    'document'
-  )
-  return ajv.compile({ $ref: 'document#/components/schemas/Owner' })
+  return instanceValidator(document, target, {
+    $ref: '#/components/schemas/Owner',
+  })
 }
 
 const owner = {

@@ -1,6 +1,5 @@
 import { Diagnostic, diagnostic } from '../diagnostics/registry.js'
 import { stableStringify } from '../model/json.js'
-import { dereference } from '../model/shape.js'
 import type {
   ComponentName,
   Docs,
@@ -288,18 +287,45 @@ export const schemaWriter = ({
     TYPED.has(shape.kind) ||
     (shape.kind === 'enum' && enumGroups(shape.values).length === 1)
 
+  /** Whether `shape` accepts `null`; `undefined` where a reference cycle leaves it open. */
   const acceptsNull = (
     shape: Shape<ComponentName>,
-    seen = new Set<Shape<ComponentName>>()
-  ): boolean => {
-    const target = dereference(shape, types)
-    if (seen.has(target)) return false
-    seen.add(target)
-    return (
-      target.kind === 'null' ||
-      (target.kind === 'union' &&
-        target.members.some((member) => acceptsNull(member, seen)))
-    )
+    seen: ReadonlySet<ComponentName> = new Set()
+  ): boolean | undefined => {
+    switch (shape.kind) {
+      case 'unknown':
+      case 'null':
+        return true
+      case 'ref': {
+        if (seen.has(shape.target)) return undefined
+        const target = types[shape.target]
+        return (
+          target && acceptsNull(target.shape, new Set([...seen, shape.target]))
+        )
+      }
+      case 'union': {
+        const members = shape.members.map((member) => acceptsNull(member, seen))
+        if (shape.exclusive)
+          return members.includes(undefined)
+            ? undefined
+            : members.filter(Boolean).length === 1
+        return members.includes(true)
+          ? true
+          : members.includes(undefined)
+          ? undefined
+          : false
+      }
+      case 'intersection': {
+        const members = shape.members.map((member) => acceptsNull(member, seen))
+        return members.includes(false)
+          ? false
+          : members.includes(undefined)
+          ? undefined
+          : true
+      }
+      default:
+        return false
+    }
   }
 
   /** `schema`'s enum with `null` appended, named `Null` when the members are named. */
@@ -316,9 +342,19 @@ export const schemaWriter = ({
     shape: Shape<ComponentName>,
     pointer: string
   ): SchemaObject => {
-    // a second null alternative would make `oneOf` reject null
-    if (acceptsNull(shape)) return write(shape, pointer)
-    if (shape.kind === 'union')
+    const accepts = acceptsNull(shape)
+    if (accepts === true) return write(shape, pointer)
+    // null is a disjoint alternative, fit for `oneOf`, only once `shape` is known to reject it
+    if (accepts === undefined)
+      return {
+        anyOf: [write(shape, pointerTo(pointer, 'anyOf', 0)), nullSchema],
+      }
+    // a null member of `oneOf` is exclusive only when no other member accepts null
+    if (
+      shape.kind === 'union' &&
+      (!shape.exclusive ||
+        shape.members.every((member) => acceptsNull(member) === false))
+    )
       return write({ ...shape, members: [...shape.members, NULL] }, pointer)
     if (!isTyped(shape))
       return {

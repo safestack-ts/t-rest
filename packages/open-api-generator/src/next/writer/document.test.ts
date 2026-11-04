@@ -6,7 +6,7 @@ import { pipeline } from '../spec/testing.js'
 import { expectValidOpenAPI } from '../verification/expect-valid-openapi.js'
 import { CAPABILITIES, Target, TARGETS } from './capabilities.js'
 import { writeDocument } from './document.js'
-import { documentSnapshot } from './testing.js'
+import { documentSnapshot, instanceValidator } from './testing.js'
 import { varietyBag, varietyOptions } from './variety.js'
 
 const write = (target: Target) =>
@@ -258,6 +258,73 @@ describe.each(TARGETS)('OpenAPI %s schemas', (target) => {
       enum: ['a', 'b', null],
       'x-enum-varnames': ['A', 'B', 'Null'],
     })
+  })
+})
+
+const expectInstances = (
+  body: z.ZodType,
+  target: Target,
+  { accepts, rejects }: { accepts: unknown[]; rejects: unknown[] }
+) => {
+  const { document, schema } = responseOf(body, target)
+  const validate = instanceValidator(document, target, schema)
+  const verdicts = (instances: unknown[]) =>
+    instances.map((instance) => [instance, validate(instance)])
+
+  expect(verdicts([...accepts, ...rejects]), JSON.stringify(schema)).toEqual([
+    ...accepts.map((instance) => [instance, true]),
+    ...rejects.map((instance) => [instance, false]),
+  ])
+}
+
+// The source of an exclusive union, read as `oneOf`: a body schema of
+// `z.any()` that zod itself does not check.
+const exclusive = (...oneOf: object[]) => z.any().meta({ oneOf })
+
+describe.each(TARGETS)('OpenAPI %s nullable compositions', (target) => {
+  const nullableString = z.string().nullable()
+  const strings = { accepts: [null, 'a'], rejects: [1] }
+  // both members accept null, so null matches two and is rejected
+  const either = exclusive(
+    { type: ['string', 'null'] },
+    { type: ['number', 'null'] }
+  )
+
+  test.each([
+    [
+      'an intersection that accepts null',
+      z.intersection(nullableString, nullableString).nullable(),
+      strings,
+    ],
+    [
+      'a reference to an intersection that accepts null',
+      z
+        .intersection(nullableString, nullableString)
+        .meta({ id: 'Both' })
+        .nullable(),
+      strings,
+    ],
+    [
+      'a reference to unknown',
+      z.unknown().meta({ id: 'Anything' }).nullable(),
+      { accepts: [null, 'a', 1], rejects: [] },
+    ],
+    [
+      'an exclusive union whose members accept null',
+      either.nullable(),
+      { accepts: [null, 'a', 1], rejects: [true] },
+    ],
+    [
+      'a reference to an exclusive union whose members accept null',
+      either.meta({ id: 'Either' }).nullable(),
+      { accepts: [null, 'a', 1], rejects: [true] },
+    ],
+  ])('%s, made nullable, accepts null', (_, body, instances) => {
+    expectInstances(body, target, instances)
+  })
+
+  test('an exclusive union whose members accept null rejects null', () => {
+    expectInstances(either, target, { accepts: ['a', 1], rejects: [null] })
   })
 })
 
