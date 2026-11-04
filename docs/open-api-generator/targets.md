@@ -1,6 +1,6 @@
 # OpenAPI targets
 
-<!-- Generated from packages/open-api-generator/src/next/writer/capabilities.ts by its docs test. Do not edit. -->
+<!-- Generated from packages/open-api-generator/src/writer/capabilities.ts by its docs test. Do not edit. -->
 
 One writer emits every target (3.0, 3.1, 3.2). The targets differ only in the capabilities below; everything else, such as key order, sorted paths and components, discriminators and parameter encodings, is the same. An approximation is reported as [`writer/downgrade`](diagnostics.md#writerdowngrade) with the capability name and a JSON pointer into the document.
 

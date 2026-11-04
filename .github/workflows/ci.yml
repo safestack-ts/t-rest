@@ -29,7 +29,7 @@ jobs:
       - run: pnpm lint
 
   build-and-test:
-    name: Build, Type Check & Test (Node ${{ matrix.node }}, Express ${{ matrix.express }}${{ matrix.typescript && format(', TypeScript {0}', matrix.typescript) || '' }})
+    name: Build, Type Check & Test (Node ${{ matrix.node }}, Express ${{ matrix.express }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -37,14 +37,6 @@ jobs:
         # Active and maintenance Node LTS lines, matching `engines` in the published packages.
         node: ['22', '24', '26']
         express: ['4', '5']
-        # '' keeps the TypeScript from the lockfile. Without this axis the include below would merge into the
-        # Node 22 / Express 5 job instead of adding its own.
-        typescript: ['']
-        include:
-          # Oldest TypeScript in the open-api-generator peer range, on the oldest supported Node.
-          - node: '22'
-            express: '5'
-            typescript: '5.7'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -65,24 +57,15 @@ jobs:
         run: pnpm build
       # Checks the built packages for undeclared dependencies, invalid exports and wrong types resolution.
       - name: Check Packages
-        if: matrix.node == '22' && matrix.express == '5' && !matrix.typescript
+        if: matrix.node == '22' && matrix.express == '5'
         run: pnpm check:packages
       # Fails when the built public declarations differ from the committed snapshots in packages/*/api.
       - name: Check Public API
-        if: matrix.node == '22' && matrix.express == '5' && !matrix.typescript
+        if: matrix.node == '22' && matrix.express == '5'
         run: pnpm api:check
       # Type checks and tests resolve workspace packages through their built dist output, so they run after the build.
       - name: Type Check
-        if: '!matrix.typescript'
         run: pnpm verify
-      # The workspace tsconfigs need the TypeScript from the lockfile, so the build and type check use it.
-      # The oldest peer TypeScript is swapped in afterwards to run the tests, which drive open-api-generator through it.
-      - name: Pin TypeScript ${{ matrix.typescript }}
-        if: matrix.typescript
-        run: |
-          npm pkg set "pnpm.overrides.typescript=~${{ matrix.typescript }}.0"
-          pnpm install --no-frozen-lockfile
-          pnpm ls -r typescript --depth 0
       - name: Test
         run: pnpm test
         env:

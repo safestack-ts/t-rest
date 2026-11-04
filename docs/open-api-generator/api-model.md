@@ -1,6 +1,6 @@
 # API model format
 
-<!-- Generated from packages/open-api-generator/src/next/model/document-schema.ts by its docs test. Do not edit. -->
+<!-- Generated from packages/open-api-generator/src/model/document-schema.ts by its docs test. Do not edit. -->
 
 The generator writes the API model of each spec next to it as `<spec>.api-model.json`. This page describes `modelVersion` 1. The JSON Schema is [api-model.v1.schema.json](../../packages/open-api-generator/schema/api-model.v1.schema.json).
 

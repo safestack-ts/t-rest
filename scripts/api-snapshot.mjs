@@ -26,6 +26,7 @@ const packages = [
   'express-server',
   'supertest-adapter',
   'protocol',
+  'open-api-generator',
 ]
 // entry points besides `index` (subpath exports)
 const extraEntries = { core: ['zod'], client: ['axios'] }
