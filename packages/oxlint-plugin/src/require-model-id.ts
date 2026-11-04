@@ -168,12 +168,19 @@ const readChain = (expression: Node): Chain | null => {
 }
 
 interface Resolved {
-  /** method calls after the schema constructor, inner call first */
+  /** the chain starts at a `defineModels` model, which carries an id */
+  readonly fromModels: boolean
+  /** method calls after the schema constructor, inner call first, local initializers included */
   readonly calls: readonly Call[]
 }
 
-const schemaCalls = (calls: readonly Call[]): Resolved | null =>
-  calls.some((call) => INSTANCE_NOT_A_SCHEMA.has(call.name)) ? null : { calls }
+const schemaCalls = (
+  calls: readonly Call[],
+  fromModels = false
+): Resolved | null =>
+  calls.some((call) => INSTANCE_NOT_A_SCHEMA.has(call.name))
+    ? null
+    : { fromModels, calls }
 
 /** A local binding of a zod import: the namespace, or one export under its imported name. */
 type ZodBinding =
@@ -371,12 +378,13 @@ export const requireModelId: RuleModule = {
 
       if (rootCall || viaMember || calls.length === 0 || seen.has(root.name))
         return null
-      if (modelBindings.has(root.name)) return schemaCalls(calls)
+      if (modelBindings.has(root.name)) return schemaCalls(calls, true)
 
       const init = localInits.get(root.name)
       if (!init) return null
       seen.add(root.name)
-      return resolve(init, seen) ? schemaCalls(calls) : null
+      const base = resolve(init, seen)
+      return base && schemaCalls([...base.calls, ...calls], base.fromModels)
     }
 
     const checkId = (name: string, id: string, node: Node) => {
@@ -402,7 +410,8 @@ export const requireModelId: RuleModule = {
       const resolved = resolve(declarator.init)
       if (!resolved) return
 
-      const { calls } = resolved
+      const { fromModels, calls } = resolved
+      let keepsModelId = fromModels
       for (let index = calls.length - 1; index >= 0; index--) {
         const call = calls[index]
         const id = idOf(call)
@@ -411,8 +420,12 @@ export const requireModelId: RuleModule = {
           if (literal !== undefined) checkId(name, literal, id.value)
           return
         }
-        if (!KEEPS_ID.has(call.name)) break
+        if (!KEEPS_ID.has(call.name)) {
+          keepsModelId = false
+          break
+        }
       }
+      if (keepsModelId) return
 
       const derived = calls.find((call) => DERIVING.has(call.name))
       context.report(

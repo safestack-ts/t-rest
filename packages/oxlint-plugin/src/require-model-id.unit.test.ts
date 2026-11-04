@@ -49,6 +49,10 @@ const valid = [
   `${ZOD}const Person = z.object({}).meta({ id: 'Person' })\nexport const Admin = Person.extend({}).meta({ id: 'Admin' })`,
   `${ZOD}const Person = z.object({})\nexport const Admin = Person.extend({}).meta({ id: 'Admin' })`,
   `${ZOD}const Person = z.object({})\nexport const Same = Person`,
+  `${ZOD}const Base = z.object({}).meta({ id: 'Person' })\nexport const Person = Base.describe('person')`,
+  `${ZOD}const Base = z.object({}).meta({ id: 'Person' })\nexport const Person = Base.readonly().meta({ description: 'person' })`,
+  `${ZOD}const Base = z.object({}).meta({ id: 'Person' })\nconst Described = Base.describe('a')\nexport const Person = Described.readonly()`,
+  `${MODELS}${ZOD}const { Person } = defineModels('Shop', { Person: z.object({}) })\nexport const Described = Person.describe('person')`,
   `${MODELS}${ZOD}export const { Person } = defineModels('Shop', { Person: z.object({}) })`,
   `${MODELS}${ZOD}export const models = defineModels('Shop', { Person: z.object({}) })`,
   `${MODELS}const { Person } = defineModels('Shop', {})\nexport const Admin = Person.extend({}).meta({ id: 'Admin' })`,
@@ -193,6 +197,32 @@ const invalid = [
     errors: [{ messageId: 'derivedWithoutId' }],
   },
   {
+    code: `${ZOD}const Base = z.object({}).meta({ id: 'Person' })\nexport const Admin = Base.extend({})`,
+    errors: [
+      {
+        messageId: 'derivedWithoutId',
+        data: { name: 'Admin', method: 'extend' },
+      },
+    ],
+  },
+  {
+    code: `${ZOD}const Base = z.object({}).meta({ id: 'Person' })\nconst Admin = Base.extend({})\nexport const Described = Admin.describe('admin')`,
+    errors: [
+      {
+        messageId: 'derivedWithoutId',
+        data: { name: 'Described', method: 'extend' },
+      },
+    ],
+  },
+  {
+    code: `${ZOD}const Base = z.object({}).meta({ id: 'Person' })\nexport const Maybe = Base.optional()`,
+    errors: [{ messageId: 'missingId', data: { name: 'Maybe' } }],
+  },
+  {
+    code: `${MODELS}${ZOD}const { Person } = defineModels('Shop', { Person: z.object({}) })\nexport const People = Person.array()`,
+    errors: [{ messageId: 'missingId', data: { name: 'People' } }],
+  },
+  {
     code: `${ZOD}export const Partial = z.object({}).partial()`,
     errors: [{ messageId: 'derivedWithoutId' }],
   },
@@ -249,6 +279,21 @@ const invalid = [
   },
   {
     code: `${ZOD}export const Total = z.fromJSONSchema({ type: 'string' }).meta({ id: 'Total' })`,
+    filename: CHECKOUT,
+    options: [MODELS_ROOT],
+    errors: [
+      {
+        messageId: 'idMismatch',
+        data: {
+          name: 'Total',
+          actual: 'Total',
+          expected: 'V2024_01_01_Shared_Checkout',
+        },
+      },
+    ],
+  },
+  {
+    code: `${ZOD}const Base = z.string().meta({ id: 'Total' })\nexport const Total = Base.describe('total')`,
     filename: CHECKOUT,
     options: [MODELS_ROOT],
     errors: [
