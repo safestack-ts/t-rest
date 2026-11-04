@@ -1,0 +1,988 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ApiModelDocument",
+  "description": "The API model of one spec: its operations and the types, shared responses and security schemes they reach.",
+  "type": "object",
+  "properties": {
+    "modelVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "versioning": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "date",
+                "semver"
+              ]
+            },
+            "history": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "history"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "types": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/TypeDef"
+      }
+    },
+    "responses": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/Response"
+      }
+    },
+    "securitySchemes": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/SecurityScheme"
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Operation"
+      }
+    }
+  },
+  "required": [
+    "modelVersion",
+    "versioning",
+    "types",
+    "responses",
+    "securitySchemes",
+    "operations"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "TypeDef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "named"
+            },
+            "id": {
+              "type": "string"
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "input",
+                "output"
+              ]
+            },
+            "shape": {
+              "$ref": "#/$defs/Shape"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "direction",
+            "shape"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "anonymous"
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "input",
+                "output"
+              ]
+            },
+            "shape": {
+              "$ref": "#/$defs/Shape"
+            }
+          },
+          "required": [
+            "kind",
+            "direction",
+            "shape"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "A type other shapes refer to. `anonymous` is recursion without an author id."
+    },
+    "Shape": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unknown"
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "never"
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "null"
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "boolean"
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "string"
+            },
+            "format": {
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "minLength": {
+              "type": "number"
+            },
+            "maxLength": {
+              "type": "number"
+            },
+            "contentEncoding": {
+              "type": "string"
+            },
+            "contentMediaType": {
+              "type": "string"
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "number"
+            },
+            "integer": {
+              "type": "boolean"
+            },
+            "format": {
+              "type": "string"
+            },
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            },
+            "exclusiveMinimum": {
+              "type": "number"
+            },
+            "exclusiveMaximum": {
+              "type": "number"
+            },
+            "multipleOf": {
+              "type": "number"
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind",
+            "integer"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "enum"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
+            },
+            "names": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind",
+            "values"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "array"
+            },
+            "items": {
+              "$ref": "#/$defs/Shape"
+            },
+            "minItems": {
+              "type": "number"
+            },
+            "maxItems": {
+              "type": "number"
+            },
+            "uniqueItems": {
+              "type": "boolean"
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "tuple"
+            },
+            "prefix": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Shape"
+              }
+            },
+            "rest": {
+              "$ref": "#/$defs/Shape"
+            },
+            "minItems": {
+              "type": "number"
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind",
+            "prefix"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "object"
+            },
+            "fields": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Field"
+              }
+            },
+            "additional": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Shape"
+                },
+                {
+                  "type": "boolean",
+                  "const": false
+                }
+              ]
+            },
+            "propertyNames": {
+              "$ref": "#/$defs/Shape"
+            },
+            "minProperties": {
+              "type": "number"
+            },
+            "maxProperties": {
+              "type": "number"
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind",
+            "fields"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "union"
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Shape"
+              }
+            },
+            "exclusive": {
+              "type": "boolean"
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind",
+            "members",
+            "exclusive"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "intersection"
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Shape"
+              }
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind",
+            "members"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ref"
+            },
+            "target": {
+              "type": "string"
+            },
+            "docs": {
+              "$ref": "#/$defs/Docs"
+            }
+          },
+          "required": [
+            "kind",
+            "target"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "A JSON wire value. `null` is a union member; a literal is a one-member enum; `ref.target` names a key of `types`."
+    },
+    "Docs": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "examples": {
+          "type": "array",
+          "items": {}
+        },
+        "default": {},
+        "deprecated": {
+          "type": "boolean"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "writeOnly": {
+          "type": "boolean"
+        },
+        "extensions": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        }
+      },
+      "additionalProperties": false,
+      "description": "Documentation of a shape. None of it changes which values the shape accepts."
+    },
+    "Field": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "shape": {
+          "$ref": "#/$defs/Shape"
+        }
+      },
+      "required": [
+        "name",
+        "required",
+        "shape"
+      ],
+      "additionalProperties": false,
+      "description": "An object property. Optionality lives here, never on the shape."
+    },
+    "Response": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "shape": {
+                "$ref": "#/$defs/Shape"
+              }
+            },
+            "required": [
+              "name",
+              "required",
+              "shape"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "content": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/MediaType"
+          }
+        }
+      },
+      "required": [
+        "description",
+        "headers",
+        "content"
+      ],
+      "additionalProperties": false,
+      "description": "One status of an operation. `content` is empty for a response without a body."
+    },
+    "MediaType": {
+      "type": "object",
+      "properties": {
+        "shape": {
+          "$ref": "#/$defs/Shape"
+        },
+        "examples": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "value": {}
+            },
+            "required": [
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "encoding": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "contentType": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "contentType"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "shape"
+      ],
+      "additionalProperties": false,
+      "description": "A body in one content type."
+    },
+    "SecurityScheme": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "http"
+            },
+            "scheme": {
+              "type": "string"
+            },
+            "bearerFormat": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "scheme"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "apiKey"
+            },
+            "in": {
+              "type": "string",
+              "enum": [
+                "header",
+                "query",
+                "cookie"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "in",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "oauth2"
+            },
+            "flows": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "flows"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "openIdConnect"
+            },
+            "openIdConnectUrl": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "openIdConnectUrl"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "A security scheme, referenced by name from `Operation.security`."
+    },
+    "Operation": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "operationId": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deprecated": {
+          "type": "boolean"
+        },
+        "externalDocs": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "additionalProperties": false
+        },
+        "servers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Parameter"
+          }
+        },
+        "requestBody": {
+          "type": "object",
+          "properties": {
+            "required": {
+              "type": "boolean"
+            },
+            "content": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/MediaType"
+              }
+            }
+          },
+          "required": [
+            "required",
+            "content"
+          ],
+          "additionalProperties": false
+        },
+        "responses": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "inline"
+                  },
+                  "response": {
+                    "$ref": "#/$defs/Response"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "response"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "shared"
+                  },
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "id"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "security": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scheme": {
+                  "type": "string"
+                },
+                "scopes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "scheme",
+                "scopes"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "extensions": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "key",
+        "method",
+        "path",
+        "version",
+        "operationId",
+        "tags",
+        "deprecated",
+        "parameters",
+        "responses",
+        "security",
+        "extensions"
+      ],
+      "additionalProperties": false,
+      "description": "One route in one version. `key` is built from the normalized path, for example `GET /users/{} @2024-01-01`."
+    },
+    "Parameter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "in": {
+          "type": "string",
+          "enum": [
+            "path",
+            "query",
+            "header"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "shape": {
+          "$ref": "#/$defs/Shape"
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "plain",
+            "json"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "in",
+        "required",
+        "shape",
+        "encoding"
+      ],
+      "additionalProperties": false,
+      "description": "A path, query or header parameter. `encoding: json` means the value travels as a JSON string."
+    }
+  }
+}
