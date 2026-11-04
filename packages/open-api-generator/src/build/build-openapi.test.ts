@@ -480,6 +480,23 @@ describe('write', () => {
     expect(await rejected(build, dir)).toContain('schema/no-json-schema')
   })
 
+  test('rejects an unrepresentable response with a BigInt example', async () => {
+    const dir = await outputDir()
+    const build = buildOpenAPI({
+      bag: BagOfRoutes.withoutVersioning()
+        .addRoute(
+          Route.get('/value').responses({
+            200: json(z.bigint(), { examples: { one: { value: BigInt(1) } } }),
+          })
+        )
+        .build(),
+      info,
+      specs: [{ target: '3.1', output: path.join(dir, 'api.json') }],
+    })
+
+    expect(await rejected(build, dir)).toContain('schema/unrepresentable')
+  })
+
   test('rejects two specs writing one sidecar', async () => {
     const dir = await outputDir()
     const build = buildOpenAPI({

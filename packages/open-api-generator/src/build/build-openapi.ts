@@ -5,7 +5,7 @@ import {
 } from '../diagnostics/registry.js'
 import type { ApiModelDocument } from '../model/document-schema.js'
 import { assignNames } from '../naming/assign-names.js'
-import { outputFiles, writeFiles } from '../output/files.js'
+import { outputFiles, pathCollisions, writeFiles } from '../output/files.js'
 import { buildBagModel } from '../route/bag-model.js'
 import type { RouteView as BagRouteView } from '../route/config.js'
 import { selectSpec } from '../spec/select.js'
@@ -91,14 +91,6 @@ export const buildOpenAPI = <TBag extends AnyBag>(
     }
   })
 
-  const files = outputFiles(
-    specs.map(({ spec, document, model }) => ({
-      output: spec.output,
-      format: spec.format,
-      document,
-      model,
-    }))
-  )
   const diagnostics = withSeverities(
     [
       ...bag.diagnostics,
@@ -108,7 +100,7 @@ export const buildOpenAPI = <TBag extends AnyBag>(
         : []),
       ...resolved.diagnostics,
       ...specs.flatMap((spec) => spec.diagnostics),
-      ...files.diagnostics,
+      ...pathCollisions(specs.map(({ spec }) => spec.output)),
     ],
     config.diagnostics
   )
@@ -127,7 +119,16 @@ export const buildOpenAPI = <TBag extends AnyBag>(
     write: async () => {
       if (diagnostics.some(({ severity }) => severity === 'error'))
         throw new OpenAPIGenerationError(diagnostics)
-      await writeFiles(files.files)
+      await writeFiles(
+        outputFiles(
+          specs.map(({ spec, document, model }) => ({
+            output: spec.output,
+            format: spec.format,
+            document,
+            model,
+          }))
+        )
+      )
     },
   }
 }

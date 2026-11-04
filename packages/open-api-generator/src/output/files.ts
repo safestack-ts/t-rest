@@ -26,43 +26,50 @@ export const sidecarPath = (output: string) =>
     `${path.basename(output, path.extname(output))}.api-model.json`
   )
 
-/**
- * Every spec file and its model sidecar, with absolute paths. A path that two
- * specs write is `output/path-collision`; paths are compared ignoring case,
- * since case-insensitive file systems map them to one file.
- */
-export const outputFiles = (
-  specs: readonly OutputSpec[]
-): { files: OutputFile[]; diagnostics: Diagnostic[] } => {
-  const owners = new Map<string, { path: string; outputs: string[] }>()
-  const files = specs.flatMap(({ output, format, document, model }) =>
-    [
-      { path: path.resolve(output), content: serialize(document, format) },
-      {
-        path: path.resolve(sidecarPath(output)),
-        content: serialize(model, 'json'),
-      },
-    ].map((file) => {
-      const key = file.path.toLowerCase()
-      const owner = owners.get(key) ?? { path: file.path, outputs: [] }
-      owners.set(key, { ...owner, outputs: [...owner.outputs, output] })
-      return file
-    })
-  )
+/** The spec file of `output` and its model sidecar, as absolute paths. */
+const pathsOf = (output: string) => [
+  path.resolve(output),
+  path.resolve(sidecarPath(output)),
+]
 
-  return {
-    files,
-    diagnostics: [...owners.values()]
-      .filter(({ outputs }) => outputs.length > 1)
-      .map(({ path: file, outputs }) =>
-        diagnostic(
-          'output/path-collision',
-          {},
-          { path: file, outputs: [...new Set(outputs)] }
-        )
-      ),
-  }
+/**
+ * `output/path-collision` for each path that two outputs write. Paths are
+ * compared ignoring case, since case-insensitive file systems map them to one
+ * file. Needs no serialization, so it runs before any error gating.
+ */
+export const pathCollisions = (outputs: readonly string[]): Diagnostic[] => {
+  const owners = new Map<string, { path: string; outputs: string[] }>()
+  for (const output of outputs)
+    for (const file of pathsOf(output)) {
+      const key = file.toLowerCase()
+      const owner = owners.get(key) ?? { path: file, outputs: [] }
+      owners.set(key, { ...owner, outputs: [...owner.outputs, output] })
+    }
+
+  return [...owners.values()]
+    .filter(({ outputs }) => outputs.length > 1)
+    .map(({ path: file, outputs }) =>
+      diagnostic(
+        'output/path-collision',
+        {},
+        { path: file, outputs: [...new Set(outputs)] }
+      )
+    )
 }
+
+/**
+ * Every spec file and its model sidecar, serialized, with absolute paths. Call
+ * it only for a build without errors: a partial document can hold values, such
+ * as a BigInt example, that do not serialize.
+ */
+export const outputFiles = (specs: readonly OutputSpec[]): OutputFile[] =>
+  specs.flatMap(({ output, format, document, model }) => {
+    const [spec, sidecar] = pathsOf(output)
+    return [
+      { path: spec, content: serialize(document, format) },
+      { path: sidecar, content: serialize(model, 'json') },
+    ]
+  })
 
 /**
  * Stages every file as a temp file in its target directory, then renames each

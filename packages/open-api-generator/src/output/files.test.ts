@@ -8,7 +8,13 @@ import { pipeline } from '../spec/testing.js'
 import { TARGETS } from '../writer/capabilities.js'
 import { writeDocument } from '../writer/document.js'
 import { varietyBag, varietyOptions } from '../writer/variety.js'
-import { outputFiles, OutputSpec, sidecarPath, writeFiles } from './files.js'
+import {
+  outputFiles,
+  OutputSpec,
+  pathCollisions,
+  sidecarPath,
+  writeFiles,
+} from './files.js'
 import { formatOf } from './serialize.js'
 
 const { model } = pipeline(varietyBag).spec()
@@ -42,12 +48,14 @@ describe('outputFiles', () => {
   })
 
   test('each spec gets its document and its own model as a sidecar', () => {
-    const { files, diagnostics } = outputFiles([
+    const files = outputFiles([
       spec('openapi/public.yaml'),
       spec('openapi/internal.json'),
     ])
 
-    expect(diagnostics).toEqual([])
+    expect(
+      pathCollisions(['openapi/public.yaml', 'openapi/internal.json'])
+    ).toEqual([])
     expect(
       files.map((file) => path.relative(process.cwd(), file.path))
     ).toEqual([
@@ -62,7 +70,7 @@ describe('outputFiles', () => {
   })
 
   test('two outputs with one sidecar collide', () => {
-    const { diagnostics } = outputFiles([spec('api.yaml'), spec('api.json')])
+    const diagnostics = pathCollisions(['api.yaml', 'api.json'])
 
     expect(diagnostics.map(({ code, data }) => [code, data])).toEqual([
       [
@@ -76,7 +84,7 @@ describe('outputFiles', () => {
   })
 
   test('paths that differ only in case collide', () => {
-    const { diagnostics } = outputFiles([spec('API.yaml'), spec('api.yml')])
+    const diagnostics = pathCollisions(['API.yaml', 'api.yml'])
 
     expect(diagnostics.map(({ data }) => data)).toEqual([
       {
@@ -87,7 +95,7 @@ describe('outputFiles', () => {
   })
 
   test('one output given twice is named once', () => {
-    const { diagnostics } = outputFiles([spec('api.yaml'), spec('api.yaml')])
+    const diagnostics = pathCollisions(['api.yaml', 'api.yaml'])
 
     expect(diagnostics.map(({ data }) => data)).toEqual([
       { path: path.resolve('api.yaml'), outputs: ['api.yaml'] },
@@ -99,7 +107,7 @@ describe('outputFiles', () => {
 describe('writeFiles', () => {
   test('writes into new directories without leaving temp files, and again over them', async () => {
     const dir = await tempDir()
-    const files = outputFiles([spec(path.join(dir, 'nested/api.yaml'))]).files
+    const files = outputFiles([spec(path.join(dir, 'nested/api.yaml'))])
 
     await writeFiles(files)
     await writeFiles(files)
@@ -117,7 +125,7 @@ describe('writeFiles', () => {
     const files = outputFiles([
       spec(path.join(dir, 'api.yaml')),
       spec(path.join(dir, 'blocked/api.yaml')),
-    ]).files
+    ])
 
     await expect(writeFiles(files)).rejects.toThrow()
     expect(await readdir(dir)).toEqual(['blocked'])
