@@ -817,6 +817,33 @@
               },
               "description": {
                 "type": "string"
+              },
+              "variables": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "default": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "enum": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "default"
+                  ],
+                  "additionalProperties": false
+                }
               }
             },
             "required": [

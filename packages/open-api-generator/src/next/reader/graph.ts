@@ -386,7 +386,9 @@ export const buildGraph = (
       })),
       // A required key without a properties entry is still an additional property
       ...[...required]
-        .filter((name) => !(name in properties))
+        .filter(
+          (name) => !Object.prototype.hasOwnProperty.call(properties, name)
+        )
         .map((name) => ({
           name,
           required: true,

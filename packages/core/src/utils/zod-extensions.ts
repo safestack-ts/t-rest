@@ -112,11 +112,17 @@ export namespace ze {
       }
     )
 
+  /**
+   * The object itself, or its JSON text. The text branch carries
+   * `contentMediaType: 'application/json'`, so generated docs can tell it
+   * apart from a plain string.
+   */
   export const jsonObject = <TOutputValue>(
     objectValidator: z.ZodType<TOutputValue, unknown>
   ) =>
     z
       .string()
+      .meta({ contentMediaType: 'application/json' })
       .transform((value, ctx) => {
         const parsedJSON = tryParseJSON(value)
 

@@ -9,7 +9,7 @@ import {
 
 export interface UnifyContext {
   readonly direction: Direction
-  /** Prefix of anonymous keys: `<operation key>#<slot>`. */
+  /** Prefix of anonymous keys outside any named def: `<operation key>#<slot>`. */
   readonly anonymousScope: string
 }
 
@@ -137,27 +137,33 @@ export const unify = (
     [...graph.refTargets].filter((node) => onCycle.has(node)).map(blockOf)
   )
 
-  const representative = new Map<number, { node: NodeId; pointer: string }>()
+  const namedKey = (id: string) => `${direction}:${id}` as DefKey
+
+  // Keys under a named def come from the def, so every read of it is equal.
+  const representative = new Map<number, { node: NodeId; key: DefKey }>()
   const visited = new Set<NodeId>()
-  const visit = (ref: RefShape<Edge>) => {
+  const visit = (ref: RefShape<Edge>, scope: string, base: string) => {
     const { node, pointer } = ref.target
     if (visited.has(node)) return
     visited.add(node)
     const block = blockOf(node)
     if (anonymousBlocks.has(block) && !representative.has(block))
-      representative.set(block, { node, pointer })
+      representative.set(block, {
+        node,
+        key: `anon:${scope}#${pointer.slice(base.length)}` as DefKey,
+      })
     childrenOf(node)
       .filter((child) => !bodyOwner.has(child.target.node))
-      .forEach(visit)
+      .forEach((child) => visit(child, scope, base))
   }
-  visit(graph.root)
-  namedIds.forEach((id) => visit(graph.named.get(id) as RefShape<Edge>))
-
-  const namedKey = (id: string) => `${direction}:${id}` as DefKey
+  for (const id of namedIds) {
+    const body = graph.named.get(id) as RefShape<Edge>
+    if (bodyOwner.get(body.target.node) === id)
+      visit(body, namedKey(id), body.target.pointer)
+  }
+  visit(graph.root, anonymousScope, '')
   const anonymousKey = (block: number) =>
-    `anon:${anonymousScope}#${
-      (representative.get(block) as { pointer: string }).pointer
-    }` as DefKey
+    (representative.get(block) as { key: DefKey }).key
 
   const emitNode = (node: NodeId): Shape<DefKey> =>
     mapRefs(nodes[node], emitEdge)

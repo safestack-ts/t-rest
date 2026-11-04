@@ -16,7 +16,8 @@ export type Direction = 'input' | 'output'
 /**
  * Identity of a type inside one generator run:
  * `input:<id>` / `output:<id>` for author ids, and
- * `anon:<operation key>#<slot>#<json pointer>` for recursion without an id.
+ * `anon:<direction>:<id>#<json pointer>` for recursion without an id inside a
+ * named def, `anon:<operation key>#<slot>#<json pointer>` outside any.
  */
 export type DefKey = Brand<string, 'DefKey'>
 
@@ -180,6 +181,21 @@ export interface SecurityRequirement {
 /** OR of ANDs. `[]` is public, `[[bearer], []]` is optional auth. */
 export type Security = readonly (readonly SecurityRequirement[])[]
 
+export interface Server {
+  readonly url: string
+  readonly description?: string
+  readonly variables?: Readonly<
+    Record<
+      string,
+      {
+        readonly default: string
+        readonly description?: string
+        readonly enum?: readonly string[]
+      }
+    >
+  >
+}
+
 export interface Operation<R> {
   /** Built from the normalized path, params by position: `GET /users/{} @2024-01-01`. */
   readonly key: string
@@ -197,10 +213,7 @@ export interface Operation<R> {
     readonly url: string
     readonly description?: string
   }
-  readonly servers?: readonly {
-    readonly url: string
-    readonly description?: string
-  }[]
+  readonly servers?: readonly Server[]
   readonly parameters: readonly Parameter<R>[]
   readonly requestBody?: RequestBody<R>
   /** By status code string, `'200'`, `'404'`. */

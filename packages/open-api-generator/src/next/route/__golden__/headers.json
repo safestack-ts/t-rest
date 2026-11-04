@@ -1,0 +1,127 @@
+{
+  "modelVersion": 1,
+  "versioning": {
+    "kind": "none"
+  },
+  "types": {},
+  "responses": {},
+  "securitySchemes": {},
+  "operations": [
+    {
+      "key": "GET /greeting",
+      "method": "GET",
+      "path": "/greeting",
+      "version": "",
+      "operationId": "getGreeting",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [
+        {
+          "name": "accept-language",
+          "in": "header",
+          "required": false,
+          "shape": {
+            "kind": "enum",
+            "values": [
+              "de",
+              "en",
+              "fr"
+            ]
+          },
+          "encoding": "plain"
+        },
+        {
+          "name": "x-channel",
+          "in": "header",
+          "required": true,
+          "shape": {
+            "kind": "string",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "format": "uuid"
+          },
+          "encoding": "plain"
+        }
+      ],
+      "responses": {
+        "200": {
+          "kind": "inline",
+          "response": {
+            "description": "OK",
+            "headers": [],
+            "content": {
+              "text/plain": {
+                "shape": {
+                  "kind": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "security": [],
+      "extensions": {}
+    },
+    {
+      "key": "GET /greeting/localized",
+      "method": "GET",
+      "path": "/greeting/localized",
+      "version": "",
+      "operationId": "getGreetingLocalized",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [
+        {
+          "name": "Accept-Language",
+          "in": "header",
+          "required": true,
+          "shape": {
+            "kind": "enum",
+            "values": [
+              "de",
+              "fr"
+            ]
+          },
+          "encoding": "plain"
+        },
+        {
+          "name": "x-channel",
+          "in": "header",
+          "required": true,
+          "shape": {
+            "kind": "string",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "format": "uuid"
+          },
+          "encoding": "plain"
+        }
+      ],
+      "responses": {
+        "200": {
+          "kind": "inline",
+          "response": {
+            "description": "OK",
+            "headers": [
+              {
+                "name": "x-rate-limit",
+                "required": false,
+                "shape": {
+                  "kind": "number",
+                  "integer": true
+                }
+              }
+            ],
+            "content": {
+              "text/plain": {
+                "shape": {
+                  "kind": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "security": [],
+      "extensions": {}
+    }
+  ]
+}

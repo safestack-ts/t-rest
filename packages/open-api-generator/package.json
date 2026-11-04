@@ -33,6 +33,7 @@
   "dependencies": {
     "@t-rest/core": "workspace:^",
     "debug": "^4.4.3",
+    "http-status-codes": "^2.3.0",
     "lodash": "^4.18.1",
     "stable-hash": "0.0.6",
     "yaml": "^2.9.1"

@@ -1,0 +1,46 @@
+{
+  "modelVersion": 1,
+  "versioning": {
+    "kind": "none"
+  },
+  "types": {},
+  "responses": {},
+  "securitySchemes": {
+    "apiKey": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "X-Api-Key"
+    }
+  },
+  "operations": [
+    {
+      "key": "GET /keys",
+      "method": "GET",
+      "path": "/keys",
+      "version": "",
+      "operationId": "getKeys",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [],
+      "responses": {
+        "204": {
+          "kind": "inline",
+          "response": {
+            "description": "No Content",
+            "headers": [],
+            "content": {}
+          }
+        }
+      },
+      "security": [
+        [
+          {
+            "scheme": "apiKey",
+            "scopes": []
+          }
+        ]
+      ],
+      "extensions": {}
+    }
+  ]
+}

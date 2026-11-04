@@ -1,5 +1,6 @@
 import { pathParamNames } from '@t-rest/protocol'
 import { diagnostic, Diagnostic } from '../diagnostics/registry.js'
+import { dereference } from '../model/shape.js'
 import type { DefKey, Field, Shape, TypeDef } from '../model/types.js'
 import type { StandardJSONSchemaSource } from './convert.js'
 import { pointerTo } from './json-schema.js'
@@ -23,23 +24,6 @@ export interface RequestRead {
 }
 
 const SLOTS = ['params', 'query', 'headers', 'body'] as const
-
-const dereference = (
-  shape: Shape<DefKey>,
-  types: Readonly<Record<DefKey, TypeDef<DefKey>>>
-): Shape<DefKey> => {
-  const seen = new Set<DefKey>()
-  let current = shape
-  while (
-    current.kind === 'ref' &&
-    !seen.has(current.target) &&
-    types[current.target]
-  ) {
-    seen.add(current.target)
-    current = (types[current.target] as TypeDef<DefKey>).shape
-  }
-  return current
-}
 
 const fieldsOf = (shape: Shape<DefKey>): readonly Field<DefKey>[] =>
   shape.kind === 'object' ? shape.fields : []

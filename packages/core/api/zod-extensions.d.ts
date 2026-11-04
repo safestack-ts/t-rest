@@ -9,6 +9,11 @@ declare namespace ze {
     const iso8601DateString: () => z.ZodString;
     const uuid: () => z.ZodString;
     const jsonString: <T extends z.ZodTypeAny>(zodType: T) => z.ZodString;
+    /**
+     * The object itself, or its JSON text. The text branch carries
+     * `contentMediaType: 'application/json'`, so generated docs can tell it
+     * apart from a plain string.
+     */
     const jsonObject: <TOutputValue>(objectValidator: z.ZodType<TOutputValue, unknown>) => z.ZodUnion<[z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<TOutputValue, unknown, z.core.$ZodTypeInternals<TOutputValue, unknown>>>, z.ZodType<TOutputValue, unknown, z.core.$ZodTypeInternals<TOutputValue, unknown>>]>;
     const databaseId: () => z.ZodNumber;
     const parseInteger: () => z.ZodType<number, number | string>;

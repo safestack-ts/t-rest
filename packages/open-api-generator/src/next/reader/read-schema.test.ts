@@ -457,6 +457,18 @@ describe('JSON Schema semantics', () => {
       },
     ],
     [
+      'required keys named like Object.prototype members',
+      { type: 'object', required: ['constructor', 'toString', '__proto__'] },
+      {
+        kind: 'object',
+        fields: ['constructor', 'toString', '__proto__'].map((name) => ({
+          name,
+          required: true,
+          shape: { kind: 'unknown' },
+        })),
+      },
+    ],
+    [
       'a required key without a properties entry as additionalProperties',
       {
         type: 'object',

@@ -1,0 +1,211 @@
+{
+  "modelVersion": 1,
+  "versioning": {
+    "kind": "none"
+  },
+  "types": {
+    "output:Product": {
+      "kind": "named",
+      "id": "Product",
+      "direction": "output",
+      "shape": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "id",
+            "required": true,
+            "shape": {
+              "kind": "number",
+              "integer": false
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "shape": {
+              "kind": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "responses": {},
+  "securitySchemes": {},
+  "operations": [
+    {
+      "key": "GET /products/{}",
+      "method": "GET",
+      "path": "/products/:id",
+      "version": "",
+      "operationId": "getProductsById",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "shape": {
+            "kind": "string"
+          },
+          "encoding": "plain"
+        }
+      ],
+      "responses": {
+        "200": {
+          "kind": "inline",
+          "response": {
+            "description": "OK",
+            "headers": [],
+            "content": {
+              "application/json": {
+                "shape": {
+                  "kind": "object",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "required": true,
+                      "shape": {
+                        "kind": "number",
+                        "integer": false
+                      }
+                    },
+                    {
+                      "name": "tags",
+                      "required": true,
+                      "shape": {
+                        "kind": "array",
+                        "items": {
+                          "kind": "string"
+                        },
+                        "docs": {
+                          "default": []
+                        }
+                      }
+                    }
+                  ]
+                },
+                "examples": {
+                  "tagged": {
+                    "value": {
+                      "id": 1,
+                      "tags": []
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "404": {
+          "kind": "inline",
+          "response": {
+            "description": "Not Found",
+            "headers": [],
+            "content": {
+              "application/json": {
+                "shape": {
+                  "kind": "unknown"
+                },
+                "examples": {
+                  "missing": {
+                    "value": {
+                      "error": "not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "security": [],
+      "extensions": {}
+    },
+    {
+      "key": "POST /products",
+      "method": "POST",
+      "path": "/products",
+      "version": "",
+      "operationId": "postProducts",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "shape": {
+              "kind": "object",
+              "fields": [
+                {
+                  "name": "name",
+                  "required": true,
+                  "shape": {
+                    "kind": "string",
+                    "minLength": 1
+                  }
+                }
+              ]
+            },
+            "examples": {
+              "valid": {
+                "summary": "A product",
+                "value": {
+                  "name": "Chair"
+                }
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "kind": "inline",
+          "response": {
+            "description": "OK",
+            "headers": [],
+            "content": {
+              "text/plain": {
+                "shape": {
+                  "kind": "string"
+                },
+                "examples": {
+                  "plain": {
+                    "value": "ok"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "201": {
+          "kind": "inline",
+          "response": {
+            "description": "Created",
+            "headers": [],
+            "content": {
+              "application/json": {
+                "shape": {
+                  "kind": "ref",
+                  "target": "output:Product"
+                },
+                "examples": {
+                  "created": {
+                    "value": {
+                      "id": 1,
+                      "name": "Chair"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "security": [],
+      "extensions": {}
+    }
+  ]
+}
