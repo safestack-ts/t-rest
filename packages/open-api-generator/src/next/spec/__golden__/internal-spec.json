@@ -1,0 +1,294 @@
+{
+  "model": {
+    "modelVersion": 1,
+    "versioning": {
+      "kind": "none"
+    },
+    "types": {
+      "Audit": {
+        "kind": "named",
+        "id": "Audit",
+        "direction": "output",
+        "shape": {
+          "kind": "object",
+          "fields": [
+            {
+              "name": "by",
+              "required": true,
+              "shape": {
+                "kind": "string"
+              }
+            },
+            {
+              "name": "product",
+              "required": true,
+              "shape": {
+                "kind": "ref",
+                "target": "Product"
+              }
+            }
+          ]
+        }
+      },
+      "Failure": {
+        "kind": "named",
+        "id": "Failure",
+        "direction": "output",
+        "shape": {
+          "kind": "object",
+          "fields": [
+            {
+              "name": "message",
+              "required": true,
+              "shape": {
+                "kind": "string"
+              }
+            }
+          ]
+        }
+      },
+      "Product": {
+        "kind": "named",
+        "id": "Product",
+        "direction": "output",
+        "shape": {
+          "kind": "object",
+          "fields": [
+            {
+              "name": "id",
+              "required": true,
+              "shape": {
+                "kind": "number",
+                "integer": false
+              }
+            },
+            {
+              "name": "stock",
+              "required": true,
+              "shape": {
+                "kind": "number",
+                "integer": false,
+                "docs": {
+                  "default": 0
+                }
+              }
+            },
+            {
+              "name": "tags",
+              "required": true,
+              "shape": {
+                "kind": "array",
+                "items": {
+                  "kind": "ref",
+                  "target": "Tag"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "ProductInput": {
+        "kind": "named",
+        "id": "Product",
+        "direction": "input",
+        "shape": {
+          "kind": "object",
+          "fields": [
+            {
+              "name": "id",
+              "required": true,
+              "shape": {
+                "kind": "number",
+                "integer": false
+              }
+            },
+            {
+              "name": "stock",
+              "required": false,
+              "shape": {
+                "kind": "number",
+                "integer": false,
+                "docs": {
+                  "default": 0
+                }
+              }
+            },
+            {
+              "name": "tags",
+              "required": true,
+              "shape": {
+                "kind": "array",
+                "items": {
+                  "kind": "ref",
+                  "target": "Tag"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "Tag": {
+        "kind": "named",
+        "id": "Tag",
+        "direction": "output",
+        "shape": {
+          "kind": "object",
+          "fields": [
+            {
+              "name": "name",
+              "required": true,
+              "shape": {
+                "kind": "string"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "responses": {
+      "NotFound": {
+        "description": "No such product",
+        "headers": [],
+        "content": {
+          "application/json": {
+            "shape": {
+              "kind": "ref",
+              "target": "Failure"
+            }
+          }
+        }
+      },
+      "Invalid": {
+        "description": "Invalid product",
+        "headers": [],
+        "content": {
+          "application/json": {
+            "shape": {
+              "kind": "ref",
+              "target": "Failure"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "operations": [
+      {
+        "key": "GET /products/{}",
+        "method": "GET",
+        "path": "/products/:id",
+        "version": "",
+        "operationId": "getProductsById",
+        "tags": [],
+        "deprecated": false,
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "shape": {
+              "kind": "string"
+            },
+            "encoding": "plain"
+          }
+        ],
+        "responses": {
+          "200": {
+            "kind": "inline",
+            "response": {
+              "description": "OK",
+              "headers": [],
+              "content": {
+                "application/json": {
+                  "shape": {
+                    "kind": "ref",
+                    "target": "Product"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "kind": "shared",
+            "id": "NotFound"
+          }
+        },
+        "security": [],
+        "extensions": {
+          "public": true
+        }
+      },
+      {
+        "key": "PUT /products/{}",
+        "method": "PUT",
+        "path": "/products/:id",
+        "version": "",
+        "operationId": "putProductsById",
+        "tags": [],
+        "deprecated": false,
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "shape": {
+              "kind": "string"
+            },
+            "encoding": "plain"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "shape": {
+                "kind": "ref",
+                "target": "ProductInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "kind": "inline",
+            "response": {
+              "description": "OK",
+              "headers": [],
+              "content": {
+                "application/json": {
+                  "shape": {
+                    "kind": "ref",
+                    "target": "Audit"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "kind": "shared",
+            "id": "Invalid"
+          },
+          "404": {
+            "kind": "shared",
+            "id": "NotFound"
+          }
+        },
+        "security": [
+          [
+            {
+              "scheme": "bearer",
+              "scopes": []
+            }
+          ]
+        ],
+        "extensions": {}
+      }
+    ]
+  },
+  "diagnostics": []
+}

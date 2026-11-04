@@ -1,0 +1,147 @@
+{
+  "model": {
+    "modelVersion": 1,
+    "versioning": {
+      "kind": "none"
+    },
+    "types": {
+      "Failure": {
+        "kind": "named",
+        "id": "Failure",
+        "direction": "output",
+        "shape": {
+          "kind": "object",
+          "fields": [
+            {
+              "name": "message",
+              "required": true,
+              "shape": {
+                "kind": "string"
+              }
+            }
+          ]
+        }
+      },
+      "Product": {
+        "kind": "named",
+        "id": "Product",
+        "direction": "output",
+        "shape": {
+          "kind": "object",
+          "fields": [
+            {
+              "name": "id",
+              "required": true,
+              "shape": {
+                "kind": "number",
+                "integer": false
+              }
+            },
+            {
+              "name": "stock",
+              "required": true,
+              "shape": {
+                "kind": "number",
+                "integer": false,
+                "docs": {
+                  "default": 0
+                }
+              }
+            },
+            {
+              "name": "tags",
+              "required": true,
+              "shape": {
+                "kind": "array",
+                "items": {
+                  "kind": "ref",
+                  "target": "Tag"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "Tag": {
+        "kind": "named",
+        "id": "Tag",
+        "direction": "output",
+        "shape": {
+          "kind": "object",
+          "fields": [
+            {
+              "name": "name",
+              "required": true,
+              "shape": {
+                "kind": "string"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "responses": {
+      "NotFound": {
+        "description": "No such product",
+        "headers": [],
+        "content": {
+          "application/json": {
+            "shape": {
+              "kind": "ref",
+              "target": "Failure"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {},
+    "operations": [
+      {
+        "key": "GET /products/{}",
+        "method": "GET",
+        "path": "/products/:id",
+        "version": "",
+        "operationId": "getProductsById",
+        "tags": [],
+        "deprecated": false,
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "shape": {
+              "kind": "string"
+            },
+            "encoding": "plain"
+          }
+        ],
+        "responses": {
+          "200": {
+            "kind": "inline",
+            "response": {
+              "description": "OK",
+              "headers": [],
+              "content": {
+                "application/json": {
+                  "shape": {
+                    "kind": "ref",
+                    "target": "Product"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "kind": "shared",
+            "id": "NotFound"
+          }
+        },
+        "security": [],
+        "extensions": {
+          "public": true
+        }
+      }
+    ]
+  },
+  "diagnostics": []
+}

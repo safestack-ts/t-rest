@@ -1,0 +1,169 @@
+{
+  "modelVersion": 1,
+  "versioning": {
+    "kind": "none"
+  },
+  "types": {
+    "Item": {
+      "kind": "named",
+      "id": "Item",
+      "direction": "output",
+      "shape": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "quantity",
+            "required": true,
+            "shape": {
+              "kind": "number",
+              "integer": false,
+              "docs": {
+                "default": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    "ItemInput": {
+      "kind": "named",
+      "id": "Item",
+      "direction": "input",
+      "shape": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "quantity",
+            "required": false,
+            "shape": {
+              "kind": "number",
+              "integer": false,
+              "docs": {
+                "default": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    "Order": {
+      "kind": "named",
+      "id": "Order",
+      "direction": "output",
+      "shape": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "items",
+            "required": true,
+            "shape": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "target": "Item"
+              }
+            }
+          },
+          {
+            "name": "tag",
+            "required": true,
+            "shape": {
+              "kind": "ref",
+              "target": "Tag"
+            }
+          }
+        ]
+      }
+    },
+    "OrderInput": {
+      "kind": "named",
+      "id": "Order",
+      "direction": "input",
+      "shape": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "items",
+            "required": true,
+            "shape": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "target": "ItemInput"
+              }
+            }
+          },
+          {
+            "name": "tag",
+            "required": true,
+            "shape": {
+              "kind": "ref",
+              "target": "Tag"
+            }
+          }
+        ]
+      }
+    },
+    "Tag": {
+      "kind": "named",
+      "id": "Tag",
+      "direction": "output",
+      "shape": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "name",
+            "required": true,
+            "shape": {
+              "kind": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "responses": {},
+  "securitySchemes": {},
+  "operations": [
+    {
+      "key": "POST /orders",
+      "method": "POST",
+      "path": "/orders",
+      "version": "",
+      "operationId": "postOrders",
+      "tags": [],
+      "deprecated": false,
+      "parameters": [],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "shape": {
+              "kind": "ref",
+              "target": "OrderInput"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "kind": "inline",
+          "response": {
+            "description": "OK",
+            "headers": [],
+            "content": {
+              "application/json": {
+                "shape": {
+                  "kind": "ref",
+                  "target": "Order"
+                }
+              }
+            }
+          }
+        }
+      },
+      "security": [],
+      "extensions": {}
+    }
+  ]
+}
