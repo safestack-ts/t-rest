@@ -39,6 +39,10 @@ const valid = [
   `${ZOD}export const Person = z.object({}).meta({ id: 'Person' })`,
   `${ZOD}export const Person = z.object({}).meta({ id: 'Person' }).describe('a').readonly().meta({ description: 'b' })`,
   `${ZOD}export const Person = z.object({}).register(z.globalRegistry, { id: 'Person' })`,
+  `import { object, globalRegistry } from 'zod'\nexport const Person = object({}).register(globalRegistry, { id: 'Person' })`,
+  `${ZOD}const registry = z.globalRegistry\nexport const Person = z.object({}).register(registry, { id: 'Person' })`,
+  `${ZOD}export const Person = z.object({}).meta({ id: 'Person' }).register(z.registry(), { title: 'x' })`,
+  `${ZOD}import { docs } from './docs.js'\nexport const Person = z.object({}).register(docs, { id: 'Person' })`,
   `${ZOD}const id = 'Person'\nexport const Person = z.object({}).meta({ id })`,
   `${ZOD}export const Person = z.object({}).meta({ ...shared })`,
   `${ZOD}export const Person = z.object({}).meta(shared)`,
@@ -223,6 +227,18 @@ const invalid = [
     errors: [{ messageId: 'missingId', data: { name: 'People' } }],
   },
   {
+    code: `${ZOD}export const Person = z.object({}).register(z.registry(), { id: 'Person' })`,
+    errors: [{ messageId: 'missingId', data: { name: 'Person' } }],
+  },
+  {
+    code: `import { object, registry } from 'zod'\nconst docs = registry()\nexport const Person = object({}).register(docs, { id: 'Person' })`,
+    errors: [{ messageId: 'missingId', data: { name: 'Person' } }],
+  },
+  {
+    code: `${ZOD}export const Person = z.object({}).meta({ id: 'Person' }).register(z.globalRegistry, { title: 'x' })`,
+    errors: [{ messageId: 'missingId', data: { name: 'Person' } }],
+  },
+  {
     code: `${ZOD}export const Partial = z.object({}).partial()`,
     errors: [{ messageId: 'derivedWithoutId' }],
   },
@@ -261,6 +277,21 @@ const invalid = [
     filename: CHECKOUT,
     options: [MODELS_ROOT],
     errors: [{ messageId: 'idMismatch' }],
+  },
+  {
+    code: `${ZOD}export const Total = z.string().meta({ id: 'Other' }).register(z.registry(), { id: 'V2024_01_01_Shared_Checkout_Total' })`,
+    filename: CHECKOUT,
+    options: [MODELS_ROOT],
+    errors: [
+      {
+        messageId: 'idMismatch',
+        data: {
+          name: 'Total',
+          actual: 'Other',
+          expected: 'V2024_01_01_Shared_Checkout',
+        },
+      },
+    ],
   },
   {
     code: `${ZOD}export const Total = z.string().check(z.minLength(1)).meta({ id: 'Total' })`,

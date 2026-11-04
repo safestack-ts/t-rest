@@ -200,15 +200,6 @@ const idProperty = (object: Node): Node | 'unknown' | undefined => {
   return found
 }
 
-/** `.meta({ id })` or `.register(registry, { id })`. `unknown` when the options are not an object literal. */
-const idOf = (call: Call): Node | 'unknown' | undefined => {
-  const args = call.node.arguments
-  if (call.name === 'meta')
-    return args.length === 0 ? undefined : idProperty(args[0])
-  if (call.name === 'register') return idProperty(args[1])
-  return undefined
-}
-
 const WORD_SEPARATOR = /[-.]/
 
 const segmentName = (segment: string, mode: 'pascal' | 'preserve') =>
@@ -387,6 +378,58 @@ export const requireModelId: RuleModule = {
       return base && schemaCalls([...base.calls, ...calls], base.fromModels)
     }
 
+    /** The zod export `node` refers to: `z.name` or a binding imported as `name`. */
+    const zodExportOf = (expression: Node): string | undefined => {
+      const node = unwrap(expression)
+      if (node.type === 'Identifier') {
+        const binding = zodBindings.get(node.name)
+        return binding?.kind === 'export' ? binding.imported : undefined
+      }
+      if (
+        node.type === 'MemberExpression' &&
+        !node.computed &&
+        unwrap(node.object).type === 'Identifier' &&
+        zodBindings.get(unwrap(node.object).name)?.kind === 'namespace'
+      )
+        return node.property.name
+      return undefined
+    }
+
+    /** Which registry `.register()` writes to; only `z.globalRegistry` names schemas for the generator. */
+    const registryOf = (
+      expression: Node,
+      seen: Set<string> = new Set()
+    ): 'global' | 'custom' | 'unknown' => {
+      const node = unwrap(expression)
+      if (!node) return 'unknown'
+      if (node.type === 'CallExpression')
+        return zodExportOf(node.callee) === 'registry' ? 'custom' : 'unknown'
+      const exported = zodExportOf(node)
+      if (exported !== undefined)
+        return exported === 'globalRegistry' ? 'global' : 'unknown'
+      const init = node.type === 'Identifier' && localInits.get(node.name)
+      if (!init || seen.has(node.name)) return 'unknown'
+      seen.add(node.name)
+      return registryOf(init, seen)
+    }
+
+    /** `.meta({ id })` or `.register(z.globalRegistry, { id })`. `unknown` when the options or the registry cannot be resolved. */
+    const idOf = (call: Call): Node | 'unknown' | undefined => {
+      const args = call.node.arguments
+      if (call.name === 'meta')
+        return args.length === 0 ? undefined : idProperty(args[0])
+      if (call.name !== 'register') return undefined
+      const registry = registryOf(args[0])
+      if (registry === 'unknown') return 'unknown'
+      return registry === 'global' ? idProperty(args[1]) : undefined
+    }
+
+    /** `.register()` on another registry returns the same schema and leaves its global metadata alone. */
+    const keepsId = (call: Call) =>
+      KEEPS_ID.has(call.name) ||
+      (call.name === 'register' &&
+        registryOf(call.node.arguments[0]) === 'custom')
+
     const checkId = (name: string, id: string, node: Node) => {
       if (prefix === undefined || id.startsWith(prefix)) return
       context.report({
@@ -420,7 +463,7 @@ export const requireModelId: RuleModule = {
           if (literal !== undefined) checkId(name, literal, id.value)
           return
         }
-        if (!KEEPS_ID.has(call.name)) {
+        if (!keepsId(call)) {
           keepsModelId = false
           break
         }

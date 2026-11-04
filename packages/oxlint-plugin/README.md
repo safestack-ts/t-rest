@@ -60,7 +60,9 @@ A CommonJS config gets the plugin from `require('@t-rest/oxlint-plugin').default
 An exported schema passes when it
 
 - comes from `defineModels` of `@t-rest/core/zod`, or
-- has `.meta({ id })` (or `.register(registry, { id })`) in its chain, followed only by `.describe()`, `.meta()` and `.readonly()`.
+- has `.meta({ id })` (or `.register(z.globalRegistry, { id })`) in its chain, followed only by `.describe()`, `.meta()`, `.readonly()` and `.register()` on another registry.
+
+The generator only sees ids in `z.globalRegistry`, so `.register(z.registry(), { id })` on a registry created in the same file does not count. A registry the rule cannot resolve, such as one imported from another module, is not reported.
 
 ```ts
 import { z } from 'zod'
