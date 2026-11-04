@@ -415,6 +415,23 @@ describe('normalization rules', () => {
 })
 
 describe('JSON Schema semantics', () => {
+  const nul = { kind: 'null' } as const
+  /** Every JSON type, with `constrained` in place of its own type. */
+  const anyType = (constrained: { kind: string; [key: string]: unknown }) => ({
+    kind: 'union',
+    exclusive: false,
+    members: [
+      string,
+      number,
+      { kind: 'boolean' },
+      nul,
+      { kind: 'array', items: { kind: 'unknown' } },
+      { kind: 'object', fields: [] },
+    ].map((member) =>
+      member.kind === constrained.kind ? constrained : member
+    ),
+  })
+
   test.each<[string, JsonSchemaObject, unknown]>([
     [
       'a closed tuple without minItems as all-optional',
@@ -487,6 +504,43 @@ describe('JSON Schema semantics', () => {
             fields: [
               { name: 'token', required: true, shape: { kind: 'unknown' } },
             ],
+          },
+        ],
+      },
+    ],
+    [
+      'a type keyword without type as constraining only its type',
+      { minLength: 2 },
+      anyType({ kind: 'string', minLength: 2 }),
+    ],
+    [
+      'object keywords without type as constraining only objects',
+      { required: ['a'] },
+      anyType({
+        kind: 'object',
+        fields: [{ name: 'a', required: true, shape: { kind: 'unknown' } }],
+      }),
+    ],
+    [
+      'an untyped composition branch as constraining only its type',
+      { anyOf: [{ minimum: 1 }, { type: 'string' }] },
+      {
+        kind: 'union',
+        exclusive: false,
+        members: [anyType({ ...number, minimum: 1 }), string],
+      },
+    ],
+    [
+      'an untyped allOf branch within the types of its parent',
+      { type: ['string', 'null'], allOf: [{ minLength: 2 }] },
+      {
+        kind: 'intersection',
+        members: [
+          { kind: 'union', exclusive: false, members: [string, nul] },
+          {
+            kind: 'union',
+            exclusive: false,
+            members: [{ ...string, minLength: 2 }, nul],
           },
         ],
       },

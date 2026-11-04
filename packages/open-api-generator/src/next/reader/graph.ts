@@ -89,7 +89,20 @@ type TypeName =
   | 'array'
   | 'object'
 
-/** Keywords that only apply to one type, and imply it when `type` is missing. */
+/** Every JSON type once; `number` covers `integer`. */
+const ALL_TYPES: readonly TypeName[] = [
+  'string',
+  'number',
+  'boolean',
+  'null',
+  'array',
+  'object',
+]
+
+/**
+ * Keywords that only constrain instances of one type. Without `type` they do
+ * not reject the other types.
+ */
 const TYPE_KEYWORDS: Readonly<
   Record<'string' | 'number' | 'array' | 'object', readonly string[]>
 > = {
@@ -160,12 +173,12 @@ const readDocs = (
   return Object.keys(docs).length > 0 ? docs : undefined
 }
 
-const typeNamesOf = (node: JsonSchemaObject): TypeName[] => {
+const declaredTypes = (
+  node: JsonSchemaObject
+): readonly TypeName[] | undefined => {
   if (typeof node.type === 'string') return [node.type as TypeName]
   if (Array.isArray(node.type)) return node.type as TypeName[]
-  return (Object.keys(TYPE_KEYWORDS) as (keyof typeof TYPE_KEYWORDS)[]).filter(
-    (type) => TYPE_KEYWORDS[type].some((keyword) => keyword in node)
-  )
+  return undefined
 }
 
 const union = (members: Shape<Edge>[], exclusive: boolean): Shape<Edge> =>
@@ -253,7 +266,12 @@ export const buildGraph = (
     typeof schema.$ref === 'string' &&
     hasOnlyAnnotations(schema)
 
-  const edgeTo = (child: JsonSchema, pointer: string): RefShape<Edge> => {
+  /** `types` are the types an enclosing schema already restricts `child` to. */
+  const edgeTo = (
+    child: JsonSchema,
+    pointer: string,
+    types?: readonly TypeName[]
+  ): RefShape<Edge> => {
     if (isAnnotatedRef(child)) {
       const ref: RefShape<Edge> = {
         kind: 'ref',
@@ -261,7 +279,7 @@ export const buildGraph = (
       }
       return withDocs(ref, readDocs(child, false))
     }
-    const node = addNode(() => readShape(child, pointer))
+    const node = addNode(() => readShape(child, pointer, types))
     return { kind: 'ref', target: { node, pointer } }
   }
 
@@ -406,7 +424,11 @@ export const buildGraph = (
     }
   }
 
-  const readShape = (json: JsonSchema, pointer: string): Shape<Edge> => {
+  const readShape = (
+    json: JsonSchema,
+    pointer: string,
+    enclosingTypes?: readonly TypeName[]
+  ): Shape<Edge> => {
     if (json === true) return { kind: 'unknown' }
     if (json === false) return { kind: 'never' }
 
@@ -414,33 +436,49 @@ export const buildGraph = (
     for (const keyword of Object.keys(json))
       if (UNSUPPORTED.has(keyword)) unsupported.push({ keyword, pointer })
 
+    const declared = declaredTypes(json)
+    const types = declared ?? enclosingTypes
+    // Without `type`, type keywords constrain their own type and leave the others open
+    const asserted =
+      declared ??
+      (Object.keys(json).some((keyword) => TYPED.has(keyword))
+        ? types ?? ALL_TYPES
+        : [])
+
     const parts: Shape<Edge>[] = []
     if ('const' in json) parts.push(literals([json.const], json, pointer))
     else if (Array.isArray(json.enum))
       parts.push(literals(json.enum, json, pointer))
-    else {
-      const typed = typeNamesOf(json).map((type) =>
-        typedShape(type, json, pointer)
+    else if (asserted.length > 0)
+      parts.push(
+        union(
+          asserted.map((type) => typedShape(type, json, pointer)),
+          false
+        )
       )
-      if (typed.length > 0) parts.push(union(typed, false))
-    }
     if (Array.isArray(json.anyOf))
       parts.push(
         union(
-          json.anyOf.map((s, i) => edgeTo(s, pointerTo(pointer, 'anyOf', i))),
+          json.anyOf.map((s, i) =>
+            edgeTo(s, pointerTo(pointer, 'anyOf', i), types)
+          ),
           false
         )
       )
     if (Array.isArray(json.oneOf))
       parts.push(
         union(
-          json.oneOf.map((s, i) => edgeTo(s, pointerTo(pointer, 'oneOf', i))),
+          json.oneOf.map((s, i) =>
+            edgeTo(s, pointerTo(pointer, 'oneOf', i), types)
+          ),
           true
         )
       )
     if (Array.isArray(json.allOf))
       parts.push(
-        ...json.allOf.map((s, i) => edgeTo(s, pointerTo(pointer, 'allOf', i)))
+        ...json.allOf.map((s, i) =>
+          edgeTo(s, pointerTo(pointer, 'allOf', i), types)
+        )
       )
     if (typeof json.$ref === 'string')
       parts.push({
