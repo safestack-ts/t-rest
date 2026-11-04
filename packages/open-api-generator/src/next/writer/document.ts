@@ -14,8 +14,9 @@ import type {
 } from '../model/types.js'
 import { refsOf } from '../model/shape.js'
 import { pointerTo } from '../reader/json-schema.js'
-import { CAPABILITIES, Target } from './capabilities.js'
-import { compact, SchemaObject, schemaWriter } from './schema.js'
+import { allocate } from '../naming/assign-names.js'
+import { Capabilities, CAPABILITIES, Target } from './capabilities.js'
+import { compact, holdsRawBytes, SchemaObject, schemaWriter } from './schema.js'
 
 export interface DocumentInfo {
   readonly title: string
@@ -65,10 +66,8 @@ const JSON_MEDIA_TYPE = /^application\/(?:[^;]+\+)?json\s*(?:;|$)/i
 
 const isJson = (mediaType: string) => JSON_MEDIA_TYPE.test(mediaType)
 
-/** The components that only bodies that are not JSON use, directly or through other components. */
-const rawBodyComponents = (
-  model: ApiModel<ComponentName>
-): ReadonlySet<ComponentName> => {
+/** The components bodies that are not JSON use, and the components everything else uses, directly or through other components. */
+const componentUses = (model: ApiModel<ComponentName>) => {
   const reached = {
     json: new Set<ComponentName>(),
     raw: new Set<ComponentName>(),
@@ -98,7 +97,42 @@ const rawBodyComponents = (
       if (slot.kind === 'inline') visitResponse(slot.response)
   }
   Object.values(model.responses).forEach(visitResponse)
-  return new Set([...reached.raw].filter((name) => !reached.json.has(name)))
+  return reached
+}
+
+const RAW_TWIN_SUFFIX = '_raw'
+
+/**
+ * How raw bodies and JSON share components. A component only raw bodies use
+ * is written as a raw body. One that both use and that holds raw bytes gets
+ * a raw twin, `<name>_raw` or the next free `_2`, `_3`, ..., which raw bodies
+ * refer to instead.
+ */
+const rawComponents = (
+  model: ApiModel<ComponentName>,
+  capabilities: Capabilities
+) => {
+  const uses = componentUses(model)
+  const rawOnly = new Set([...uses.raw].filter((name) => !uses.json.has(name)))
+  const shared = [...uses.raw]
+    .filter(
+      (name) =>
+        uses.json.has(name) &&
+        holdsRawBytes(capabilities, model.types, model.types[name].shape)
+    )
+    .sort()
+  // a twin's name is made up, so yielding to a taken name is no conflict
+  const { names } = allocate<string>([
+    ...Object.keys(model.types).map((name) => ({ owner: name, name })),
+    ...shared.map((name) => ({
+      owner: `twin:${name}`,
+      name: `${name}${RAW_TWIN_SUFFIX}`,
+    })),
+  ])
+  const twins = new Map(
+    shared.map((name) => [name, names.get(`twin:${name}`) as ComponentName])
+  )
+  return { rawOnly, twins }
 }
 
 const byName = <T>([a]: [string, T], [b]: [string, T]) =>
@@ -136,11 +170,12 @@ export const writeDocument = (
   const capabilities = CAPABILITIES[target]
   const diagnostics: Diagnostic[] = []
   const report = (found: Diagnostic) => diagnostics.push(found)
+  const raw = rawComponents(model, capabilities)
   const context = {
     capabilities,
     types: model.types,
     report,
-    rawBodyComponents: rawBodyComponents(model),
+    rawTwins: raw.twins,
   }
   const schema = schemaWriter({ ...context, rawBody: false })
   const rawBodySchema = schemaWriter({ ...context, rawBody: true })
@@ -291,14 +326,25 @@ export const writeDocument = (
     ...nonEmpty(
       'schemas',
       Object.fromEntries(
-        sortedEntries(model.types).map(
-          ([name, type]): [string, SchemaObject] => [
+        [
+          ...Object.entries(model.types).map(([name, { shape }]) => ({
             name,
-            (context.rawBodyComponents.has(name as ComponentName)
+            shape,
+            write: raw.rawOnly.has(name as ComponentName)
               ? rawBodySchema
-              : schema)(type.shape, pointerTo('/components/schemas', name)),
-          ]
-        )
+              : schema,
+          })),
+          ...[...raw.twins].map(([name, twin]) => ({
+            name: twin as string,
+            shape: model.types[name].shape,
+            write: rawBodySchema,
+          })),
+        ]
+          .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+          .map(({ name, shape, write }): [string, SchemaObject] => [
+            name,
+            write(shape, pointerTo('/components/schemas', name)),
+          ])
       )
     ),
     ...nonEmpty(

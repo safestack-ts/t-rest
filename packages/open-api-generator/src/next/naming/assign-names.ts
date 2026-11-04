@@ -42,7 +42,7 @@ interface Wanted<K extends string> {
 }
 
 /** Gives each wanted name to its first owner; a later owner gets `_2`, `_3`, ... and `naming/component-conflict` unless both are fallbacks. */
-const allocate = <K extends string>(
+export const allocate = <K extends string>(
   wanted: readonly Wanted<K>[]
 ): { names: Map<K, string>; diagnostics: Diagnostic[] } => {
   const owners = new Map<string, Wanted<K>>()

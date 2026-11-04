@@ -451,37 +451,115 @@ describe('binary strings in OpenAPI 3.0', () => {
     expect(binaryDowngrades(named.diagnostics)).toEqual([])
   })
 
-  test('a component used by JSON and a multipart body is inlined into the multipart body', () => {
-    const Doc = z
-      .object({ image: z.string().meta({ contentMediaType: 'image/png' }) })
-      .meta({ id: 'Doc' })
+  /** `doc` in a multipart body and as the JSON response, valid in every target; the document of `target`. */
+  const sharedDoc = (doc: z.ZodType, response: z.ZodType = doc) => {
     const bag = BagOfRoutes.withoutVersioning()
       .addRoute(
         Route.post('/upload')
           .multipart({ files: { file: { required: true } } })
-          .validate(z.object({ body: z.object({ doc: Doc }) }))
-          .responses({ 200: json(Doc) })
+          .validate(z.object({ body: z.object({ doc }) }))
+          .responses({ 200: json(response) })
       )
       .build()
-    const { document } = writeDocument(
-      pipeline(bag).spec().model,
-      target,
-      varietyOptions
-    )
+    const model = pipeline(bag).spec().model
+    for (const each of TARGETS)
+      expectValidOpenAPI(
+        writeDocument(model, each, varietyOptions).document,
+        each
+      )
+    const { document } = writeDocument(model, target, varietyOptions)
+    const schemas = (document.components as any).schemas
     const post = (document.paths as any)['/upload'].post
+    /** `schema`, or the component it refers to. */
+    const resolve = (schema: any): any =>
+      schema.$ref === undefined
+        ? schema
+        : schemas[schema.$ref.replace('#/components/schemas/', '')]
+    return {
+      schemas,
+      resolve,
+      raw: post.requestBody.content['multipart/form-data'].schema.properties
+        .doc,
+      json: post.responses['200'].content['application/json'].schema,
+    }
+  }
 
-    expect(
-      post.requestBody.content['multipart/form-data'].schema.properties.doc
-    ).toEqual({
+  /** The `image` of each level `next` reaches from `start`, three levels deep. */
+  const images = (
+    { resolve }: ReturnType<typeof sharedDoc>,
+    start: any,
+    next: (level: any) => any
+  ) => {
+    const found = []
+    for (let level = resolve(start), depth = 0; depth < 3; depth++) {
+      found.push(level.properties.image)
+      level = resolve(next(level))
+    }
+    return found
+  }
+
+  const image = z.string().meta({ contentMediaType: 'image/png' })
+
+  test('a component used by JSON and a multipart body has a raw twin for the multipart body', () => {
+    const doc = sharedDoc(z.object({ image }).meta({ id: 'Doc' }))
+
+    expect(doc.raw).toEqual({ $ref: '#/components/schemas/Doc_raw' })
+    expect(doc.json).toEqual({ $ref: '#/components/schemas/Doc' })
+    expect(doc.schemas.Doc_raw).toEqual({
       type: 'object',
       properties: { image: binary },
       required: ['image'],
     })
-    expect(post.responses['200'].content['application/json'].schema).toEqual({
-      $ref: '#/components/schemas/Doc',
+    expect(doc.schemas.Doc.properties.image).toEqual({ type: 'string' })
+  })
+
+  test('a raw twin takes the next free name', () => {
+    const Taken = z.object({ name: z.string() }).meta({ id: 'Doc_raw' })
+    const Doc = z.object({ image }).meta({ id: 'Doc' })
+    const doc = sharedDoc(Doc, z.object({ doc: Doc, taken: Taken }))
+
+    expect(doc.raw).toEqual({ $ref: '#/components/schemas/Doc_raw_2' })
+    expect(doc.schemas.Doc_raw).toEqual(
+      expect.objectContaining({ properties: { name: { type: 'string' } } })
+    )
+  })
+
+  test('a recursive component refers to its raw twin at every depth', () => {
+    const Node: z.ZodType = z
+      .object({ image, child: z.lazy(() => Node).optional() })
+      .meta({ id: 'Node' })
+    const doc = sharedDoc(Node)
+    const child = (node: any) => node.properties.child
+
+    expect(child(doc.schemas.Node_raw)).toEqual({
+      $ref: '#/components/schemas/Node_raw',
     })
-    expect((document.components as any).schemas.Doc.properties.image).toEqual({
-      type: 'string',
+    expect(images(doc, doc.raw, child)).toEqual([binary, binary, binary])
+    expect(images(doc, doc.json, child)).toEqual(
+      Array(3).fill({ type: 'string' })
+    )
+  })
+
+  test('mutually recursive components refer to their raw twins at every depth', () => {
+    const Tree: z.ZodType = z
+      .object({ image, forest: z.lazy(() => Forest).optional() })
+      .meta({ id: 'Tree' })
+    const Forest: z.ZodType = z
+      .object({ trees: z.array(Tree) })
+      .meta({ id: 'Forest' })
+    const doc = sharedDoc(Tree)
+    const nextTree = (tree: any) =>
+      doc.resolve(tree.properties.forest).properties.trees.items
+
+    expect(doc.schemas.Tree_raw.properties.forest).toEqual({
+      $ref: '#/components/schemas/Forest_raw',
     })
+    expect(doc.schemas.Forest_raw.properties.trees.items).toEqual({
+      $ref: '#/components/schemas/Tree_raw',
+    })
+    expect(images(doc, doc.raw, nextTree)).toEqual([binary, binary, binary])
+    expect(images(doc, doc.json, nextTree)).toEqual(
+      Array(3).fill({ type: 'string' })
+    )
   })
 })
