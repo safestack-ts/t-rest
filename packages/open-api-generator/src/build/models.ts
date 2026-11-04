@@ -4,12 +4,24 @@ import { createReaderRun, readSchema } from '../reader/read-schema.js'
 
 type Container = Readonly<Record<string, unknown>>
 
-const isSchema = (value: unknown): value is StandardJSONSchemaSource =>
-  typeof value === 'object' &&
-  value !== null &&
-  '~standard' in value &&
-  typeof (value as StandardJSONSchemaSource)['~standard'].jsonSchema ===
-    'object'
+/**
+ * A Standard Schema validator or Standard JSON Schema source, whether or not it
+ * can convert to JSON Schema. Some libraries' schemas are functions.
+ */
+const isSchema = (value: unknown): value is StandardJSONSchemaSource => {
+  if (
+    (typeof value !== 'object' && typeof value !== 'function') ||
+    value === null
+  )
+    return false
+  const standard: unknown = (value as { '~standard'?: unknown })['~standard']
+  return (
+    typeof standard === 'object' &&
+    standard !== null &&
+    (typeof (standard as { validate?: unknown }).validate === 'function' ||
+      typeof (standard as { jsonSchema?: unknown }).jsonSchema === 'object')
+  )
+}
 
 /** A module namespace (`export * as Customer`) or a plain object grouping models. */
 const isContainer = (value: unknown): value is Container => {
@@ -45,8 +57,9 @@ const exportedSchemas = (models: Container) => {
 
 /**
  * `naming/model-without-id` for every schema of a models module, or of a
- * namespace it exports, whose root is not a reference to an id. Other exports
- * are ignored.
+ * namespace it exports, whose root is not a reference to an id, and
+ * `schema/no-json-schema` for one that cannot convert to JSON Schema. Other
+ * exports are ignored.
  */
 export const modelsWithoutId = (
   models: Container,
@@ -54,23 +67,18 @@ export const modelsWithoutId = (
 ): Diagnostic[] => {
   const run = createReaderRun({ trustedVendors })
   return exportedSchemas(models).flatMap(({ key, schema }) => {
+    const slot = `naming.models ${key}`
+    const { vendor, jsonSchema } = schema['~standard']
+    if (!jsonSchema)
+      return [diagnostic('schema/no-json-schema', { slot }, { vendor })]
+
     const { shape, types } = readSchema(
       schema,
-      {
-        operation: 'config',
-        slot: `naming.models ${key}`,
-        direction: 'output',
-      },
+      { operation: 'config', slot, direction: 'output' },
       run
     )
     return shape.kind === 'ref' && types[shape.target]?.kind === 'named'
       ? []
-      : [
-          diagnostic(
-            'naming/model-without-id',
-            { slot: `naming.models ${key}` },
-            { key }
-          ),
-        ]
+      : [diagnostic('naming/model-without-id', { slot }, { key })]
   })
 }

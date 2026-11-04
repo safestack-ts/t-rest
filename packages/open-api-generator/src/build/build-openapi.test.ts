@@ -454,6 +454,32 @@ describe('write', () => {
     expect(await rejected(build, dir)).toContain('naming/model-without-id')
   })
 
+  test('rejects a model that cannot convert to JSON Schema', async () => {
+    const dir = await outputDir()
+    const Validator = {
+      '~standard': {
+        version: 1,
+        vendor: 'custom',
+        validate: (value: unknown) => ({ value }),
+      },
+    }
+    const build = buildOpenAPI({
+      bag: dated,
+      info,
+      naming: { models: { Validator } },
+      specs: [{ target: '3.1', output: path.join(dir, 'api.yaml') }],
+    })
+
+    expect(
+      build.diagnostics
+        .filter(({ code }) => code === 'schema/no-json-schema')
+        .map(({ at, data, severity }) => [at, data, severity])
+    ).toEqual([
+      [{ slot: 'naming.models Validator' }, { vendor: 'custom' }, 'error'],
+    ])
+    expect(await rejected(build, dir)).toContain('schema/no-json-schema')
+  })
+
   test('rejects two specs writing one sidecar', async () => {
     const dir = await outputDir()
     const build = buildOpenAPI({
