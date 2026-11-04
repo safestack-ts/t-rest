@@ -416,4 +416,36 @@ describe('generated-def unification', () => {
       diagnostics: [],
     })
   })
+
+  describe('an alias recursively used by its target', () => {
+    const Base: z.ZodType = z
+      .object({
+        get next(): z.ZodOptional<z.ZodType> {
+          return Alias.optional()
+        },
+      })
+      .meta({ id: 'Recursive_Base' })
+    const Alias = Base.meta({ id: 'Recursive_Alias' })
+    const types = {
+      'output:Recursive_Alias': {
+        kind: 'named',
+        id: 'Recursive_Alias',
+        direction: 'output',
+        shape: ref('output:Recursive_Base'),
+      },
+      'output:Recursive_Base': {
+        kind: 'named',
+        id: 'Recursive_Base',
+        direction: 'output',
+        shape: object(field('next', ref('output:Recursive_Alias'), false)),
+      },
+    }
+
+    test.each([
+      ['alias first', z.object({ alias: Alias, base: Base })],
+      ['target first', z.object({ base: Base, alias: Alias })],
+    ])('keeps the recursive use pointing at the alias, %s', (_, schema) => {
+      expect(read(schema).types).toEqual(types)
+    })
+  })
 })

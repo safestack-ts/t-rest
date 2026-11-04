@@ -271,13 +271,19 @@ export const buildGraph = (
     if (known !== undefined) return known
     const def = defs[key] as JsonSchema
     const pointer = pointerTo('', '$defs', key)
-    // an alias gets a node of its own, so its uses do not resolve to the target
-    const node = isAnnotatedRef(def)
-      ? addNode(() => edgeTo(def, pointer))
-      : nodeAt(pointer)
-    const edge: RefShape<Edge> = { kind: 'ref', target: { node, pointer } }
-    named.set(key, edge)
-    return edge
+    const register = (node: NodeId): RefShape<Edge> => {
+      const edge: RefShape<Edge> = { kind: 'ref', target: { node, pointer } }
+      named.set(key, edge)
+      return edge
+    }
+    if (!isAnnotatedRef(def)) return register(nodeAt(pointer))
+    // an alias gets a node of its own, so its uses do not resolve to the
+    // target; registered before the target is read, so recursive uses find it
+    addNode((id) => {
+      register(id)
+      return edgeTo(def, pointer)
+    })
+    return named.get(key) as RefShape<Edge>
   }
 
   const refTarget = (ref: string, pointer: string): NodeId => {

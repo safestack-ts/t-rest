@@ -579,6 +579,55 @@ describe('operations', () => {
     ])
   })
 
+  test('a recursive alias and its target read by two routes in either order are one type each', () => {
+    const Base: z.ZodType = z
+      .object({
+        get next(): z.ZodOptional<z.ZodType> {
+          return Alias.optional()
+        },
+      })
+      .meta({ id: 'Base' })
+    const Alias = Base.meta({ id: 'Alias' })
+    const bag = BagOfRoutes.withoutVersioning()
+      .addRoute(
+        Route.get('/a').responses({
+          200: json(z.object({ alias: Alias, base: Base })),
+        })
+      )
+      .addRoute(
+        Route.get('/b').responses({
+          200: json(z.object({ base: Base, alias: Alias })),
+        })
+      )
+      .build()
+    const result = build(bag)
+
+    expect(codes(result)).toEqual([])
+    expect(result.model.types).toEqual({
+      'output:Alias': {
+        kind: 'named',
+        id: 'Alias',
+        direction: 'output',
+        shape: { kind: 'ref', target: 'output:Base' },
+      },
+      'output:Base': {
+        kind: 'named',
+        id: 'Base',
+        direction: 'output',
+        shape: {
+          kind: 'object',
+          fields: [
+            {
+              name: 'next',
+              required: false,
+              shape: { kind: 'ref', target: 'output:Alias' },
+            },
+          ],
+        },
+      },
+    })
+  })
+
   test('a named type with anonymous recursion read by two routes is one type', () => {
     const Node: z.ZodType<{ value: string; next?: unknown }> = z.object({
       value: z.string(),
