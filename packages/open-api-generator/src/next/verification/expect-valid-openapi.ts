@@ -44,7 +44,7 @@ const at = (pointer: string, key: string | number) =>
 const isObject = (node: unknown): node is Record<string, unknown> =>
   typeof node === 'object' && node !== null && !Array.isArray(node)
 
-type Found = { schemas: [string, unknown][] }
+type Found = { schemas: [string, unknown][]; refs: [string, string][] }
 
 /** Collects what `node` holds, given the OpenAPI object type of its position. */
 type Shape = (node: unknown, pointer: string, found: Found) => void
@@ -88,9 +88,65 @@ const lazy =
   (...args) =>
     shape()(...args)
 
+const reference: Shape = (node, pointer, found) => {
+  if (typeof node === 'string') found.refs.push([pointer, node])
+}
+
+/** A position that holds either a Reference Object or an object of `shape`. */
+const referenceable =
+  (shape: Shape): Shape =>
+  (node, pointer, found) =>
+    isObject(node) && node.$ref !== undefined
+      ? reference(node.$ref, at(pointer, '$ref'), found)
+      : shape(node, pointer, found)
+
+// Walks subschema keywords only: `example`, `default`, `enum`, `const` and
+// extensions hold instance data, where a `$ref` field is not a reference.
+const subschemas: Shape = fields({
+  $ref: reference,
+  ...Object.fromEntries(
+    [
+      'items',
+      'additionalItems',
+      'additionalProperties',
+      'not',
+      'if',
+      'then',
+      'else',
+      'contains',
+      'propertyNames',
+      'unevaluatedItems',
+      'unevaluatedProperties',
+      'contentSchema',
+    ].map((keyword) => [keyword, lazy(() => subschemas)])
+  ),
+  ...Object.fromEntries(
+    ['allOf', 'anyOf', 'oneOf', 'prefixItems'].map((keyword) => [
+      keyword,
+      arrayOf(lazy(() => subschemas)),
+    ])
+  ),
+  ...Object.fromEntries(
+    [
+      'properties',
+      'patternProperties',
+      'dependentSchemas',
+      '$defs',
+      'definitions',
+    ].map((keyword) => [keyword, mapOf(lazy(() => subschemas))])
+  ),
+})
+
 const schema: Shape = (node, pointer, found) => {
   found.schemas.push([pointer, node])
+  subschemas(node, pointer, found)
 }
+
+const example = referenceable(() => {})
+
+const link = referenceable(() => {})
+
+const securityScheme = referenceable(() => {})
 
 const encoding: Shape = fields({
   headers: mapOf(lazy(() => header)),
@@ -99,23 +155,30 @@ const encoding: Shape = fields({
   itemEncoding: lazy(() => encoding),
 })
 
-const mediaType = fields({
-  schema,
-  itemSchema: schema,
-  encoding: mapOf(encoding),
-  prefixEncoding: arrayOf(encoding),
-  itemEncoding: encoding,
-})
+const mediaType = referenceable(
+  fields({
+    schema,
+    itemSchema: schema,
+    examples: mapOf(example),
+    encoding: mapOf(encoding),
+    prefixEncoding: arrayOf(encoding),
+    itemEncoding: encoding,
+  })
+)
 
 const content = mapOf(mediaType)
 
-const parameter = fields({ schema, content })
+const parameter = referenceable(
+  fields({ schema, content, examples: mapOf(example) })
+)
 
 const header = parameter
 
-const requestBody = fields({ content })
+const requestBody = referenceable(fields({ content }))
 
-const response = fields({ headers: mapOf(header), content })
+const response = referenceable(
+  fields({ headers: mapOf(header), content, links: mapOf(link) })
+)
 
 const operation = fields({
   parameters: arrayOf(parameter),
@@ -137,12 +200,13 @@ const methods = [
 ]
 
 const pathItem = fields({
+  $ref: reference,
   parameters: arrayOf(parameter),
   additionalOperations: mapOf(operation),
   ...Object.fromEntries(methods.map((method) => [method, operation])),
 })
 
-const callback = patterned(pathItem)
+const callback = referenceable(patterned(pathItem))
 
 const openAPIDocument = fields({
   paths: patterned(pathItem),
@@ -153,18 +217,23 @@ const openAPIDocument = fields({
     parameters: mapOf(parameter),
     requestBodies: mapOf(requestBody),
     headers: mapOf(header),
+    examples: mapOf(example),
+    securitySchemes: mapOf(securityScheme),
+    links: mapOf(link),
     callbacks: mapOf(callback),
     pathItems: mapOf(pathItem),
     mediaTypes: mapOf(mediaType),
   }),
 })
 
-/** Every Schema Object position outside other Schema Objects, by JSON pointer. */
-const schemaObjects = (document: unknown): [string, unknown][] => {
-  const found: Found = { schemas: [] }
+const walk = (document: unknown): Found => {
+  const found: Found = { schemas: [], refs: [] }
   openAPIDocument(document, '', found)
-  return found.schemas
+  return found
 }
+
+/** Every Schema Object position outside other Schema Objects, by JSON pointer. */
+const schemaObjects = (document: unknown) => walk(document).schemas
 
 const resolves = (document: unknown, ref: string) =>
   decodeURIComponent(ref.slice(1))
@@ -179,25 +248,10 @@ const resolves = (document: unknown, ref: string) =>
       document
     ) !== undefined
 
-const danglingRefs = (document: unknown): string[] => {
-  const errors: string[] = []
-  const visit = (node: unknown, pointer: string) => {
-    if (typeof node !== 'object' || node === null) return
-    for (const [key, value] of Object.entries(node)) {
-      const at = `${pointer}/${escape(key)}`
-      if (
-        key === '$ref' &&
-        typeof value === 'string' &&
-        value.startsWith('#') &&
-        !resolves(document, value)
-      )
-        errors.push(`  ${at} ${value} does not resolve`)
-      else visit(value, at)
-    }
-  }
-  visit(document, '')
-  return errors
-}
+const danglingRefs = (document: unknown): string[] =>
+  walk(document)
+    .refs.filter(([, ref]) => ref.startsWith('#') && !resolves(document, ref))
+    .map(([pointer, ref]) => `  ${pointer} ${ref} does not resolve`)
 
 const options = { strict: false, allErrors: true, validateFormats: false }
 

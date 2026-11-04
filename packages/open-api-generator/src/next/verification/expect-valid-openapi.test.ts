@@ -196,3 +196,67 @@ test.each(targets)('a dangling local $ref is rejected in %s', (target) => {
     /\/paths\/~1pets~1\{id\}\/get\/responses\/200\/content\/application~1json\/schema\/\$ref #\/components\/schemas\/Nope does not resolve/
   )
 })
+
+test.each(targets)(
+  'a dangling nested schema $ref is rejected in %s',
+  (target) => {
+    const document = withPetSchema(target, {
+      type: 'object',
+      properties: { owner: { $ref: '#/components/schemas/Nope' } },
+    })
+
+    expect(() => expectValidOpenAPI(document, target)).toThrow(
+      '/components/schemas/Pet/properties/owner/$ref #/components/schemas/Nope does not resolve'
+    )
+  }
+)
+
+test.each(targets)(
+  'a dangling $ref in an examples map is rejected in %s',
+  (target) => {
+    const document = documentFor(target)
+    Object.assign(
+      document.paths['/pets/{id}'].get.responses['200'].content[
+        'application/json'
+      ],
+      { examples: { rex: { $ref: '#/components/examples/Nope' } } }
+    )
+
+    expect(() => expectValidOpenAPI(document, target)).toThrow(
+      '/application~1json/examples/rex/$ref #/components/examples/Nope does not resolve'
+    )
+  }
+)
+
+test.each(targets)('literal $ref instance data is accepted in %s', (target) => {
+  const literal = { $ref: '#/not-a-reference' }
+  const document = withPetSchema(target, {
+    type: 'object',
+    example: literal,
+    default: literal,
+    enum: [literal],
+    'x-payload': literal,
+    properties: { name: { type: 'object', example: literal } },
+  })
+  Object.assign(document.paths['/pets/{id}'].get.parameters[0], {
+    example: literal,
+  })
+  Object.assign(
+    document.paths['/pets/{id}'].get.responses['200'].content[
+      'application/json'
+    ],
+    { examples: { rex: { value: literal } } }
+  )
+  Object.assign(document, { 'x-payload': literal })
+
+  expect(() => expectValidOpenAPI(document, target)).not.toThrow()
+})
+
+test.each(['3.1', '3.2'] as const)(
+  'a literal $ref in const is accepted in %s',
+  (target) => {
+    const document = withPetSchema(target, { const: { $ref: '#/nope' } })
+
+    expect(() => expectValidOpenAPI(document, target)).not.toThrow()
+  }
+)
