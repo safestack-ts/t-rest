@@ -15,7 +15,7 @@ export interface TypeBlocks {
  * their shapes are equal, assuming every pair they reference shares one too:
  * the greatest fixpoint. Named types share a block only with the other
  * direction of their id, types named by `nameAnonymous` for a slot only with
- * themselves; anonymous recursion with any equal anonymous recursion.
+ * types of the same name; anonymous recursion with any equal anonymous recursion.
  */
 export const typeBlocks = (
   types: Readonly<Record<DefKey, TypeDef<DefKey>>>,
@@ -27,7 +27,7 @@ export const typeBlocks = (
     type.kind === 'named'
       ? `id:${type.id}`
       : slotNames.has(key)
-      ? key
+      ? `slot:${slotNames.get(key)}`
       : 'anonymous'
 
   const blocks = refinePartition(keys.length, (node, blockOf) => {

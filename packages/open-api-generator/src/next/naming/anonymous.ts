@@ -1,5 +1,4 @@
 import type { Location } from '../diagnostics/registry.js'
-import { stableStringify } from '../model/json.js'
 import type {
   DefKey,
   Direction,
@@ -52,8 +51,8 @@ export interface SlotRoots {
 }
 
 /**
- * Replaces each inline object body the hook names by a ref to a new type.
- * Bodies given one name share the type when their shapes are equal.
+ * Replaces each inline object body the hook names by a ref to a new type of
+ * its own; `assignNames` shares one component between equal types of one name.
  */
 export const nameSlotRoots = (
   operations: readonly Operation<DefKey>[],
@@ -61,7 +60,6 @@ export const nameSlotRoots = (
 ): SlotRoots => {
   const types: Record<DefKey, TypeDef<DefKey>> = {}
   const names = new Map<DefKey, string>()
-  const byName = new Map<string, { key: DefKey; shape: string }[]>()
   if (!nameAnonymous) return { operations, types, names }
 
   const named = (
@@ -85,16 +83,9 @@ export const nameSlotRoots = (
             : undefined
         if (name === undefined) return [contentType, media]
 
-        const json = stableStringify(shape)
-        const same = byName.get(name)?.find((known) => known.shape === json)
-        const key =
-          same?.key ??
-          (`anon:${operation.key}#${slot} ${contentType}#` as DefKey)
-        if (!same) {
-          byName.set(name, [...(byName.get(name) ?? []), { key, shape: json }])
-          types[key] = { kind: 'anonymous', direction, shape }
-          names.set(key, name)
-        }
+        const key = `anon:${operation.key}#${slot} ${contentType}#` as DefKey
+        types[key] = { kind: 'anonymous', direction, shape }
+        names.set(key, name)
         return [contentType, { ...media, shape: { kind: 'ref', target: key } }]
       })
     )

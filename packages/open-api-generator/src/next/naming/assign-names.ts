@@ -87,31 +87,40 @@ export const assignNames = (
   const inputSuffix = options.inputSuffix ?? DEFAULT_INPUT_SUFFIX
   const keys = (Object.keys(types) as DefKey[]).sort()
 
-  // Equal recursion shares one component per hook name, or one fallback per block.
-  const sharedRecursion = new Map<DefKey, DefKey>()
-  const recursion = new Map<DefKey, RecursionName>()
+  // Equal slot roots share one component per hook name; equal recursion one
+  // per hook name, or one fallback per block.
+  const sharedAnonymous = new Map<DefKey, DefKey>()
   const groups = new Map<string, DefKey>()
+  /** Whether `key` owns the component of its group. */
+  const share = (key: DefKey, name: string) => {
+    const group = `${blocks.blockOf(key)}|${name}`
+    const owner = groups.get(group) ?? key
+    groups.set(group, owner)
+    sharedAnonymous.set(key, owner)
+    return owner === key
+  }
+  const recursion = new Map<DefKey, RecursionName>()
   for (const key of keys) {
     const type = types[key]
-    if (type.kind !== 'anonymous' || slots.names.has(key)) continue
+    if (type.kind !== 'anonymous') continue
+    const slotName = slots.names.get(key)
+    if (slotName !== undefined) {
+      share(key, `slot:${slotName}`)
+      continue
+    }
     const naming = recursionName(
       key,
       type.shape,
       model.operations,
       options.nameAnonymous
     )
-    const group = `${blocks.blockOf(key)}|${
-      naming.named === undefined ? '' : `name:${naming.named}`
-    }`
-    const owner = groups.get(group) ?? key
-    groups.set(group, owner)
-    sharedRecursion.set(key, owner)
-    if (owner === key) recursion.set(key, naming)
+    if (share(key, naming.named === undefined ? '' : `name:${naming.named}`))
+      recursion.set(key, naming)
   }
 
   const componentKey = (key: DefKey): DefKey => {
     const type = types[key]
-    if (type.kind === 'anonymous') return sharedRecursion.get(key) ?? key
+    if (type.kind === 'anonymous') return sharedAnonymous.get(key) ?? key
     return type.direction === 'input' && blocks.merged.has(type.id)
       ? (`output:${type.id}` as DefKey)
       : key

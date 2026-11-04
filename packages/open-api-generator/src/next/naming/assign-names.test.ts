@@ -209,6 +209,49 @@ describe('anonymous types', () => {
     expect(result.named.diagnostics).toEqual([])
   })
 
+  test('one hook name for a request and a response that read the same is one type', () => {
+    const result = pipeline(
+      BagOfRoutes.withoutVersioning()
+        .addRoute(echo('/pages', page(Person)))
+        .build(),
+      {},
+      { nameAnonymous: () => 'PersonPage' }
+    )
+    const [operation] = result.named.model.operations
+
+    expect(bodyOf(operation)).toEqual(ref('PersonPage'))
+    expect(responseOf(operation)).toEqual(ref('PersonPage'))
+    expect(typeNames(result.named.model).sort()).toEqual([
+      'Person',
+      'PersonPage',
+    ])
+    expect(result.named.diagnostics).toEqual([])
+  })
+
+  test('one hook name for a request and a response whose named types differ is a conflict', () => {
+    const Defaulted = z
+      .object({ name: z.string().default('anonymous') })
+      .meta({ id: 'Defaulted' })
+    const result = pipeline(
+      BagOfRoutes.withoutVersioning()
+        .addRoute(echo('/pages', page(Defaulted)))
+        .build(),
+      {},
+      { nameAnonymous: () => 'Page' }
+    )
+
+    expect(typeNames(result.named.model).sort()).toEqual([
+      'Defaulted',
+      'DefaultedInput',
+      'Page',
+      'Page_2',
+    ])
+    expect(codes(result.named).map(({ code }) => code)).toEqual([
+      'naming/direction-split',
+      'naming/component-conflict',
+    ])
+  })
+
   test('one hook name for two shapes is a conflict', () => {
     const result = pipeline(
       BagOfRoutes.withoutVersioning()
