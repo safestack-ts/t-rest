@@ -291,33 +291,46 @@ export const buildGraph = (
     node: JsonSchemaObject,
     pointer: string
   ): Shape<Edge> => {
-    const required = new Set(Array.isArray(node.required) ? node.required : [])
+    const required = new Set(
+      Array.isArray(node.required) ? node.required.filter(isString) : []
+    )
     const properties = isSchemaObject(node.properties) ? node.properties : {}
-    const fields: Field<Edge>[] = Object.entries(properties).map(
-      ([name, property]) => ({
+    const { additionalProperties, propertyNames } = node
+    const additional: Shape<Edge> | false | undefined =
+      additionalProperties === false
+        ? false
+        : additionalProperties !== undefined &&
+          !isEmptySchema(additionalProperties)
+        ? edgeTo(
+            additionalProperties as JsonSchema,
+            pointerTo(pointer, 'additionalProperties')
+          )
+        : undefined
+    const fields: Field<Edge>[] = [
+      ...Object.entries(properties).map(([name, property]) => ({
         name,
         required: required.has(name),
         shape: edgeTo(
           property as JsonSchema,
           pointerTo(pointer, 'properties', name)
         ),
-      })
-    )
-    const { additionalProperties, propertyNames } = node
+      })),
+      // A required key without a properties entry is still an additional property
+      ...[...required]
+        .filter((name) => !(name in properties))
+        .map((name) => ({
+          name,
+          required: true,
+          shape:
+            additional === false
+              ? { kind: 'never' as const }
+              : additional ?? { kind: 'unknown' as const },
+        })),
+    ]
     return {
       kind: 'object',
       fields,
-      ...(additionalProperties === false
-        ? { additional: false as const }
-        : additionalProperties !== undefined &&
-          !isEmptySchema(additionalProperties)
-        ? {
-            additional: edgeTo(
-              additionalProperties as JsonSchema,
-              pointerTo(pointer, 'additionalProperties')
-            ),
-          }
-        : {}),
+      ...(additional !== undefined && { additional }),
       ...(propertyNames !== undefined && {
         propertyNames: edgeTo(
           propertyNames as JsonSchema,

@@ -431,6 +431,66 @@ describe('JSON Schema semantics', () => {
         minItems: 0,
       },
     ],
+    [
+      'a required key without a properties entry as an unknown field',
+      { type: 'object', required: ['token'] },
+      {
+        kind: 'object',
+        fields: [{ name: 'token', required: true, shape: { kind: 'unknown' } }],
+      },
+    ],
+    [
+      'a required key without a properties entry as additionalProperties',
+      {
+        type: 'object',
+        properties: { a: { type: 'string' } },
+        required: ['token', 'a'],
+        additionalProperties: { type: 'number' },
+      },
+      {
+        kind: 'object',
+        fields: [
+          { name: 'a', required: true, shape: string },
+          { name: 'token', required: true, shape: number },
+        ],
+        additional: number,
+      },
+    ],
+    [
+      'a required key that additionalProperties forbids as never',
+      { type: 'object', required: ['token'], additionalProperties: false },
+      {
+        kind: 'object',
+        fields: [{ name: 'token', required: true, shape: { kind: 'never' } }],
+        additional: false,
+      },
+    ],
+    [
+      'properties and required split across allOf',
+      {
+        type: 'object',
+        allOf: [
+          { type: 'object', properties: { token: { type: 'string' } } },
+          { type: 'object', required: ['token'] },
+        ],
+      },
+      {
+        kind: 'intersection',
+        members: [
+          { kind: 'object', fields: [] },
+          {
+            kind: 'object',
+            fields: [{ name: 'token', required: false, shape: string }],
+          },
+          {
+            kind: 'object',
+            fields: [
+              { name: 'token', required: true, shape: { kind: 'unknown' } },
+            ],
+          },
+        ],
+      },
+    ],
   ])('reads %s', (_, schema, expected) => {
     expect(read(source('acme', schema))).toEqual({
       shape: expected,
