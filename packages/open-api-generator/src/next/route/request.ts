@@ -24,12 +24,20 @@ export const fieldsOf = (
 
 const STRUCTURED = new Set(['object', 'array', 'tuple'])
 
-/** The members of a union, through refs and nested unions; any other shape is its own member. */
-const membersOf = (shape: Shape<DefKey>, types: Types): Shape<DefKey>[] => {
+/**
+ * The members of a union, through refs and nested unions; any other shape is
+ * its own member. A union reached again through its own members adds nothing.
+ */
+const membersOf = (
+  shape: Shape<DefKey>,
+  types: Types,
+  enclosing: ReadonlySet<Shape<DefKey>> = new Set()
+): Shape<DefKey>[] => {
   const target = dereference(shape, types)
-  return target.kind === 'union'
-    ? target.members.flatMap((member) => membersOf(member, types))
-    : [shape]
+  if (target.kind !== 'union') return [shape]
+  if (enclosing.has(target)) return []
+  const unions = new Set(enclosing).add(target)
+  return target.members.flatMap((member) => membersOf(member, types, unions))
 }
 
 /** The decoded value of a JSON query parameter: a union loses its string members, the JSON text. */

@@ -203,6 +203,49 @@ describe('query parameters', () => {
       },
     ])
   })
+
+  test('a union that refers back to itself is flattened once', () => {
+    const query = {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'object',
+          properties: { q: { $ref: '#/$defs/U' } },
+          required: ['q'],
+        },
+      },
+      $defs: {
+        U: { anyOf: [{ type: 'string' }, { $ref: '#/$defs/U' }] },
+      },
+    }
+    const recursive = BagOfRoutes.withoutVersioning()
+      .addRoute(
+        Route.get('/recursive')
+          .validate({
+            '~standard': {
+              version: 1,
+              vendor: 'custom',
+              validate: (value: unknown) => ({ value }),
+              jsonSchema: { input: () => query, output: () => query },
+            },
+          })
+          .response(204)
+      )
+      .build()
+
+    expect(build(recursive).operation('GET /recursive').parameters).toEqual([
+      {
+        name: 'q',
+        in: 'query',
+        required: true,
+        shape: {
+          kind: 'ref',
+          target: 'anon:GET /recursive#request#/properties/query/properties/q',
+        },
+        encoding: 'plain',
+      },
+    ])
+  })
 })
 
 describe('headers', () => {
