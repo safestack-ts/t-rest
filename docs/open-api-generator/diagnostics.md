@@ -8,6 +8,7 @@ Every diagnostic has a code, a severity and a location (operation, slot, JSON po
 | --- | --- | --- |
 | [`naming/duplicate-id`](#namingduplicate-id) | error | no |
 | [`naming/duplicate-response-id`](#namingduplicate-response-id) | error | no |
+| [`naming/reserved-response-id`](#namingreserved-response-id) | error | no |
 | [`naming/shared-response-without-description`](#namingshared-response-without-description) | warning | yes |
 | [`operation/duplicate-route`](#operationduplicate-route) | error | no |
 | [`operation/example-invalid`](#operationexample-invalid) | error | no |
@@ -25,6 +26,7 @@ Every diagnostic has a code, a severity and a location (operation, slot, JSON po
 | [`schema/unrepresentable-request`](#schemaunrepresentable-request) | warning | yes |
 | [`schema/unsupported-keyword`](#schemaunsupported-keyword) | warning | yes |
 | [`security/header-and-scheme`](#securityheader-and-scheme) | warning | yes |
+| [`security/reserved-scheme-name`](#securityreserved-scheme-name) | error | no |
 | [`security/scheme-name-conflict`](#securityscheme-name-conflict) | error | no |
 
 ## naming/duplicate-id
@@ -42,6 +44,14 @@ Two different schemas carry the same id (`.meta({ id })` or `defineModels`) insi
 Two response descriptors carry the same `id` but differ in their schema object or their docs (`description`, `headers`, `examples`, content type). Each is documented inline instead of as one shared response.
 
 **Fix.** Create the descriptor once and reuse the value, or give each descriptor its own `id`.
+
+## naming/reserved-response-id
+
+**Response id is reserved.**
+
+A response descriptor has the `id` `__proto__`, which JSON and the model document drop as a record key. The response is documented inline.
+
+**Fix.** Give the descriptor another `id`.
 
 ## naming/shared-response-without-description
 
@@ -178,6 +188,14 @@ The schema uses a validation keyword the model cannot carry (`not`, `if`/`then`/
 The route declares a header in its validator and a security scheme in `meta.security` that sends the same header (`authorization` for `http` and `oauth2` schemes, the header name of an `apiKey`, or a header mapped by `securityFromHeaders`). The header parameter is left out; the scheme documents it.
 
 **Fix.** Remove the header from the validator's `headers`, or the scheme from `meta.security`.
+
+## security/reserved-scheme-name
+
+**Security scheme name is reserved.**
+
+A `securityScheme()` is named `__proto__`, which JSON and the model document drop as a record key. The scheme is left out of the model.
+
+**Fix.** Give the scheme another name.
 
 ## security/scheme-name-conflict
 

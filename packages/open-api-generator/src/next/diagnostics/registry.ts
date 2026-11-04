@@ -140,6 +140,15 @@ export const DIAGNOSTICS = {
     fix: 'Create the descriptor once and reuse the value, or give each descriptor its own `id`.',
     message: (d) => `two different responses use the id "${d.id}"`,
   }),
+  'naming/reserved-response-id': define<{ id: string }>()({
+    severity: 'error',
+    configurable: false,
+    title: 'Response id is reserved',
+    trigger:
+      'A response descriptor has the `id` `__proto__`, which JSON and the model document drop as a record key. The response is documented inline.',
+    fix: 'Give the descriptor another `id`.',
+    message: (d) => `the response id "${d.id}" is reserved`,
+  }),
   'naming/shared-response-without-description': define<{
     id: string
     statuses: string[]
@@ -224,6 +233,15 @@ export const DIAGNOSTICS = {
     fix: "Remove the header from the validator's `headers`, or the scheme from `meta.security`.",
     message: (d) =>
       `header "${d.header}" is also sent by the security scheme "${d.scheme}"`,
+  }),
+  'security/reserved-scheme-name': define<{ name: string }>()({
+    severity: 'error',
+    configurable: false,
+    title: 'Security scheme name is reserved',
+    trigger:
+      'A `securityScheme()` is named `__proto__`, which JSON and the model document drop as a record key. The scheme is left out of the model.',
+    fix: 'Give the scheme another name.',
+    message: (d) => `the security scheme name "${d.name}" is reserved`,
   }),
   'security/scheme-name-conflict': define<{ name: string }>()({
     severity: 'error',

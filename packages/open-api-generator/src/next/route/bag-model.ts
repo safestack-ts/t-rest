@@ -6,7 +6,7 @@ import {
 } from '@t-rest/core'
 import { pathShape } from '@t-rest/protocol'
 import { Diagnostic, diagnostic } from '../diagnostics/registry.js'
-import { stableStringify } from '../model/json.js'
+import { RESERVED_KEY, stableStringify } from '../model/json.js'
 import type {
   ApiModel,
   DefKey,
@@ -155,6 +155,18 @@ export const buildBagModel = (
   const conflictingSchemes = new Set<string>()
   const registerSchemes = (security: EffectiveSecurity, operation: string) => {
     for (const { scheme } of security.alternatives.flat()) {
+      if (scheme.name === RESERVED_KEY) {
+        if (!conflictingSchemes.has(scheme.name))
+          run.report(
+            diagnostic(
+              'security/reserved-scheme-name',
+              { operation },
+              { name: scheme.name }
+            )
+          )
+        conflictingSchemes.add(scheme.name)
+        continue
+      }
       const known = securitySchemes[scheme.name]
       if (known === undefined)
         securitySchemes[scheme.name] = scheme.spec as SecuritySchemeModel
@@ -271,7 +283,10 @@ export const buildBagModel = (
       parameters: parameters.parameters,
       ...(requestBody && { requestBody }),
       responses: responseSlots,
-      security: securityOf(security),
+      // a reserved scheme is reported and has no definition to point at
+      security: securityOf(security).map((alternative) =>
+        alternative.filter(({ scheme }) => scheme !== RESERVED_KEY)
+      ),
       extensions: meta.extensions,
     }
   }

@@ -1,3 +1,6 @@
+/** A record key the model document cannot hold: JSON and zod records drop it. */
+export const RESERVED_KEY = '__proto__'
+
 const isPlainObject = (value: object) => {
   const prototype = Object.getPrototypeOf(value)
   return prototype === Object.prototype || prototype === null

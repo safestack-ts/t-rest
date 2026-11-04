@@ -160,6 +160,27 @@ describe('responses', () => {
     expect(codes(result)).toEqual([])
   })
 
+  test('the id __proto__ is reported and the response inlined', () => {
+    const reserved = json(Failure, { id: '__proto__' })
+    const bag = BagOfRoutes.withoutVersioning()
+      .addRoute(Route.get('/a').responses({ 400: reserved }))
+      .addRoute(Route.get('/b').responses({ 400: reserved }))
+      .build()
+    const result = build(bag)
+
+    expect(Object.keys(result.model.responses)).toEqual([])
+    expect(result.operation('GET /b').responses['400']).toEqual(
+      expect.objectContaining({ kind: 'inline' })
+    )
+    expect(codes(result)).toEqual([
+      {
+        code: 'naming/reserved-response-id',
+        at: { operation: 'GET /a', slot: 'response 400' },
+        data: { id: '__proto__' },
+      },
+    ])
+  })
+
   test('json<T>() without schema is any JSON value', () => {
     const bag = BagOfRoutes.withoutVersioning()
       .addRoute(Route.get('/legacy').responses({ 200: json<{ a: string }>() }))

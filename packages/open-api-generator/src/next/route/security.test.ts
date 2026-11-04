@@ -207,4 +207,36 @@ describe('security', () => {
     expect(Object.keys(result.model.securitySchemes)).toEqual(names)
     expect(codes(result)).toEqual([])
   })
+
+  test('the scheme name __proto__ is reported and left out', () => {
+    const reserved = securityScheme('__proto__', {
+      type: 'http',
+      scheme: 'bearer',
+    })
+    const bag = BagOfRoutes.withoutVersioning()
+      .addRoute(
+        Route.get('/a')
+          .metaData({ security: [[reserved, bearer]] })
+          .response(204)
+      )
+      .addRoute(
+        Route.get('/b')
+          .metaData({ security: [[reserved]] })
+          .response(204)
+      )
+      .build()
+    const result = build(bag)
+
+    expect(Object.keys(result.model.securitySchemes)).toEqual(['bearer'])
+    expect(result.operation('GET /a').security).toEqual([
+      [{ scheme: 'bearer', scopes: [] }],
+    ])
+    expect(codes(result)).toEqual([
+      {
+        code: 'security/reserved-scheme-name',
+        at: { operation: 'GET /a' },
+        data: { name: '__proto__' },
+      },
+    ])
+  })
 })

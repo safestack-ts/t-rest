@@ -1,7 +1,7 @@
 import type { AnyResponseDescriptor } from '@t-rest/core'
 import { getReasonPhrase } from 'http-status-codes'
 import { Diagnostic, diagnostic, Location } from '../diagnostics/registry.js'
-import { stableStringify } from '../model/json.js'
+import { RESERVED_KEY, stableStringify } from '../model/json.js'
 import type { DefKey, MediaType, Response } from '../model/types.js'
 import { directionsAgree } from '../reader/read-schema.js'
 import { unverifiable, validateExamples } from './examples.js'
@@ -140,6 +140,18 @@ export const sharedResponseIds = (
     const { operation, status, descriptor } = use
     const { id } = descriptor
     if (id === undefined) continue
+    if (id === RESERVED_KEY) {
+      if (!conflicting.has(id))
+        diagnostics.push(
+          diagnostic(
+            'naming/reserved-response-id',
+            { operation, slot: `response ${status}` },
+            { id }
+          )
+        )
+      conflicting.add(id)
+      continue
+    }
     const known = first.get(id)
     if (known === undefined) first.set(id, { use, statuses: new Set([status]) })
     else if (sameResponse(known.use.descriptor, descriptor))
