@@ -345,6 +345,27 @@ describe('buildOpenAPI', () => {
     ).toEqual([[{ slot: 'naming.models Inline' }, { key: 'Inline' }, 'error']])
   })
 
+  test('reports models without id inside exported namespaces, once each, through cycles', () => {
+    const Inline = z.object({ id: z.number() })
+    const Customer: Record<string, unknown> = Object.create(null)
+    Object.assign(Customer, { ProductV1, Inline, VERSION: '1' })
+    Customer.Self = Customer
+    const { diagnostics } = buildOpenAPI({
+      bag: dated,
+      info,
+      naming: { models: { Customer, Again: { Customer } } },
+      specs: [{ target: '3.1', output: 'api.yaml' }],
+    })
+
+    expect(
+      diagnostics
+        .filter(({ code }) => code === 'naming/model-without-id')
+        .map(({ at, data }) => [at, data])
+    ).toEqual([
+      [{ slot: 'naming.models Customer.Inline' }, { key: 'Customer.Inline' }],
+    ])
+  })
+
   test('a response schema with an id at its root is a component', () => {
     const Product = z.object({ name: z.string() }).meta({ id: 'Product' })
     const { specs } = buildOpenAPI({
@@ -417,6 +438,20 @@ describe('write', () => {
     })
 
     expect(await rejected(build, dir)).toEqual(['config/output-template'])
+  })
+
+  test('rejects a model without id inside an exported namespace', async () => {
+    const dir = await outputDir()
+    const build = buildOpenAPI({
+      bag: dated,
+      info,
+      naming: {
+        models: { Customer: { Inline: z.object({ id: z.number() }) } },
+      },
+      specs: [{ target: '3.1', output: path.join(dir, 'api.yaml') }],
+    })
+
+    expect(await rejected(build, dir)).toContain('naming/model-without-id')
   })
 
   test('rejects two specs writing one sidecar', async () => {
