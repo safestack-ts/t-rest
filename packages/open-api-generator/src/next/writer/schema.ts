@@ -26,6 +26,8 @@ export interface SchemaContext {
   readonly report: (diagnostic: Diagnostic) => void
   /** The schemas describe a body that is not JSON, where a string with a media type and no encoding is raw bytes. */
   readonly rawBody: boolean
+  /** Components that only bodies that are not JSON use, written with `rawBody`. */
+  readonly rawBodyComponents: ReadonlySet<ComponentName>
 }
 
 export const componentRef = (name: ComponentName) =>
@@ -78,6 +80,7 @@ export const schemaWriter = ({
   types,
   report,
   rawBody,
+  rawBodyComponents,
 }: SchemaContext) => {
   const downgrade = (capability: Capability, pointer: string) =>
     report(
@@ -153,6 +156,66 @@ export const schemaWriter = ({
         : [rest.format, false]
     if (!lossless) downgrade('binary', pointer)
     return compact({ type: 'string', ...rest, format })
+  }
+
+  /** Whether `shape` holds a string that `rawBody` writes as raw bytes, which only a raw body can. */
+  const holdsRawBytes = (
+    shape: Shape<ComponentName>,
+    seen: ReadonlySet<ComponentName> = new Set()
+  ): boolean => {
+    const any = (
+      shapes: readonly (Shape<ComponentName> | false | undefined)[]
+    ) => shapes.some((child) => child && holdsRawBytes(child, seen))
+    switch (shape.kind) {
+      case 'string':
+        return (
+          capabilities.binary === 'format' &&
+          shape.contentMediaType !== undefined &&
+          shape.contentEncoding === undefined
+        )
+      case 'array':
+        return any([shape.items])
+      case 'tuple':
+        return any([...shape.prefix, shape.rest])
+      case 'object':
+        return any([
+          ...shape.fields.map((field) => field.shape),
+          shape.additional,
+          shape.propertyNames,
+        ])
+      case 'union':
+      case 'intersection':
+        return any(shape.members)
+      case 'ref':
+        return (
+          !seen.has(shape.target) &&
+          holdsRawBytes(
+            types[shape.target].shape,
+            new Set([...seen, shape.target])
+          )
+        )
+      default:
+        return false
+    }
+  }
+
+  // A component written for JSON loses the raw bytes of a raw body, so a raw
+  // body inlines it, as it would an unnamed shape; a recursive one stays a ref.
+  const inlining = new Set<ComponentName>()
+  const ref = ({ target }: Of<'ref'>, pointer: string): SchemaObject => {
+    if (
+      !rawBody ||
+      rawBodyComponents.has(target) ||
+      inlining.has(target) ||
+      !holdsRawBytes(types[target].shape)
+    )
+      return { $ref: componentRef(target) }
+    inlining.add(target)
+    try {
+      return write(types[target].shape, pointer)
+    } finally {
+      inlining.delete(target)
+    }
   }
 
   const number = (shape: Of<'number'>): SchemaObject => {
@@ -565,7 +628,7 @@ export const schemaWriter = ({
           ),
         }
       case 'ref':
-        return { $ref: componentRef(shape.target) }
+        return ref(shape, pointer)
     }
   }
 

@@ -1,7 +1,8 @@
-import { BagOfRoutes, json, Route } from '@t-rest/core'
+import { BagOfRoutes, empty, json, Route } from '@t-rest/core'
 import { describe, expect, test } from 'vitest'
 import { z } from 'zod'
 import { serialize } from '../output/serialize.js'
+import type { AnonymousContext } from '../naming/anonymous.js'
 import { pipeline } from '../spec/testing.js'
 import { expectValidOpenAPI } from '../verification/expect-valid-openapi.js'
 import { CAPABILITIES, Target, TARGETS } from './capabilities.js'
@@ -405,5 +406,82 @@ describe('binary strings in OpenAPI 3.0', () => {
 
     expect(schema.properties.value).toMatchObject({ format: 'byte' })
     expect(binaryDowngrades(diagnostics)).toEqual([])
+  })
+
+  const binary = { type: 'string', format: 'binary' }
+  const upload = (nameBody: boolean) => {
+    const bag = BagOfRoutes.withoutVersioning()
+      .addRoute(
+        Route.post('/upload')
+          .multipart({ files: { file: { required: true } } })
+          .validate(z.object({ body: z.object({ title: z.string() }) }))
+          .responses({ 204: empty() })
+      )
+      .build()
+    const nameAnonymous = (context: AnonymousContext) =>
+      context.kind === 'slot' && context.slot === 'body'
+        ? 'UploadBody'
+        : undefined
+    const model = pipeline(
+      bag,
+      undefined,
+      nameBody ? { nameAnonymous } : {}
+    ).spec().model
+    const { document, diagnostics } = writeDocument(
+      model,
+      target,
+      varietyOptions
+    )
+    return {
+      body: (document.paths as any)['/upload'].post.requestBody.content[
+        'multipart/form-data'
+      ].schema,
+      schemas: (document.components as any)?.schemas,
+      diagnostics,
+    }
+  }
+
+  test('a named multipart body keeps its files binary', () => {
+    const inline = upload(false)
+    const named = upload(true)
+
+    expect(named.body).toEqual({ $ref: '#/components/schemas/UploadBody' })
+    expect(named.schemas.UploadBody).toEqual(inline.body)
+    expect(named.schemas.UploadBody.properties.file).toEqual(binary)
+    expect(binaryDowngrades(named.diagnostics)).toEqual([])
+  })
+
+  test('a component used by JSON and a multipart body is inlined into the multipart body', () => {
+    const Doc = z
+      .object({ image: z.string().meta({ contentMediaType: 'image/png' }) })
+      .meta({ id: 'Doc' })
+    const bag = BagOfRoutes.withoutVersioning()
+      .addRoute(
+        Route.post('/upload')
+          .multipart({ files: { file: { required: true } } })
+          .validate(z.object({ body: z.object({ doc: Doc }) }))
+          .responses({ 200: json(Doc) })
+      )
+      .build()
+    const { document } = writeDocument(
+      pipeline(bag).spec().model,
+      target,
+      varietyOptions
+    )
+    const post = (document.paths as any)['/upload'].post
+
+    expect(
+      post.requestBody.content['multipart/form-data'].schema.properties.doc
+    ).toEqual({
+      type: 'object',
+      properties: { image: binary },
+      required: ['image'],
+    })
+    expect(post.responses['200'].content['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/Doc',
+    })
+    expect((document.components as any).schemas.Doc.properties.image).toEqual({
+      type: 'string',
+    })
   })
 })

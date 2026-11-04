@@ -10,7 +10,9 @@ import type {
   ResponseSlot,
   Security,
   Server,
+  Shape,
 } from '../model/types.js'
+import { refsOf } from '../model/shape.js'
 import { pointerTo } from '../reader/json-schema.js'
 import { CAPABILITIES, Target } from './capabilities.js'
 import { compact, SchemaObject, schemaWriter } from './schema.js'
@@ -61,6 +63,44 @@ const METHOD_ORDER: readonly HTTPMethod[] = [
 
 const JSON_MEDIA_TYPE = /^application\/(?:[^;]+\+)?json\s*(?:;|$)/i
 
+const isJson = (mediaType: string) => JSON_MEDIA_TYPE.test(mediaType)
+
+/** The components that only bodies that are not JSON use, directly or through other components. */
+const rawBodyComponents = (
+  model: ApiModel<ComponentName>
+): ReadonlySet<ComponentName> => {
+  const reached = {
+    json: new Set<ComponentName>(),
+    raw: new Set<ComponentName>(),
+  }
+  const visit = (shape: Shape<ComponentName>, raw: boolean) => {
+    const seen = raw ? reached.raw : reached.json
+    for (const { target } of refsOf(shape))
+      if (!seen.has(target)) {
+        seen.add(target)
+        visit(model.types[target].shape, raw)
+      }
+  }
+  const visitContent = (
+    content: Readonly<Record<string, MediaType<ComponentName>>>
+  ) => {
+    for (const [type, { shape }] of Object.entries(content))
+      visit(shape, !isJson(type))
+  }
+  const visitResponse = ({ headers, content }: Response<ComponentName>) => {
+    for (const { shape } of headers) visit(shape, false)
+    visitContent(content)
+  }
+  for (const op of model.operations) {
+    for (const { shape } of op.parameters) visit(shape, false)
+    if (op.requestBody) visitContent(op.requestBody.content)
+    for (const slot of Object.values(op.responses))
+      if (slot.kind === 'inline') visitResponse(slot.response)
+  }
+  Object.values(model.responses).forEach(visitResponse)
+  return new Set([...reached.raw].filter((name) => !reached.json.has(name)))
+}
+
 const byName = <T>([a]: [string, T], [b]: [string, T]) =>
   a < b ? -1 : a > b ? 1 : 0
 
@@ -96,7 +136,12 @@ export const writeDocument = (
   const capabilities = CAPABILITIES[target]
   const diagnostics: Diagnostic[] = []
   const report = (found: Diagnostic) => diagnostics.push(found)
-  const context = { capabilities, types: model.types, report }
+  const context = {
+    capabilities,
+    types: model.types,
+    report,
+    rawBodyComponents: rawBodyComponents(model),
+  }
   const schema = schemaWriter({ ...context, rawBody: false })
   const rawBodySchema = schemaWriter({ ...context, rawBody: true })
 
@@ -106,7 +151,7 @@ export const writeDocument = (
     pointer: string
   ) =>
     compact({
-      schema: (JSON_MEDIA_TYPE.test(type) ? schema : rawBodySchema)(
+      schema: (isJson(type) ? schema : rawBodySchema)(
         shape,
         pointerTo(pointer, 'schema')
       ),
@@ -249,7 +294,9 @@ export const writeDocument = (
         sortedEntries(model.types).map(
           ([name, type]): [string, SchemaObject] => [
             name,
-            schema(type.shape, pointerTo('/components/schemas', name)),
+            (context.rawBodyComponents.has(name as ComponentName)
+              ? rawBodySchema
+              : schema)(type.shape, pointerTo('/components/schemas', name)),
           ]
         )
       )
