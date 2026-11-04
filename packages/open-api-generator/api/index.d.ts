@@ -51,6 +51,9 @@ declare const DIAGNOSTICS: {
     readonly 'naming/duplicate-response-id': DiagnosticDefinition<{
         id: string;
     }, false>;
+    readonly 'naming/reserved-response-id': DiagnosticDefinition<{
+        id: string;
+    }, false>;
     readonly 'naming/shared-response-without-description': DiagnosticDefinition<{
         id: string;
         statuses: string[];
@@ -69,11 +72,17 @@ declare const DIAGNOSTICS: {
         examples: string[];
         reason: string;
     }, false>;
+    readonly 'operation/mixed-query-encoding': DiagnosticDefinition<{
+        parameter: string;
+    }, true>;
     readonly 'response/untyped-json': DiagnosticDefinition<Record<string, never>, true>;
     readonly 'security/header-and-scheme': DiagnosticDefinition<{
         header: string;
         scheme: string;
     }, true>;
+    readonly 'security/reserved-scheme-name': DiagnosticDefinition<{
+        name: string;
+    }, false>;
     readonly 'security/scheme-name-conflict': DiagnosticDefinition<{
         name: string;
     }, false>;
