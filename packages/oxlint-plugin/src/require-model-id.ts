@@ -175,7 +175,10 @@ interface Resolved {
 const schemaCalls = (calls: readonly Call[]): Resolved | null =>
   calls.some((call) => INSTANCE_NOT_A_SCHEMA.has(call.name)) ? null : { calls }
 
-type ZodBinding = 'namespace' | 'function'
+/** A local binding of a zod import: the namespace, or one export under its imported name. */
+type ZodBinding =
+  | { readonly kind: 'namespace' }
+  | { readonly kind: 'export'; readonly imported: string }
 
 const idProperty = (object: Node): Node | 'unknown' | undefined => {
   if (object?.type !== 'ObjectExpression') return 'unknown'
@@ -296,13 +299,17 @@ export const requireModelId: RuleModule = {
           const source = statement.source.value
           for (const specifier of statement.specifiers) {
             if (ZOD_SOURCES.has(source)) {
-              const namespaceLike =
-                specifier.type !== 'ImportSpecifier' ||
-                specifier.imported.name === 'z' ||
-                specifier.imported.name === 'default'
+              const imported: string | undefined =
+                specifier.type === 'ImportSpecifier'
+                  ? specifier.imported.name ?? specifier.imported.value
+                  : undefined
               zodBindings.set(
                 specifier.local.name,
-                namespaceLike ? 'namespace' : 'function'
+                imported === undefined ||
+                  imported === 'z' ||
+                  imported === 'default'
+                  ? { kind: 'namespace' }
+                  : { kind: 'export', imported }
               )
             } else if (
               source === MODELS_SOURCE &&
@@ -350,14 +357,15 @@ export const requireModelId: RuleModule = {
       const { root, rootCall, viaMember, calls } = chain
 
       const zodBinding = zodBindings.get(root.name)
-      if (zodBinding === 'namespace') {
+      if (zodBinding?.kind === 'namespace') {
         if (rootCall || calls.length === 0) return null
         const [constructor, ...methods] = calls
         if (NAMESPACE_NOT_A_SCHEMA.has(constructor.name)) return null
         return schemaCalls(methods)
       }
-      if (zodBinding === 'function') {
-        if (!rootCall || NAMESPACE_NOT_A_SCHEMA.has(root.name)) return null
+      if (zodBinding?.kind === 'export') {
+        if (!rootCall || NAMESPACE_NOT_A_SCHEMA.has(zodBinding.imported))
+          return null
         return schemaCalls(calls)
       }
 

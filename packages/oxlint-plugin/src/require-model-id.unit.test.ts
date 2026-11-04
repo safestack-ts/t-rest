@@ -57,6 +57,8 @@ const valid = [
   `${ZOD}export const parsed = z.string().parse('a')`,
   `${ZOD}export const registry = z.registry()`,
   `${ZOD}export const positive = z.check(() => {})`,
+  `import { parse as run } from 'zod'\nexport const value = run(schema, input)`,
+  `import { object as makeObject } from 'zod'\nexport const Person = makeObject({}).meta({ id: 'Person' })`,
   `import { check } from 'zod'\nexport const positive = check(() => {})`,
   `${ZOD}export const Person = z.object({}).check(z.refine(() => true)).meta({ id: 'Person' })`,
   `${ZOD}export const Person = z.fromJSONSchema({ type: 'object' }).meta({ id: 'Person' })`,
@@ -143,6 +145,14 @@ const invalid = [
   },
   {
     code: `${ZOD}export const Person = z.object({}).check(z.refine(() => true))`,
+    errors: [{ messageId: 'missingId', data: { name: 'Person' } }],
+  },
+  {
+    code: `import { object as makeObject } from 'zod'\nexport const Person = makeObject({})`,
+    errors: [{ messageId: 'missingId', data: { name: 'Person' } }],
+  },
+  {
+    code: `import { object as parse } from 'zod'\nexport const Person = parse({})`,
     errors: [{ messageId: 'missingId', data: { name: 'Person' } }],
   },
   {
