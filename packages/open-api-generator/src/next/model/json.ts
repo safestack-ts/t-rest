@@ -3,22 +3,30 @@ const isPlainObject = (value: object) => {
   return prototype === Object.prototype || prototype === null
 }
 
-/** What JSON cannot carry in `value`, e.g. `function` or `Date`; `undefined` for JSON values. */
-export const nonJsonType = (value: unknown): string | undefined => {
+/**
+ * What JSON cannot carry in `value`, e.g. `function`, `Date` or `cyclic value`;
+ * `undefined` for JSON values. `ancestors` are the objects enclosing `value`.
+ */
+export const nonJsonType = (
+  value: unknown,
+  ancestors: ReadonlySet<object> = new Set()
+): string | undefined => {
   switch (typeof value) {
     case 'string':
     case 'boolean':
       return undefined
     case 'number':
       return Number.isFinite(value) ? undefined : String(value)
-    case 'object':
+    case 'object': {
       if (value === null) return undefined
-      if (Array.isArray(value))
-        return value.map(nonJsonType).find((type) => type !== undefined)
-      if (!isPlainObject(value)) return value.constructor?.name ?? 'object'
+      if (ancestors.has(value)) return 'cyclic value'
+      if (!Array.isArray(value) && !isPlainObject(value))
+        return value.constructor?.name ?? 'object'
+      const enclosing = new Set(ancestors).add(value)
       return Object.values(value)
-        .map(nonJsonType)
+        .map((nested) => nonJsonType(nested, enclosing))
         .find((type) => type !== undefined)
+    }
     default:
       return typeof value
   }

@@ -424,6 +424,31 @@ describe('operations', () => {
     ])
   })
 
+  test('a cyclic meta value is left out, a shared one is kept', () => {
+    const self: Record<string, unknown> = {}
+    self.self = self
+    const team = { team: 'catalog' }
+    const bag = BagOfRoutes.withoutVersioning()
+      .addRoute(
+        Route.get('/products')
+          .metaData({ loop: self, owners: [team, team] })
+          .response(204)
+      )
+      .build()
+    const result = build(bag)
+
+    expect(result.operation('GET /products').extensions).toEqual({
+      owners: [team, team],
+    })
+    expect(codes(result)).toEqual([
+      {
+        code: 'operation/meta-not-serializable',
+        at: { operation: 'GET /products' },
+        data: { key: 'loop', type: 'cyclic value' },
+      },
+    ])
+  })
+
   test('one id with two shapes across routes is reported', () => {
     const bag = BagOfRoutes.withoutVersioning()
       .addRoute(Route.get('/a').responses({ 200: json(Upload) }))
