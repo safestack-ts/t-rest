@@ -1,6 +1,6 @@
 import { HttpMethod } from '@t-rest/protocol';
 import { StandardSchemaV1, StandardJSONSchemaV1 } from '@standard-schema/spec';
-export { ze } from './zod.js';
+export { z as ze } from './zod-extensions.js';
 import { z } from 'zod';
 
 declare enum Versioning {
