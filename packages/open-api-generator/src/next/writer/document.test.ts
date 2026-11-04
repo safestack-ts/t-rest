@@ -562,4 +562,28 @@ describe('binary strings in OpenAPI 3.0', () => {
       Array(3).fill({ type: 'string' })
     )
   })
+
+  test('a discriminated union maps to the raw twins in a multipart body', () => {
+    const A = z.object({ kind: z.literal('a'), image }).meta({ id: 'A' })
+    const B = z.object({ kind: z.literal('b'), image }).meta({ id: 'B' })
+    const doc = sharedDoc(z.discriminatedUnion('kind', [A, B]))
+    const union = (twin: string) => ({
+      oneOf: [
+        { $ref: `#/components/schemas/A${twin}` },
+        { $ref: `#/components/schemas/B${twin}` },
+      ],
+      discriminator: {
+        propertyName: 'kind',
+        mapping: {
+          a: `#/components/schemas/A${twin}`,
+          b: `#/components/schemas/B${twin}`,
+        },
+      },
+    })
+
+    expect(doc.raw).toEqual(union('_raw'))
+    expect(doc.json).toEqual(union(''))
+    for (const name of ['A_raw', 'B_raw'])
+      expect(doc.schemas[name].properties.image).toEqual(binary)
+  })
 })

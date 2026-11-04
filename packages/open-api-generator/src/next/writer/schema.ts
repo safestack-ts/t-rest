@@ -476,7 +476,7 @@ export const schemaWriter = ({
       mapping: Object.fromEntries(
         members.map(({ target }, index) => [
           inferred.tags[index],
-          componentRef(target),
+          componentRef(refTarget(target)),
         ])
       ),
     }
