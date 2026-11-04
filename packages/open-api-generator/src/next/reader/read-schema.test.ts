@@ -414,6 +414,32 @@ describe('normalization rules', () => {
   })
 })
 
+describe('JSON Schema semantics', () => {
+  test.each<[string, JsonSchemaObject, unknown]>([
+    [
+      'a closed tuple without minItems as all-optional',
+      { type: 'array', prefixItems: [{ type: 'string' }], items: false },
+      { kind: 'tuple', prefix: [string], minItems: 0 },
+    ],
+    [
+      'an open tuple without minItems as all-optional',
+      { type: 'array', prefixItems: [{ type: 'string' }] },
+      {
+        kind: 'tuple',
+        prefix: [string],
+        rest: { kind: 'unknown' },
+        minItems: 0,
+      },
+    ],
+  ])('reads %s', (_, schema, expected) => {
+    expect(read(source('acme', schema))).toEqual({
+      shape: expected,
+      types: {},
+      diagnostics: [],
+    })
+  })
+})
+
 describe('unsupported keywords', () => {
   test('drop the keyword and warn that the documented schema is wider', () => {
     const result = read(

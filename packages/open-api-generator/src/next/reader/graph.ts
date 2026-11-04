@@ -346,12 +346,13 @@ export const buildGraph = (
     const prefix = prefixItems.map((item, index) =>
       edgeTo(item, pointerTo(pointer, 'prefixItems', index))
     )
+    // JSON Schema's minItems defaults to 0; the model's omitted minItems means the whole prefix
+    const minItems = typeof node.minItems === 'number' ? node.minItems : 0
     return {
       kind: 'tuple',
       prefix,
       ...(items !== false && { rest: itemsShape() }),
-      ...(typeof node.minItems === 'number' &&
-        node.minItems < prefix.length && { minItems: node.minItems }),
+      ...(minItems < prefix.length && { minItems }),
     }
   }
 
