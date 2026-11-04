@@ -23,16 +23,19 @@ export type WithDefaultResponses<TRoute, TDefaults> = TRoute extends RouteDef<
   infer TMetaData,
   infer TBodyEncoding extends BodyEncoding
 >
-  ? Omit<NumericStatusKeys<TDefaults>, keyof NumericStatusKeys<TResponses>> &
-      NumericStatusKeys<TResponses> extends infer TMerged extends StrictResponseMap<TMerged>
-    ? RouteDef<
-        TVersion,
-        TMethod,
-        TPath,
-        TValidator,
-        TMerged,
-        TMetaData,
-        TBodyEncoding
-      >
+  ? // each alternative of a union of defaults is a route of its own
+    TDefaults extends unknown
+    ? Omit<NumericStatusKeys<TDefaults>, keyof NumericStatusKeys<TResponses>> &
+        NumericStatusKeys<TResponses> extends infer TMerged extends StrictResponseMap<TMerged>
+      ? RouteDef<
+          TVersion,
+          TMethod,
+          TPath,
+          TValidator,
+          TMerged,
+          TMetaData,
+          TBodyEncoding
+        >
+      : never
     : never
   : never

@@ -102,5 +102,29 @@ type _quotedStatuses = AssertTrue<
 >
 type _quotedOnlyDefault = AssertTrue<IsExact<BodyOf<Numeric, 404>, string>>
 
+// a union of default maps installs one of them
+declare const unionDefaults:
+  | { 400: JsonResponseDescriptor<Invalid> }
+  | { 404: TextResponseDescriptor }
+const unionBag = BagOfRoutes.withoutVersioning()
+  .addRoute(Route.get('/').response<Invoice>())
+  .addRoute(
+    Route.get('/owned').responses({
+      200: json<Invoice>(),
+      400: json<NotFound>(),
+    })
+  )
+  .build()
+  .withDefaultResponses(unionDefaults)
+type UnionRoot = ExtractRoute<typeof unionBag, 'GET', '/'>
+type UnionOwned = ExtractRoute<typeof unionBag, 'GET', '/owned'>
+type _unionStatuses = AssertTrue<
+  IsExact<DeclaredStatus<UnionRoot>, 200 | 400 | 404>
+>
+type _unionBodies = AssertTrue<
+  IsExact<BodyOf<UnionRoot, 400 | 404>, Invalid | string>
+>
+type _unionRouteWins = AssertTrue<IsExact<BodyOf<UnionOwned, 400>, NotFound>>
+
 // @ts-expect-error defaults are descriptors by status
 bag.withDefaultResponses({ 400: 'json' })
