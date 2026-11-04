@@ -9,9 +9,10 @@ import {
   BodyOf,
   DeclaredStatus,
   JsonResponseDescriptor,
+  TextResponseDescriptor,
 } from '../types/response-descriptor.js'
 import { RouteOutput } from '../types/route-input-output.js'
-import { json } from '../utils/response-descriptors.js'
+import { json, text } from '../utils/response-descriptors.js'
 
 type Invoice = { id: number }
 type Invalid = { issues: string[] }
@@ -62,6 +63,44 @@ type _versioned = AssertTrue<
 type _versioning = AssertTrue<
   IsExact<(typeof versioned)['versioning'], Versioning.DATE>
 >
+
+// a quoted status is the same property as the number at runtime
+const quoted = BagOfRoutes.withoutVersioning()
+  .addRoute(
+    Route.get('/numeric').responses({
+      200: json<Invoice>(),
+      400: json<NotFound>(),
+    })
+  )
+  .addRoute(
+    Route.get('/quoted').responses({
+      200: json<Invoice>(),
+      '400': json<NotFound>(),
+    })
+  )
+  .build()
+  .withDefaultResponses({ '400': text(), '404': text() })
+type Numeric = ExtractRoute<typeof quoted, 'GET', '/numeric'>
+type Quoted = ExtractRoute<typeof quoted, 'GET', '/quoted'>
+type _quotedDefaultRouteWins = AssertTrue<
+  IsExact<Numeric['responses'][400], JsonResponseDescriptor<NotFound>>
+>
+type _quotedRouteWins = AssertTrue<
+  IsExact<
+    ExtractRoute<
+      ReturnType<
+        typeof quoted.withDefaultResponses<{ 400: TextResponseDescriptor }>
+      >,
+      'GET',
+      '/quoted'
+    >['responses'][400],
+    JsonResponseDescriptor<NotFound>
+  >
+>
+type _quotedStatuses = AssertTrue<
+  IsExact<DeclaredStatus<Numeric | Quoted>, 200 | 400 | 404>
+>
+type _quotedOnlyDefault = AssertTrue<IsExact<BodyOf<Numeric, 404>, string>>
 
 // @ts-expect-error defaults are descriptors by status
 bag.withDefaultResponses({ 400: 'json' })

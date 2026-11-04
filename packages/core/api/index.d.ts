@@ -127,8 +127,12 @@ type AnyRouteValidator = StandardSchemaV1<{
 
 type AnyRouteDef = RouteDef<string, HTTPMethod, string, AnyRouteValidator, any, unknown, BodyEncoding>;
 
+/** Keys a quoted status like `'400'` by its number, the same property at runtime. */
+type NumericStatusKeys<TResponses> = {
+    [TKey in keyof TResponses as TKey extends `${infer TStatus extends number}` ? `${TStatus}` extends TKey ? TStatus : TKey : TKey]: TResponses[TKey];
+};
 /** A route whose responses are filled with the defaults, its own declarations win. */
-type WithDefaultResponses<TRoute, TDefaults> = TRoute extends RouteDef<infer TVersion extends string, infer TMethod extends HTTPMethod, infer TPath extends string, infer TValidator extends AnyRouteValidator, infer TResponses, infer TMetaData, infer TBodyEncoding extends BodyEncoding> ? Omit<TDefaults, keyof TResponses> & TResponses extends infer TMerged extends StrictResponseMap<TMerged> ? RouteDef<TVersion, TMethod, TPath, TValidator, TMerged, TMetaData, TBodyEncoding> : never : never;
+type WithDefaultResponses<TRoute, TDefaults> = TRoute extends RouteDef<infer TVersion extends string, infer TMethod extends HTTPMethod, infer TPath extends string, infer TValidator extends AnyRouteValidator, infer TResponses, infer TMetaData, infer TBodyEncoding extends BodyEncoding> ? Omit<NumericStatusKeys<TDefaults>, keyof NumericStatusKeys<TResponses>> & NumericStatusKeys<TResponses> extends infer TMerged extends StrictResponseMap<TMerged> ? RouteDef<TVersion, TMethod, TPath, TValidator, TMerged, TMetaData, TBodyEncoding> : never : never;
 
 type HashFunction<TKey> = (input: TKey) => string;
 /** @deprecated Internal helper, will be removed from the public API in a future major. */
