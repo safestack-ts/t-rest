@@ -131,6 +131,52 @@ describe.each(['3.1', '3.2'] as const)('Schema Objects in %s', (target) => {
     ).not.toThrow()
   })
 
+  const withParameterComponent = (name: string, schema: unknown) => {
+    const document = documentFor(target)
+    return {
+      ...document,
+      components: {
+        ...document.components,
+        parameters: {
+          [name]: { name: 'q', in: 'query', required: true, schema },
+        },
+      },
+    }
+  }
+
+  const componentNames = ['example', 'examples', 'x-limit', 'schema']
+
+  test.each(componentNames)(
+    'are validated in a parameter component named %s',
+    (name) => {
+      const document = withParameterComponent(name, { type: 'strng' })
+
+      expect(() => expectValidOpenAPI(document, target)).toThrow(
+        `/components/parameters/${name}/schema/type must be equal to one of the allowed values`
+      )
+    }
+  )
+
+  test.each(componentNames)(
+    'accept a valid parameter component named %s',
+    (name) => {
+      const document = withParameterComponent(name, { type: 'string' })
+
+      expect(() => expectValidOpenAPI(document, target)).not.toThrow()
+    }
+  )
+
+  test('are validated in a header named x-*', () => {
+    const document = documentFor(target)
+    Object.assign(document.paths['/pets/{id}'].get.responses['200'], {
+      headers: { 'x-rate-limit': { schema: { type: 'strng' } } },
+    })
+
+    expect(() => expectValidOpenAPI(document, target)).toThrow(
+      '/headers/x-rate-limit/schema/type must be equal to one of the allowed values'
+    )
+  })
+
   test('reject the 3.0 boolean exclusiveMinimum', () => {
     const schema = { type: 'number', minimum: 0, exclusiveMinimum: true }
 

@@ -38,24 +38,132 @@ const schemaObjectMetaSchema = {
 const escape = (segment: string) =>
   segment.replace(/~/g, '~0').replace(/\//g, '~1')
 
+const at = (pointer: string, key: string | number) =>
+  `${pointer}/${escape(String(key))}`
+
+const isObject = (node: unknown): node is Record<string, unknown> =>
+  typeof node === 'object' && node !== null && !Array.isArray(node)
+
+type Found = { schemas: [string, unknown][] }
+
+/** Collects what `node` holds, given the OpenAPI object type of its position. */
+type Shape = (node: unknown, pointer: string, found: Found) => void
+
+/** An object whose listed fields have the given shapes; other fields are ignored. */
+const fields =
+  (shapes: Record<string, Shape>): Shape =>
+  (node, pointer, found) => {
+    if (!isObject(node)) return
+    for (const [key, shape] of Object.entries(shapes))
+      if (node[key] !== undefined) shape(node[key], at(pointer, key), found)
+  }
+
+/** A map whose keys are names, such as component, header or media type names. */
+const mapOf =
+  (shape: Shape): Shape =>
+  (node, pointer, found) => {
+    if (!isObject(node)) return
+    for (const [key, value] of Object.entries(node))
+      shape(value, at(pointer, key), found)
+  }
+
+/** A map with patterned keys next to `x-` Specification Extensions. */
+const patterned =
+  (shape: Shape): Shape =>
+  (node, pointer, found) => {
+    if (!isObject(node)) return
+    for (const [key, value] of Object.entries(node))
+      if (!key.startsWith('x-')) shape(value, at(pointer, key), found)
+  }
+
+const arrayOf =
+  (shape: Shape): Shape =>
+  (node, pointer, found) => {
+    if (Array.isArray(node))
+      node.forEach((item, index) => shape(item, at(pointer, index), found))
+  }
+
+const lazy =
+  (shape: () => Shape): Shape =>
+  (...args) =>
+    shape()(...args)
+
+const schema: Shape = (node, pointer, found) => {
+  found.schemas.push([pointer, node])
+}
+
+const encoding: Shape = fields({
+  headers: mapOf(lazy(() => header)),
+  encoding: mapOf(lazy(() => encoding)),
+  prefixEncoding: arrayOf(lazy(() => encoding)),
+  itemEncoding: lazy(() => encoding),
+})
+
+const mediaType = fields({
+  schema,
+  itemSchema: schema,
+  encoding: mapOf(encoding),
+  prefixEncoding: arrayOf(encoding),
+  itemEncoding: encoding,
+})
+
+const content = mapOf(mediaType)
+
+const parameter = fields({ schema, content })
+
+const header = parameter
+
+const requestBody = fields({ content })
+
+const response = fields({ headers: mapOf(header), content })
+
+const operation = fields({
+  parameters: arrayOf(parameter),
+  requestBody,
+  responses: patterned(response),
+  callbacks: mapOf(lazy(() => callback)),
+})
+
+const methods = [
+  'get',
+  'put',
+  'post',
+  'delete',
+  'options',
+  'head',
+  'patch',
+  'trace',
+  'query',
+]
+
+const pathItem = fields({
+  parameters: arrayOf(parameter),
+  additionalOperations: mapOf(operation),
+  ...Object.fromEntries(methods.map((method) => [method, operation])),
+})
+
+const callback = patterned(pathItem)
+
+const openAPIDocument = fields({
+  paths: patterned(pathItem),
+  webhooks: mapOf(pathItem),
+  components: fields({
+    schemas: mapOf(schema),
+    responses: mapOf(response),
+    parameters: mapOf(parameter),
+    requestBodies: mapOf(requestBody),
+    headers: mapOf(header),
+    callbacks: mapOf(callback),
+    pathItems: mapOf(pathItem),
+    mediaTypes: mapOf(mediaType),
+  }),
+})
+
 /** Every Schema Object position outside other Schema Objects, by JSON pointer. */
 const schemaObjects = (document: unknown): [string, unknown][] => {
-  const found: [string, unknown][] = []
-  const visit = (node: unknown, pointer: string) => {
-    if (typeof node !== 'object' || node === null) return
-    for (const [key, value] of Object.entries(node)) {
-      const at = `${pointer}/${escape(key)}`
-      if (key.startsWith('x-') || key === 'example' || key === 'examples')
-        continue
-      if (key === 'schema' || key === 'itemSchema') found.push([at, value])
-      else if (pointer === '/components' && key === 'schemas')
-        for (const [name, schema] of Object.entries(value ?? {}))
-          found.push([`${at}/${escape(name)}`, schema])
-      else visit(value, at)
-    }
-  }
-  visit(document, '')
-  return found
+  const found: Found = { schemas: [] }
+  openAPIDocument(document, '', found)
+  return found.schemas
 }
 
 const resolves = (document: unknown, ref: string) =>
