@@ -1,4 +1,4 @@
-import { StandardJSONSchemaV1 } from '@standard-schema/spec'
+import { StandardJSONSchemaV1, StandardSchemaV1 } from '@standard-schema/spec'
 import { AssertTrue, IsExact } from 'conditional-type-checks'
 import { z } from 'zod'
 import { BagOfRoutes } from '../classes/core/bag-of-routes.js'
@@ -115,4 +115,27 @@ const _emptyValidationJsonSchema: StandardJSONSchemaV1<{}> = emptyValidation
 
 type _instantiationExpression = AssertTrue<
   IsExact<ReturnType<typeof json<{ q: 1 }>>, JsonResponseDescriptor<{ q: 1 }>>
+>
+
+const schemaResponse = <TSchema extends StandardSchemaV1>(schema: TSchema) =>
+  json(schema, { description: 'Forwarded schema' })
+const forwarded = schemaResponse(Person)
+type _genericFactory = AssertTrue<
+  IsExact<typeof forwarded, JsonResponseDescriptor<PersonOutput>>
+>
+const zodResponse = <TSchema extends z.ZodType>(schema: TSchema) => json(schema)
+const forwardedZod = zodResponse(Person)
+type _genericZodFactory = AssertTrue<
+  IsExact<typeof forwardedZod, JsonResponseDescriptor<PersonOutput>>
+>
+
+declare const anySchema: StandardSchemaV1
+const fromAnySchema = json(anySchema)
+type _plainSchema = AssertTrue<
+  IsExact<typeof fromAnySchema, JsonResponseDescriptor<unknown>>
+>
+declare const typedSchema: StandardSchemaV1<unknown, { a: string }>
+const fromTypedSchema = json(typedSchema)
+type _typedSchema = AssertTrue<
+  IsExact<typeof fromTypedSchema, JsonResponseDescriptor<{ a: string }>>
 >

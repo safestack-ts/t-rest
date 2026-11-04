@@ -18,11 +18,18 @@ type UntypedJsonOptions<TBody> = ResponseOptions<TBody> & {
 
 // The schema is constrained in the parameter, not the type parameter, so that
 // the instantiation expression `typeof json<T>` resolves to the last overload
-// instead of failing the constraint. `TSchema & StandardSchemaV1` would accept
-// `json<T>(schema)` whenever the schema is assignable to `T`, e.g. `T = {}`.
+// instead of failing the constraint. A conditional parameter type would stay
+// unresolved for a generic schema, rejecting `<S extends StandardSchemaV1>`
+// factories. `~standard` must come from `TSchema` itself, otherwise
+// `json<T>(schema)` would compile whenever the schema is assignable to `T`.
+// `TSchema` is the only type in the intersection that a `StandardSchemaV1`
+// argument can match, so a plain `StandardSchemaV1` value infers as itself.
 /** A json body typed and documented by the output of its schema. */
 export function json<TSchema>(
-  schema: TSchema extends StandardSchemaV1 ? TSchema : never,
+  schema: TSchema & {
+    readonly '~standard': StandardSchemaV1.Props &
+      TSchema['~standard' & keyof TSchema]
+  },
   options?: ResponseOptions<SchemaOutput<TSchema>>
 ): JsonResponseDescriptor<SchemaOutput<TSchema>>
 /** A json body typed by a type argument, documented by the options only. */

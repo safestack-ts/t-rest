@@ -506,7 +506,9 @@ type UntypedJsonOptions<TBody> = ResponseOptions<TBody> & {
     readonly '~standard'?: never;
 };
 /** A json body typed and documented by the output of its schema. */
-declare function json<TSchema>(schema: TSchema extends StandardSchemaV1 ? TSchema : never, options?: ResponseOptions<SchemaOutput<TSchema>>): JsonResponseDescriptor<SchemaOutput<TSchema>>;
+declare function json<TSchema>(schema: TSchema & {
+    readonly '~standard': StandardSchemaV1.Props & TSchema['~standard' & keyof TSchema];
+}, options?: ResponseOptions<SchemaOutput<TSchema>>): JsonResponseDescriptor<SchemaOutput<TSchema>>;
 /** A json body typed by a type argument, documented by the options only. */
 declare function json<TBody>(options?: UntypedJsonOptions<TBody>): JsonResponseDescriptor<TBody>;
 /** A text body, `text/plain` unless another content type is given. */
