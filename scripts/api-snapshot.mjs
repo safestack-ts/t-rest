@@ -27,6 +27,7 @@ const packages = [
   'supertest-adapter',
   'protocol',
   'open-api-generator',
+  'oxlint-plugin',
 ]
 // entry points besides `index` (subpath exports)
 const extraEntries = { core: ['zod'], client: ['axios'] }
