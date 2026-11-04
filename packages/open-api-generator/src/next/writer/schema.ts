@@ -214,9 +214,12 @@ export const schemaWriter = ({
     if (capabilities.tuple === 'prefix-items')
       return {
         type: 'array',
-        prefixItems: prefix.map((item, index) =>
-          write(item, pointerTo(pointer, 'prefixItems', index))
-        ),
+        // the meta-schema requires a nonempty `prefixItems`
+        ...(prefix.length > 0 && {
+          prefixItems: prefix.map((item, index) =>
+            write(item, pointerTo(pointer, 'prefixItems', index))
+          ),
+        }),
         items:
           rest === undefined ? false : write(rest, pointerTo(pointer, 'items')),
         ...bounds,

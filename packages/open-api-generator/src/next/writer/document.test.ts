@@ -139,6 +139,7 @@ const responseOf = (body: z.ZodType, target: Target = TARGETS[0]) => {
   )
   const paths = document.paths as Record<string, any>
   return {
+    document,
     schema:
       paths['/union'].get.responses['200'].content['application/json'].schema,
     diagnostics,
@@ -229,6 +230,18 @@ describe.each(TARGETS)('OpenAPI %s schemas', (target) => {
     expect(schema).toMatchObject({
       enum: ['a', 'b', 'c'],
       'x-enum-varnames': ['A', 'B', 'C'],
+    })
+  })
+
+  test('an empty tuple is an empty array', () => {
+    const { document, schema } = responseOf(z.tuple([]), target)
+
+    expectValidOpenAPI(document, target)
+    expect(schema).toEqual({
+      type: 'array',
+      items: CAPABILITIES[target].tuple === 'prefix-items' ? false : {},
+      minItems: 0,
+      maxItems: 0,
     })
   })
 
