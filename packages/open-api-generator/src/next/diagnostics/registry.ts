@@ -112,6 +112,16 @@ export const DIAGNOSTICS = {
     fix: 'Move the field into `params`, `query`, `headers` or `body`.',
     message: (d) => `request validator key "${d.key}" is not a request slot`,
   }),
+  'schema/request-not-object': define<{ kind: string }>()({
+    severity: 'warning',
+    configurable: true,
+    title: 'Request validator is not an object',
+    trigger:
+      'The request validator is not an object schema, for example a union of objects. Its slots cannot be split, so the request is not documented.',
+    fix: 'Validate the request with one object schema whose keys are `params`, `query`, `headers` and `body`.',
+    message: (d) =>
+      `the request validator is ${d.kind}, not object; no request slot is documented`,
+  }),
   'naming/duplicate-id': define<{ id: string }>()({
     severity: 'error',
     configurable: false,

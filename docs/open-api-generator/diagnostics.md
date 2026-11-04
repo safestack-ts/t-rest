@@ -11,6 +11,7 @@ Every diagnostic has a code, a severity and a location (operation, slot, JSON po
 | [`schema/conversion-failed`](#schemaconversion-failed) | error | no |
 | [`schema/multipart-placeholder`](#schemamultipart-placeholder) | info | no |
 | [`schema/no-json-schema`](#schemano-json-schema) | error | no |
+| [`schema/request-not-object`](#schemarequest-not-object) | warning | yes |
 | [`schema/unknown-request-slot`](#schemaunknown-request-slot) | warning | yes |
 | [`schema/unrepresentable`](#schemaunrepresentable) | error | yes |
 | [`schema/unrepresentable-request`](#schemaunrepresentable-request) | warning | yes |
@@ -55,6 +56,14 @@ Every part of a request validator that JSON Schema cannot express is a file fiel
 A validator or response schema has no `~standard.jsonSchema`, so the generator cannot read its shape.
 
 **Fix.** Use a schema library version that implements Standard JSON Schema (`~standard.jsonSchema`).
+
+## schema/request-not-object
+
+**Request validator is not an object.**
+
+The request validator is not an object schema, for example a union of objects. Its slots cannot be split, so the request is not documented.
+
+**Fix.** Validate the request with one object schema whose keys are `params`, `query`, `headers` and `body`.
 
 ## schema/unknown-request-slot
 
