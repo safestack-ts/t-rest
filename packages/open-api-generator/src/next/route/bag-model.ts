@@ -147,9 +147,11 @@ export const buildBagModel = (
     )
   )
   run.report(...shared.diagnostics)
-  const responses: Record<string, Response<DefKey>> = {}
+  // null prototype: author ids such as `constructor` are only ever own keys
+  const responses: Record<string, Response<DefKey>> = Object.create(null)
 
-  const securitySchemes: Record<string, SecuritySchemeModel> = {}
+  const securitySchemes: Record<string, SecuritySchemeModel> =
+    Object.create(null)
   const conflictingSchemes = new Set<string>()
   const registerSchemes = (security: EffectiveSecurity, operation: string) => {
     for (const { scheme } of security.alternatives.flat()) {

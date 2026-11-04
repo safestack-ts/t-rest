@@ -141,6 +141,25 @@ describe('responses', () => {
     expect(codes(result)).toEqual([])
   })
 
+  test('ids named like Object.prototype keys are shared responses', () => {
+    const ids = ['constructor', 'toString']
+    const bag = BagOfRoutes.withoutVersioning()
+      .addRoute(
+        Route.get('/a').responses({
+          400: json(Failure, { id: 'constructor' }),
+          404: json(Failure, { id: 'toString' }),
+        })
+      )
+      .build()
+    const result = build(bag)
+
+    expect(Object.keys(result.model.responses)).toEqual(ids)
+    expect(Object.values(result.operation('GET /a').responses)).toEqual(
+      ids.map((id) => ({ kind: 'shared', id }))
+    )
+    expect(codes(result)).toEqual([])
+  })
+
   test('json<T>() without schema is any JSON value', () => {
     const bag = BagOfRoutes.withoutVersioning()
       .addRoute(Route.get('/legacy').responses({ 200: json<{ a: string }>() }))

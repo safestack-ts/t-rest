@@ -189,4 +189,22 @@ describe('security', () => {
       },
     ])
   })
+
+  test('scheme names like Object.prototype keys are registered', () => {
+    const names = ['constructor', 'toString']
+    const schemes = names.map((name) =>
+      securityScheme(name, { type: 'http', scheme: 'bearer' })
+    )
+    const bag = BagOfRoutes.withoutVersioning()
+      .addRoute(
+        Route.get('/a')
+          .metaData({ security: [schemes] })
+          .response(204)
+      )
+      .build()
+    const result = build(bag)
+
+    expect(Object.keys(result.model.securitySchemes)).toEqual(names)
+    expect(codes(result)).toEqual([])
+  })
 })
