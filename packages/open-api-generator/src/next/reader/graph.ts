@@ -181,6 +181,57 @@ const declaredTypes = (
   return undefined
 }
 
+const isOfType = (value: unknown, type: TypeName) => {
+  switch (type) {
+    case 'string':
+    case 'number':
+    case 'boolean':
+      return typeof value === type
+    case 'integer':
+      return Number.isInteger(value)
+    case 'null':
+      return value === null
+    case 'array':
+      return Array.isArray(value)
+    case 'object':
+      return isSchemaObject(value)
+  }
+}
+
+/** JSON Schema instance equality: deep, with object key order ignored. */
+const jsonEqual = (a: unknown, b: unknown): boolean => {
+  if (a === b) return true
+  if (
+    typeof a !== 'object' ||
+    typeof b !== 'object' ||
+    a === null ||
+    b === null
+  )
+    return false
+  if (Array.isArray(a) !== Array.isArray(b)) return false
+  const keys = Object.keys(a)
+  return (
+    keys.length === Object.keys(b).length &&
+    keys.every(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(b, key) &&
+        jsonEqual(
+          (a as Record<string, unknown>)[key],
+          (b as Record<string, unknown>)[key]
+        )
+    )
+  )
+}
+
+/** The values `enum` and `const` allow together; `undefined` when neither is present. */
+const literalValues = (node: JsonSchemaObject): unknown[] | undefined => {
+  const values = Array.isArray(node.enum) ? node.enum : undefined
+  if (!('const' in node)) return values
+  return values === undefined || values.some((v) => jsonEqual(v, node.const))
+    ? [node.const]
+    : []
+}
+
 const union = (members: Shape<Edge>[], exclusive: boolean): Shape<Edge> =>
   members.length === 1 ? members[0] : { kind: 'union', members, exclusive }
 
@@ -432,30 +483,41 @@ export const buildGraph = (
     if (json === true) return { kind: 'unknown' }
     if (json === false) return { kind: 'never' }
 
-    const hasEnum = 'const' in json || Array.isArray(json.enum)
+    const values = literalValues(json)
+    const hasEnum = values !== undefined
     for (const keyword of Object.keys(json))
       if (UNSUPPORTED.has(keyword)) unsupported.push({ keyword, pointer })
 
     const declared = declaredTypes(json)
     const types = declared ?? enclosingTypes
+    const hasTypeKeywords = Object.keys(json).some((keyword) =>
+      TYPED.has(keyword)
+    )
     // Without `type`, type keywords constrain their own type and leave the others open
-    const asserted =
-      declared ??
-      (Object.keys(json).some((keyword) => TYPED.has(keyword))
-        ? types ?? ALL_TYPES
-        : [])
+    const asserted = declared ?? (hasTypeKeywords ? types ?? ALL_TYPES : [])
 
     const parts: Shape<Edge>[] = []
-    if ('const' in json) parts.push(literals([json.const], json, pointer))
-    else if (Array.isArray(json.enum))
-      parts.push(literals(json.enum, json, pointer))
-    else if (asserted.length > 0)
+    if (values !== undefined && !hasTypeKeywords)
+      // A bare `type` beside an enum only drops the values outside it
       parts.push(
-        union(
-          asserted.map((type) => typedShape(type, json, pointer)),
-          false
+        literals(
+          declared === undefined
+            ? values
+            : values.filter((v) => declared.some((type) => isOfType(v, type))),
+          json,
+          pointer
         )
       )
+    else {
+      if (values !== undefined) parts.push(literals(values, json, pointer))
+      if (asserted.length > 0)
+        parts.push(
+          union(
+            asserted.map((type) => typedShape(type, json, pointer)),
+            false
+          )
+        )
+    }
     if (Array.isArray(json.anyOf))
       parts.push(
         union(

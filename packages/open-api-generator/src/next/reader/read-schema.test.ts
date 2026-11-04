@@ -545,6 +545,41 @@ describe('JSON Schema semantics', () => {
         ],
       },
     ],
+    [
+      'an enum together with the constraints beside it',
+      { type: 'number', enum: [1, 2, 3], minimum: 2 },
+      {
+        kind: 'intersection',
+        members: [
+          { kind: 'enum', values: [1, 2, 3] },
+          { ...number, minimum: 2 },
+        ],
+      },
+    ],
+    [
+      'an enum without the values its declared type rejects',
+      { type: ['string', 'null'], enum: ['a', 1, null] },
+      {
+        kind: 'union',
+        exclusive: false,
+        members: [{ kind: 'enum', values: ['a'] }, nul],
+      },
+    ],
+    [
+      'an enum outside its declared type as never',
+      { type: 'string', enum: [1] },
+      { kind: 'never' },
+    ],
+    [
+      'a const inside the enum beside it as the const',
+      { const: 'a', enum: ['a', 'b'] },
+      { kind: 'enum', values: ['a'] },
+    ],
+    [
+      'a const outside the enum beside it as never',
+      { const: 'c', enum: ['a', 'b'] },
+      { kind: 'never' },
+    ],
   ])('reads %s', (_, schema, expected) => {
     expect(read(source('acme', schema))).toEqual({
       shape: expected,
