@@ -1,4 +1,5 @@
 import type { BodyEncoding, MultipartFileParts } from '@t-rest/core'
+import { Diagnostic, diagnostic } from '../diagnostics/registry.js'
 import { dereference, withDocs } from '../model/shape.js'
 import type {
   DefKey,
@@ -10,6 +11,7 @@ import type {
   Shape,
   TypeDef,
 } from '../model/types.js'
+import { pointerTo } from '../reader/json-schema.js'
 import type { RequestRead } from '../reader/read-request.js'
 
 type Types = Readonly<Record<DefKey, TypeDef<DefKey>>>
@@ -40,12 +42,21 @@ const membersOf = (
   return target.members.flatMap((member) => membersOf(member, types, unions))
 }
 
-/** The decoded value of a JSON query parameter: a union loses its string members, the JSON text. */
+/** The JSON text of a structured member, as `ze.jsonObject` marks it. */
+const isJsonText = (shape: Shape<DefKey>) =>
+  shape.kind === 'string' && shape.contentMediaType === 'application/json'
+
+/** A value `encodeQuery` sends unquoted, which a JSON parameter cannot describe. */
+const isText = (shape: Shape<DefKey>) =>
+  (shape.kind === 'string' && !isJsonText(shape)) ||
+  (shape.kind === 'enum' && shape.values.some((v) => typeof v === 'string'))
+
+/** The decoded value of a JSON query parameter: a union loses its JSON text members. */
 const jsonBranch = (shape: Shape<DefKey>, types: Types): Shape<DefKey> => {
   const target = dereference(shape, types)
   if (target.kind !== 'union') return shape
   const members = membersOf(shape, types).filter(
-    (member) => dereference(member, types).kind !== 'string'
+    (member) => !isJsonText(dereference(member, types))
   )
   const branch = members.length === 1 ? members[0] : { ...target, members }
   return withDocs(
@@ -54,20 +65,48 @@ const jsonBranch = (shape: Shape<DefKey>, types: Types): Shape<DefKey> => {
   )
 }
 
+interface QueryParameter {
+  readonly parameter: Parameter<DefKey>
+  readonly diagnostics: readonly Diagnostic[]
+}
+
 // `encodeQuery` sends objects and arrays as JSON strings, every other value as is.
 const queryParameter = (
   field: Field<DefKey>,
-  types: Types
-): Parameter<DefKey> => {
-  const json = membersOf(field.shape, types).some((member) =>
-    STRUCTURED.has(dereference(member, types).kind)
+  types: Types,
+  operation: string
+): QueryParameter => {
+  const members = membersOf(field.shape, types).map((member) =>
+    dereference(member, types)
   )
-  return {
+  const json = members.some((member) => STRUCTURED.has(member.kind))
+  const parameter: Parameter<DefKey> = {
     name: field.name,
     in: 'query',
     required: field.required,
     shape: json ? jsonBranch(field.shape, types) : field.shape,
     encoding: json ? 'json' : 'plain',
+  }
+  if (!json || !members.some(isText)) return { parameter, diagnostics: [] }
+  return {
+    parameter,
+    diagnostics: [
+      diagnostic(
+        'operation/mixed-query-encoding',
+        {
+          operation,
+          slot: 'request',
+          pointer: pointerTo(
+            '',
+            'properties',
+            'query',
+            'properties',
+            field.name
+          ),
+        },
+        { parameter: field.name }
+      ),
+    ],
   }
 }
 
@@ -89,6 +128,7 @@ export interface ParameterSources {
   /** Lower-cased names of the headers a security scheme in effect sends. */
   readonly covered: ReadonlyMap<string, string>
   readonly types: Types
+  readonly operation: string
 }
 
 /** Header (route, then global), path and query parameters. */
@@ -98,18 +138,28 @@ export const parametersOf = ({
   globalHeaders,
   covered,
   types,
-}: ParameterSources): Parameter<DefKey>[] => {
+  operation,
+}: ParameterSources): {
+  readonly parameters: Parameter<DefKey>[]
+  readonly diagnostics: Diagnostic[]
+} => {
   const routeNames = new Set(routeHeaders.map(({ name }) => name.toLowerCase()))
   const headers = [
     ...routeHeaders,
     ...globalHeaders.filter(({ name }) => !routeNames.has(name.toLowerCase())),
   ].filter(({ name }) => !covered.has(name.toLowerCase()))
 
-  return [
-    ...headers.map((field) => parameter('header', field)),
-    ...read.params.map((field) => parameter('path', field)),
-    ...fieldsOf(read.query, types).map((field) => queryParameter(field, types)),
-  ]
+  const query = fieldsOf(read.query, types).map((field) =>
+    queryParameter(field, types, operation)
+  )
+  return {
+    parameters: [
+      ...headers.map((field) => parameter('header', field)),
+      ...read.params.map((field) => parameter('path', field)),
+      ...query.map(({ parameter }) => parameter),
+    ],
+    diagnostics: query.flatMap(({ diagnostics }) => diagnostics),
+  }
 }
 
 export const FILE_CONTENT_TYPE = 'application/octet-stream'

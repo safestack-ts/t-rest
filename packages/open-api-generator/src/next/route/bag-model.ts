@@ -248,6 +248,16 @@ export const buildBagModel = (
       )
     )
 
+    const parameters = parametersOf({
+      read,
+      routeHeaders,
+      globalHeaders,
+      covered,
+      types: run.types,
+      operation: key,
+    })
+    run.report(...parameters.diagnostics)
+
     return {
       key,
       method,
@@ -258,13 +268,7 @@ export const buildBagModel = (
         config.operationId?.(view) ??
         defaultOperationId(method, path),
       ...meta.docs,
-      parameters: parametersOf({
-        read,
-        routeHeaders,
-        globalHeaders,
-        covered,
-        types: run.types,
-      }),
+      parameters: parameters.parameters,
       ...(requestBody && { requestBody }),
       responses: responseSlots,
       security: securityOf(security),

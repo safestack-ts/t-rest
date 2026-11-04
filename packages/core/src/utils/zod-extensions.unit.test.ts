@@ -156,6 +156,17 @@ describe('jsonObject', () => {
     expect(schema.safeParse('{bad').success).toBe(false)
     expect(schema.safeParse('{"a":"1"}').success).toBe(false)
   })
+
+  test('marks the JSON text branch with its media type', () => {
+    expect(z.toJSONSchema(schema, { io: 'input' })).toEqual(
+      expect.objectContaining({
+        anyOf: [
+          { type: 'string', contentMediaType: 'application/json' },
+          expect.objectContaining({ type: 'object' }),
+        ],
+      })
+    )
+  })
 })
 
 describe('parseJSON', () => {

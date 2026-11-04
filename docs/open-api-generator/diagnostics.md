@@ -14,6 +14,7 @@ Every diagnostic has a code, a severity and a location (operation, slot, JSON po
 | [`operation/example-unverifiable`](#operationexample-unverifiable) | info | no |
 | [`operation/invalid-meta`](#operationinvalid-meta) | warning | yes |
 | [`operation/meta-not-serializable`](#operationmeta-not-serializable) | warning | yes |
+| [`operation/mixed-query-encoding`](#operationmixed-query-encoding) | warning | yes |
 | [`response/untyped-json`](#responseuntyped-json) | warning | yes |
 | [`schema/conversion-failed`](#schemaconversion-failed) | error | no |
 | [`schema/multipart-placeholder`](#schemamultipart-placeholder) | info | no |
@@ -89,6 +90,14 @@ A `RouteMeta` key of `.metaData()` holds a value of another type at runtime, e.g
 A `.metaData()` key outside `RouteMeta` holds a value JSON cannot carry, such as a function, a class instance or a `Date`.
 
 **Fix.** Store plain JSON values in custom meta keys, or accept that the key is missing from `Operation.extensions`.
+
+## operation/mixed-query-encoding
+
+**Query parameter mixes text and JSON values.**
+
+A query parameter accepts an object, array or tuple, which travels as JSON text, and also a plain string or string enum, which travels unquoted. The parameter is documented as JSON, so its text values are documented as JSON strings.
+
+**Fix.** Accept the structured value only, for example with `ze.jsonObject`, or move the text value to a parameter of its own.
 
 ## response/untyped-json
 

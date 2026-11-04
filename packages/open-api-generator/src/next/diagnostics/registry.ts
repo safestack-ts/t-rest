@@ -195,6 +195,16 @@ export const DIAGNOSTICS = {
     fix: 'Nothing to do; check the example by hand.',
     message: (d) => `example(s) ${list(d.examples)} not validated: ${d.reason}`,
   }),
+  'operation/mixed-query-encoding': define<{ parameter: string }>()({
+    severity: 'warning',
+    configurable: true,
+    title: 'Query parameter mixes text and JSON values',
+    trigger:
+      'A query parameter accepts an object, array or tuple, which travels as JSON text, and also a plain string or string enum, which travels unquoted. The parameter is documented as JSON, so its text values are documented as JSON strings.',
+    fix: 'Accept the structured value only, for example with `ze.jsonObject`, or move the text value to a parameter of its own.',
+    message: (d) =>
+      `query parameter "${d.parameter}" is documented as JSON, but its text values are sent unquoted`,
+  }),
   'response/untyped-json': define<Record<string, never>>()({
     severity: 'warning',
     configurable: true,

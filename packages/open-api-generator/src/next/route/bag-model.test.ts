@@ -168,7 +168,12 @@ describe('query parameters', () => {
   })
 
   test('the JSON text branch is dropped inside nested unions too', () => {
-    const Text = z.union([z.string(), z.literal(0)]).meta({ id: 'Text' })
+    const Text = z
+      .union([
+        z.string().meta({ contentMediaType: 'application/json' }),
+        z.literal(0),
+      ])
+      .meta({ id: 'Text' })
     const nested = BagOfRoutes.withoutVersioning()
       .addRoute(
         Route.get('/nested')
@@ -202,6 +207,69 @@ describe('query parameters', () => {
         encoding: 'json',
       },
     ])
+  })
+
+  test('a plain string beside an object is kept and reported', () => {
+    const mixed = BagOfRoutes.withoutVersioning()
+      .addRoute(
+        Route.get('/mixed')
+          .validate(
+            z.object({
+              query: z.object({
+                filter: z.union([z.string(), z.object({ tag: z.string() })]),
+                scope: z.union([z.enum(['all']), z.array(z.number())]),
+              }),
+            })
+          )
+          .response(204)
+      )
+      .build()
+    const result = build(mixed)
+
+    expect(result.operation('GET /mixed').parameters).toEqual([
+      {
+        name: 'filter',
+        in: 'query',
+        required: true,
+        shape: {
+          kind: 'union',
+          exclusive: false,
+          members: [
+            string,
+            {
+              kind: 'object',
+              fields: [{ name: 'tag', required: true, shape: string }],
+            },
+          ],
+        },
+        encoding: 'json',
+      },
+      {
+        name: 'scope',
+        in: 'query',
+        required: true,
+        shape: {
+          kind: 'union',
+          exclusive: false,
+          members: [
+            { kind: 'enum', values: ['all'] },
+            { kind: 'array', items: { kind: 'number', integer: false } },
+          ],
+        },
+        encoding: 'json',
+      },
+    ])
+    expect(codes(result)).toEqual(
+      ['filter', 'scope'].map((parameter) => ({
+        code: 'operation/mixed-query-encoding',
+        at: {
+          operation: 'GET /mixed',
+          slot: 'request',
+          pointer: `/properties/query/properties/${parameter}`,
+        },
+        data: { parameter },
+      }))
+    )
   })
 
   test('a union that refers back to itself is flattened once', () => {
