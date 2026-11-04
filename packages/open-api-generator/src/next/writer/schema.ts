@@ -1,5 +1,6 @@
 import { Diagnostic, diagnostic } from '../diagnostics/registry.js'
 import { stableStringify } from '../model/json.js'
+import { dereference } from '../model/shape.js'
 import type {
   ComponentName,
   Docs,
@@ -428,7 +429,67 @@ export const schemaWriter = ({
     }
   }
 
+  /** The JSON types of `shape`'s values; `undefined` when not one fixed set. */
+  const jsonTypes = (shape: Shape<ComponentName>) => {
+    const target = dereference(shape, types)
+    switch (target.kind) {
+      case 'never':
+        return []
+      case 'null':
+      case 'boolean':
+      case 'string':
+      case 'number':
+      case 'object':
+        return [target.kind]
+      case 'array':
+      case 'tuple':
+        return ['array']
+      case 'enum':
+        return target.values.map((value) => typeof value)
+      default:
+        return undefined
+    }
+  }
+
+  /** No value matches both `a` and `b`; `false` when not established. */
+  const disjoint = (a: Shape<ComponentName>, b: Shape<ComponentName>) => {
+    if (a.kind === 'null') return acceptsNull(b) === false
+    if (b.kind === 'null') return acceptsNull(a) === false
+    const [left, right] = [dereference(a, types), dereference(b, types)]
+    if (left.kind === 'enum' && right.kind === 'enum')
+      return !left.values.some((value) => right.values.includes(value))
+    const [leftTypes, rightTypes] = [jsonTypes(a), jsonTypes(b)]
+    return (
+      leftTypes !== undefined &&
+      rightTypes !== undefined &&
+      !leftTypes.some((type) => rightTypes.includes(type))
+    )
+  }
+
+  /** At most one member matches any value, so `oneOf` and `anyOf` agree. */
+  const disjointMembers = (members: readonly Shape<ComponentName>[]) => {
+    const objects = members.filter(({ kind }) => kind !== 'null')
+    const discriminated =
+      objects.length > 1 && inferDiscriminator(objects, types) !== undefined
+    return members.every((a, index) =>
+      members
+        .slice(index + 1)
+        .every(
+          (b) =>
+            (discriminated && a.kind !== 'null' && b.kind !== 'null') ||
+            disjoint(a, b)
+        )
+    )
+  }
+
   const union = (shape: Of<'union'>, pointer: string): SchemaObject => {
+    // the simplifications below hold for `oneOf` only when its members are disjoint
+    if (shape.exclusive && !disjointMembers(shape.members))
+      return {
+        oneOf: shape.members.map((member, index) =>
+          write(member, pointerTo(pointer, 'oneOf', index))
+        ),
+      }
     const members = shape.members.filter(({ kind }) => kind !== 'null')
     const withNull = members.length < shape.members.length
     if (members.length === 0) return nullSchema

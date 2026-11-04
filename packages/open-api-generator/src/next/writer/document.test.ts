@@ -328,6 +328,37 @@ describe.each(TARGETS)('OpenAPI %s nullable compositions', (target) => {
   })
 })
 
+describe.each(TARGETS)('OpenAPI %s exclusive unions', (target) => {
+  test.each([
+    [
+      'overlapping literals',
+      exclusive({ enum: ['a', 'b'] }, { enum: ['b', 'c'] }),
+      { accepts: ['a', 'c'], rejects: ['b', 'd'] },
+    ],
+    [
+      'an unknown member',
+      exclusive({}, { type: 'string' }),
+      { accepts: [1, null], rejects: ['a'] },
+    ],
+    [
+      'a null member beside a member that accepts null',
+      exclusive({ type: ['string', 'null'] }, { type: 'null' }),
+      { accepts: ['a'], rejects: [null, 1] },
+    ],
+  ])('with %s match exactly one member', (_, body, instances) => {
+    expectInstances(body, target, instances)
+  })
+
+  test('disjoint literals are one enum', () => {
+    const body = exclusive({ enum: ['a'] }, { enum: ['b', 'c'] })
+
+    expect(responseOf(body, target).schema).toMatchObject({
+      enum: ['a', 'b', 'c'],
+    })
+    expectInstances(body, target, { accepts: ['a', 'b', 'c'], rejects: ['d'] })
+  })
+})
+
 describe('binary strings in OpenAPI 3.0', () => {
   const target = TARGETS.find(
     (candidate) => CAPABILITIES[candidate].binary === 'format'
