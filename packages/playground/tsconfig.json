@@ -1,9 +1,12 @@
 {
     "extends": "../../tsconfig.base.json",
+    "include": ["src/**/*"],
     "compilerOptions": {
       "rootDir": "./src",
       "outDir": "./dist/cjs",
-      "composite": true
+      "composite": true,
+      "module": "esnext",
+      "types": ["node"]
     }
   }
   
